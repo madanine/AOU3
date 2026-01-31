@@ -17,7 +17,7 @@ const AdminAttendance: React.FC = () => {
   const [selectedLecture, setSelectedLecture] = useState<number | 'all'>(1);
   const [undoStack, setUndoStack] = useState<AttendanceRecord | null>(null);
   const [showToast, setShowToast] = useState(false);
-  
+
   const [confirmModal, setConfirmModal] = useState<{
     show: boolean;
     type: 'present' | 'absent';
@@ -27,20 +27,20 @@ const AdminAttendance: React.FC = () => {
   const activeSemId = settings.activeSemesterId;
 
   // Filter courses by assigned and active semester
-  const visibleCourses = (user?.role === 'admin' 
-    ? courses 
+  const visibleCourses = (user?.role === 'admin'
+    ? courses
     : courses.filter(c => user?.assignedCourses?.includes(c.id))
   ).filter(c => !activeSemId || c.semesterId === activeSemId);
 
   const lectures = Array.from({ length: 12 }, (_, i) => i + 1);
 
   const currentCourse = courses.find(c => c.id === selectedCourseId);
-  
+
   // Filter students: they must be enrolled in the SELECTED course AND SELECTED semester
-  const enrolledStudents = students.filter(s => 
-    enrollments.some(e => 
-      e.studentId === s.id && 
-      e.courseId === selectedCourseId && 
+  const enrolledStudents = students.filter(s =>
+    enrollments.some(e =>
+      e.studentId === s.id &&
+      e.courseId === selectedCourseId &&
       (!activeSemId || e.semesterId === activeSemId)
     )
   );
@@ -49,7 +49,7 @@ const AdminAttendance: React.FC = () => {
     setAttendance(prev => {
       const courseRecord = prev[selectedCourseId] || {};
       const studentArr = [...(courseRecord[studentId] || Array(12).fill(null))];
-      
+
       const current = studentArr[lectureIdx];
       if (current === null || current === undefined) {
         studentArr[lectureIdx] = true;
@@ -58,7 +58,7 @@ const AdminAttendance: React.FC = () => {
       } else {
         studentArr[lectureIdx] = true;
       }
-      
+
       return {
         ...prev,
         [selectedCourseId]: { ...courseRecord, [studentId]: studentArr }
@@ -71,7 +71,7 @@ const AdminAttendance: React.FC = () => {
     setAttendance(prev => {
       const courseRecord = { ...(prev[selectedCourseId] || {}) };
       const targets = scope === 'all' ? enrolledStudents : enrolledStudents.filter(s => selectedStudents.has(s.id));
-      
+
       targets.forEach(s => {
         const studentArr = [...(courseRecord[s.id] || Array(12).fill(null))];
         const val = type === 'present';
@@ -112,10 +112,10 @@ const AdminAttendance: React.FC = () => {
   const getCourseDataForExcel = (course: Course) => {
     const records = attendance[course.id] || {};
     // Re-filter students per course for bulk export
-    const studentsInCourse = students.filter(s => 
-      enrollments.some(e => 
-        e.studentId === s.id && 
-        e.courseId === course.id && 
+    const studentsInCourse = students.filter(s =>
+      enrollments.some(e =>
+        e.studentId === s.id &&
+        e.courseId === course.id &&
         (!activeSemId || e.semesterId === activeSemId)
       )
     );
@@ -141,14 +141,14 @@ const AdminAttendance: React.FC = () => {
 
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet([]);
-    
+
     XLSX.utils.sheet_add_aoa(ws, [
       [`اسم المادة: ${translate(course, 'title')}`],
       [`دكتور/ة المادة: ${translate(course, 'doctor')}`],
       [`الفصل الدراسي: ${semesterName}`],
       ['']
     ], { origin: 'A1' });
-    
+
     XLSX.utils.sheet_add_json(ws, data, { origin: 'A5' });
     XLSX.utils.book_append_sheet(wb, ws, course.code.substring(0, 31));
     XLSX.writeFile(wb, `${course.code}_${semesterName}_Attendance.xlsx`);
@@ -197,29 +197,29 @@ const AdminAttendance: React.FC = () => {
 
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-black text-gray-900 tracking-tight">{lang === 'AR' ? 'إدارة الحضور والغياب' : 'Attendance Mgmt'}</h1>
-          <p className="text-gray-500 font-medium">{user?.role === 'admin' ? 'نظام تحضير الطلاب المركزي' : 'موادك المسندة'}</p>
+          <h1 className="text-3xl font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>{lang === 'AR' ? 'إدارة الحضور والغياب' : 'Attendance Mgmt'}</h1>
+          <p className="font-medium" style={{ color: 'var(--text-secondary)' }}>{user?.role === 'admin' ? 'نظام تحضير الطلاب المركزي' : 'موادك المسندة'}</p>
         </div>
       </div>
 
       <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm flex flex-col md:flex-row gap-4 items-center">
         <div className="flex-1 w-full flex items-center gap-3 bg-gray-50 px-4 py-3 rounded-2xl border border-gray-100">
-           <BookOpen className="text-gray-400" size={20} />
-           <select 
-             className="w-full bg-transparent outline-none font-black text-xs uppercase tracking-widest text-gray-600"
-             value={selectedCourseId}
-             onChange={e => setSelectedCourseId(e.target.value)}
-           >
-             <option value="">— {lang === 'AR' ? 'اختر المادة' : 'Select Subject'} —</option>
-             {visibleCourses.map(c => <option key={c.id} value={c.id}>{c.code} - {translate(c, 'title')}</option>)}
-           </select>
+          <BookOpen className="text-gray-400" size={20} />
+          <select
+            className="w-full bg-transparent outline-none font-black text-xs uppercase tracking-widest text-gray-600"
+            value={selectedCourseId}
+            onChange={e => setSelectedCourseId(e.target.value)}
+          >
+            <option value="">— {lang === 'AR' ? 'اختر المادة' : 'Select Subject'} —</option>
+            {visibleCourses.map(c => <option key={c.id} value={c.id}>{c.code} - {translate(c, 'title')}</option>)}
+          </select>
         </div>
-        
+
         <div className="flex gap-2 w-full md:w-auto">
           {selectedCourseId && (
             <div className="flex items-center gap-2 bg-gray-50 px-4 py-3 rounded-2xl border border-gray-100">
               <span className="text-[10px] font-black text-gray-400 uppercase">{lang === 'AR' ? 'المحاضرة' : 'Lecture'}:</span>
-              <select 
+              <select
                 className="bg-transparent outline-none font-black text-xs text-gray-600"
                 value={selectedLecture}
                 onChange={e => setSelectedLecture(e.target.value === 'all' ? 'all' : parseInt(e.target.value))}
@@ -229,7 +229,7 @@ const AdminAttendance: React.FC = () => {
               </select>
             </div>
           )}
-          
+
           <div className="flex gap-2">
             {selectedCourseId && (
               <button onClick={() => exportCourseToExcel(currentCourse!)} className="px-6 py-3 bg-white border border-gray-200 text-gray-600 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-gray-50 transition-all flex items-center gap-2 whitespace-nowrap">
@@ -249,14 +249,14 @@ const AdminAttendance: React.FC = () => {
             <button onClick={() => setConfirmModal({ show: true, type: 'present', scope: 'all' })} className="px-4 py-2 bg-blue-50 text-blue-600 rounded-xl font-black text-[10px] uppercase tracking-widest border border-blue-100 hover:bg-blue-100 transition-all">{lang === 'AR' ? 'تحضير الكل' : 'Mark All Present'}</button>
             <button onClick={() => setConfirmModal({ show: true, type: 'absent', scope: 'all' })} className="px-4 py-2 bg-red-50 text-red-600 rounded-xl font-black text-[10px] uppercase tracking-widest border border-red-100 hover:bg-red-100 transition-all">{lang === 'AR' ? 'غياب الكل' : 'Mark All Absent'}</button>
             <div className="w-px h-8 bg-gray-100 mx-1"></div>
-            <button 
+            <button
               disabled={selectedStudents.size === 0}
               onClick={() => setConfirmModal({ show: true, type: 'present', scope: 'selected' })}
               className="px-4 py-2 bg-blue-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest disabled:opacity-30 transition-all shadow-md"
             >
               {lang === 'AR' ? 'تحضير المختار' : 'Mark Selected Present'}
             </button>
-            <button 
+            <button
               disabled={selectedStudents.size === 0}
               onClick={() => setConfirmModal({ show: true, type: 'absent', scope: 'selected' })}
               className="px-4 py-2 bg-red-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest disabled:opacity-30 transition-all shadow-md"
@@ -280,8 +280,8 @@ const AdminAttendance: React.FC = () => {
                   <th className="px-6 py-4 w-10">
                     <input type="checkbox" checked={selectedStudents.size === enrolledStudents.length} onChange={toggleAllStudents} className="w-4 h-4 rounded border-gray-300" />
                   </th>
-                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">{lang === 'AR' ? 'الرقم الجامعي' : 'ID'}</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">{t.fullName}</th>
+                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>{lang === 'AR' ? 'الرقم الجامعي' : 'ID'}</th>
+                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>{t.fullName}</th>
                   {lectures.map(l => (
                     <th key={l} className={`px-2 py-4 text-[10px] font-black text-center min-w-[40px] ${selectedLecture === l ? 'text-blue-600 bg-blue-50/50' : 'text-gray-400'}`}>م{l}</th>
                   ))}
@@ -294,9 +294,9 @@ const AdminAttendance: React.FC = () => {
                   return (
                     <tr key={student.id} className={`${isRowSelected ? 'bg-blue-50/20' : ''} hover:bg-gray-50/50 transition-colors`}>
                       <td className="px-6 py-4 text-center">
-                        <input 
-                          type="checkbox" 
-                          checked={isRowSelected} 
+                        <input
+                          type="checkbox"
+                          checked={isRowSelected}
                           onChange={() => {
                             const next = new Set(selectedStudents);
                             if (next.has(student.id)) next.delete(student.id);
@@ -306,11 +306,11 @@ const AdminAttendance: React.FC = () => {
                           className="w-4 h-4 rounded border-gray-300"
                         />
                       </td>
-                      <td className="px-6 py-4 text-xs font-mono font-bold text-gray-500">{student.universityId}</td>
-                      <td className="px-6 py-4 font-bold text-gray-900 text-sm whitespace-nowrap">{student.fullName}</td>
+                      <td className="px-6 py-4 text-xs font-mono font-bold" style={{ color: 'var(--text-secondary)' }}>{student.universityId}</td>
+                      <td className="px-6 py-4 font-bold text-sm whitespace-nowrap" style={{ color: 'var(--text-primary)' }}>{student.fullName}</td>
                       {lectures.map((_, i) => (
-                        <td key={i} className={`px-2 py-4 text-center ${selectedLecture === (i+1) ? 'bg-blue-50/10' : ''}`}>
-                          <button 
+                        <td key={i} className={`px-2 py-4 text-center ${selectedLecture === (i + 1) ? 'bg-blue-50/10' : ''}`}>
+                          <button
                             onClick={() => handleToggle(student.id, i)}
                             className={`p-1 rounded-lg transition-all ${record[i] === true ? 'text-emerald-500 bg-emerald-50' : (record[i] === false ? 'text-red-500 bg-red-50' : 'text-gray-300 bg-gray-50')}`}
                           >
@@ -327,8 +327,8 @@ const AdminAttendance: React.FC = () => {
         </div>
       ) : (
         <div className="bg-white rounded-[2.5rem] border border-dashed border-gray-200 py-32 text-center flex flex-col items-center gap-4">
-           <BookOpen className="text-gray-100" size={80} />
-           <p className="text-gray-300 font-black text-xs uppercase tracking-widest">{lang === 'AR' ? 'اختر مادة للبدء' : 'Select a subject to begin'}</p>
+          <BookOpen className="text-gray-100" size={80} />
+          <p className="text-gray-300 font-black text-xs uppercase tracking-widest">{lang === 'AR' ? 'اختر مادة للبدء' : 'Select a subject to begin'}</p>
         </div>
       )}
 
@@ -339,9 +339,9 @@ const AdminAttendance: React.FC = () => {
               <AlertTriangle size={32} />
             </div>
             <div>
-              <h3 className="text-lg font-black text-gray-900">{lang === 'AR' ? 'تأكيد العملية' : 'Confirm Action'}</h3>
-              <p className="text-sm text-gray-500 mt-2 font-medium">
-                {lang === 'AR' 
+              <h3 className="text-lg font-black" style={{ color: 'var(--text-primary)' }}>{lang === 'AR' ? 'تأكيد العملية' : 'Confirm Action'}</h3>
+              <p className="text-sm mt-2 font-medium" style={{ color: 'var(--text-secondary)' }}>
+                {lang === 'AR'
                   ? `أنت على وشك رصد (${confirmModal.type === 'present' ? 'حضور' : 'غياب'}) لـ (${confirmModal.scope === 'all' ? 'جميع الطلاب' : selectedStudents.size + ' طلاب مختارين'}) في (${selectedLecture === 'all' ? 'جميع المحاضرات' : 'المحاضرة م' + selectedLecture}). هل تريد الاستمرار؟`
                   : `Set ${confirmModal.type} for ${confirmModal.scope === 'all' ? 'ALL students' : selectedStudents.size + ' selected students'} in ${selectedLecture === 'all' ? 'ALL lectures' : 'Lecture م' + selectedLecture}?`
                 }

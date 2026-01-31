@@ -16,7 +16,7 @@ const AdminEnrollments: React.FC = () => {
   const [filterMode, setFilterMode] = useState<'all' | 'course' | 'student'>('all');
   const [courseFilter, setCourseFilter] = useState('');
   const [studentFilter, setStudentFilter] = useState('');
-  
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newEnrollment, setNewEnrollment] = useState({ studentId: '', courseId: '' });
   const [error, setError] = useState<string | null>(null);
@@ -57,9 +57,9 @@ const AdminEnrollments: React.FC = () => {
 
     // RULE 2: Previous semesters check (Search across all time)
     const targetCourse = courses.find(c => c.id === courseId);
-    const alreadyTaken = enrollments.some(e => 
-      e.studentId === studentId && 
-      (e.semesterId || 'sem-default') !== activeSemId && 
+    const alreadyTaken = enrollments.some(e =>
+      e.studentId === studentId &&
+      (e.semesterId || 'sem-default') !== activeSemId &&
       courses.find(c => c.id === e.courseId)?.code === targetCourse?.code
     );
 
@@ -81,7 +81,7 @@ const AdminEnrollments: React.FC = () => {
     setEnrollments(next);
     setIsModalOpen(false);
     setNewEnrollment({ studentId: '', courseId: '' });
-    
+
     setShowToast(true);
     setTimeout(() => setShowToast(false), 3000);
   };
@@ -123,8 +123,8 @@ const AdminEnrollments: React.FC = () => {
 
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-black text-gray-900 tracking-tight">{t.enrollments}</h1>
-          <p className="text-gray-500 font-medium">{lang === 'AR' ? 'إدارة تسجيلات الطلاب في المواد' : 'Manage student course registrations'}</p>
+          <h1 className="text-3xl font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>{t.enrollments}</h1>
+          <p className="font-medium" style={{ color: 'var(--text-secondary)' }}>{lang === 'AR' ? 'إدارة تسجيلات الطلاب في المواد' : 'Manage student course registrations'}</p>
         </div>
         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
           <SemesterControls />
@@ -136,9 +136,9 @@ const AdminEnrollments: React.FC = () => {
 
       <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm flex flex-col md:flex-row gap-4 items-center">
         <div className="flex items-center gap-2 bg-gray-50 p-1 rounded-xl border border-gray-100">
-           <button onClick={() => setFilterMode('all')} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${filterMode === 'all' ? 'bg-white text-[var(--primary)] shadow-sm' : 'text-gray-400'}`}>{t.filterAll}</button>
-           <button onClick={() => setFilterMode('course')} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${filterMode === 'course' ? 'bg-white text-[var(--primary)] shadow-sm' : 'text-gray-400'}`}>{t.filterByCourse}</button>
-           <button onClick={() => setFilterMode('student')} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${filterMode === 'student' ? 'bg-white text-[var(--primary)] shadow-sm' : 'text-gray-400'}`}>{t.filterByStudent}</button>
+          <button onClick={() => setFilterMode('all')} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${filterMode === 'all' ? 'bg-white text-[var(--primary)] shadow-sm' : 'text-gray-400'}`}>{t.filterAll}</button>
+          <button onClick={() => setFilterMode('course')} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${filterMode === 'course' ? 'bg-white text-[var(--primary)] shadow-sm' : 'text-gray-400'}`}>{t.filterByCourse}</button>
+          <button onClick={() => setFilterMode('student')} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${filterMode === 'student' ? 'bg-white text-[var(--primary)] shadow-sm' : 'text-gray-400'}`}>{t.filterByStudent}</button>
         </div>
 
         {filterMode === 'course' && (
@@ -164,9 +164,9 @@ const AdminEnrollments: React.FC = () => {
         <table className="w-full text-left">
           <thead>
             <tr className="bg-gray-50 border-b border-gray-100">
-              <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">{t.fullName}</th>
-              <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">{t.courseTitle}</th>
-              <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">{lang === 'AR' ? 'التاريخ' : 'Date'}</th>
+              <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>{t.fullName}</th>
+              <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>{t.courseTitle}</th>
+              <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>{lang === 'AR' ? 'التاريخ' : 'Date'}</th>
               <th className="px-6 py-4 w-10"></th>
             </tr>
           </thead>
@@ -178,17 +178,17 @@ const AdminEnrollments: React.FC = () => {
                 <tr key={e.id} className="hover:bg-gray-50/50 transition-colors">
                   <td className="px-6 py-4">
                     <div className="flex flex-col">
-                       <span className="font-bold text-gray-900">{student?.fullName}</span>
-                       <span className="text-[10px] font-mono text-gray-400">{student?.universityId}</span>
+                      <span className="font-bold" style={{ color: 'var(--text-primary)' }}>{student?.fullName}</span>
+                      <span className="text-[10px] font-mono" style={{ color: 'var(--text-secondary)' }}>{student?.universityId}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex flex-col">
-                       <span className="font-bold text-gray-900">{translate(course, 'title')}</span>
-                       <span className="text-[10px] font-black text-[var(--primary)] uppercase tracking-widest">{course?.code}</span>
+                      <span className="font-bold" style={{ color: 'var(--text-primary)' }}>{translate(course, 'title')}</span>
+                      <span className="text-[10px] font-black text-[var(--primary)] uppercase tracking-widest">{course?.code}</span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-xs font-bold text-gray-500">
+                  <td className="px-6 py-4 text-xs font-bold" style={{ color: 'var(--text-secondary)' }}>
                     {new Date(e.enrolledAt).toLocaleDateString()}
                   </td>
                   <td className="px-6 py-4">
@@ -210,10 +210,10 @@ const AdminEnrollments: React.FC = () => {
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in">
           <div className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95">
             <div className="p-8 border-b flex justify-between items-center">
-              <h2 className="text-xl font-black text-gray-900">{lang === 'AR' ? 'إضافة تسجيل جديد' : 'Add New Enrollment'}</h2>
+              <h2 className="text-xl font-black" style={{ color: 'var(--text-primary)' }}>{lang === 'AR' ? 'إضافة تسجيل جديد' : 'Add New Enrollment'}</h2>
               <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600"><X size={24} /></button>
             </div>
-            
+
             <form onSubmit={handleAddEnrollment} className="p-8 space-y-6">
               {error && (
                 <div className="p-4 bg-red-50 border border-red-100 rounded-2xl flex items-center gap-3 text-red-600 animate-in shake">
@@ -224,10 +224,10 @@ const AdminEnrollments: React.FC = () => {
 
               <div className="space-y-4">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black uppercase text-gray-400 ml-1">{t.students}</label>
+                  <label className="text-[10px] font-black uppercase ml-1" style={{ color: 'var(--text-secondary)' }}>{t.students}</label>
                   <div className="relative">
                     <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" size={16} />
-                    <select required value={newEnrollment.studentId} onChange={e => setNewEnrollment({...newEnrollment, studentId: e.target.value})} className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-100 rounded-xl outline-none font-bold text-xs">
+                    <select required value={newEnrollment.studentId} onChange={e => setNewEnrollment({ ...newEnrollment, studentId: e.target.value })} className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-100 rounded-xl outline-none font-bold text-xs">
                       <option value="">{lang === 'AR' ? 'اختر الطالب' : 'Select Student'}</option>
                       {students.map(s => <option key={s.id} value={s.id}>{s.universityId} - {s.fullName}</option>)}
                     </select>
@@ -235,10 +235,10 @@ const AdminEnrollments: React.FC = () => {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black uppercase text-gray-400 ml-1">{t.courses}</label>
+                  <label className="text-[10px] font-black uppercase ml-1" style={{ color: 'var(--text-secondary)' }}>{t.courses}</label>
                   <div className="relative">
                     <BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" size={16} />
-                    <select required value={newEnrollment.courseId} onChange={e => setNewEnrollment({...newEnrollment, courseId: e.target.value})} className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-100 rounded-xl outline-none font-bold text-xs">
+                    <select required value={newEnrollment.courseId} onChange={e => setNewEnrollment({ ...newEnrollment, courseId: e.target.value })} className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-100 rounded-xl outline-none font-bold text-xs">
                       <option value="">{lang === 'AR' ? 'اختر المادة' : 'Select Course'}</option>
                       {courses.filter(c => !settings.activeSemesterId || c.semesterId === settings.activeSemesterId).map(c => <option key={c.id} value={c.id}>{c.code} - {translate(c, 'title')}</option>)}
                     </select>
