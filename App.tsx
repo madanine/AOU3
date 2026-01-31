@@ -56,13 +56,18 @@ const App: React.FC = () => {
   const [user, setUserState] = useState<User | null>(storage.getAuthUser());
   const [lang, setLangState] = useState<Language>(storage.getLanguage() as Language);
   const [settings, setSettings] = useState<SiteSettings>(storage.getSettings());
-  
+
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const stored = localStorage.getItem('aou_dark_mode');
     return stored === 'true';
   });
 
   const t = TRANSLATIONS[lang];
+
+  useEffect(() => {
+    storage.seed();
+  }, []);
+
 
   useEffect(() => {
     const root = document.documentElement;
@@ -77,7 +82,7 @@ const App: React.FC = () => {
     root.style.setProperty('--primary', currentTheme.primary);
     root.style.setProperty('--secondary', currentTheme.secondary);
     root.style.setProperty('--accent', currentTheme.accent);
-    
+
     localStorage.setItem('aou_dark_mode', isDarkMode.toString());
   }, [isDarkMode, settings.theme, settings.darkTheme]);
 
@@ -112,15 +117,15 @@ const App: React.FC = () => {
   }, [lang, t.dir]);
 
   return (
-    <AppContext.Provider value={{ 
+    <AppContext.Provider value={{
       user, setUser, lang, setLang, t, settings, updateSettings, translate,
-      isDarkMode, toggleDarkMode 
+      isDarkMode, toggleDarkMode
     }}>
       <Router>
         <Routes>
           <Route path="/auth/login" element={!user ? <LoginPage /> : <Navigate to={user.role === 'admin' ? "/admin/dashboard" : (user.role === 'supervisor' ? "/supervisor/attendance" : "/student/registration")} />} />
           <Route path="/auth/signup" element={!user ? <SignupPage /> : <Navigate to="/student/registration" />} />
-          
+
           <Route element={user ? <MainLayout /> : <Navigate to="/auth/login" />}>
             {/* Student Routes */}
             <Route path="/student/registration" element={<StudentRegistration />} />
