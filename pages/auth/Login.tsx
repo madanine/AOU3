@@ -5,10 +5,10 @@ import { useApp } from '../../App';
 import { storage } from '../../storage';
 import { api } from '../../api';
 import { Language } from '../../types';
-import { KeyRound, User as UserIcon, ArrowRight, ShieldAlert } from 'lucide-react';
+import { KeyRound, User as UserIcon, ArrowRight, ShieldAlert, Sun, Moon } from 'lucide-react';
 
 const LoginPage: React.FC = () => {
-  const { setUser, t, lang, setLang, settings } = useApp();
+  const { setUser, t, lang, setLang, settings, isDarkMode, toggleDarkMode } = useApp();
   const navigate = useNavigate();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
@@ -171,17 +171,33 @@ const LoginPage: React.FC = () => {
             </div>
           </form>
 
-          <div className="p-6 flex justify-center gap-6 border-t" style={{ borderColor: 'var(--border-color)' }}>
-            {(['AR', 'EN', 'FR', 'RU'] as Language[]).map(l => (
+          <div className="p-6 flex flex-col gap-4 border-t" style={{ borderColor: 'var(--border-color)' }}>
+            <div className="flex justify-center gap-6">
+              {(['AR', 'EN', 'FR', 'RU'] as Language[]).map(l => (
+                <button
+                  key={l}
+                  onClick={() => setLang(l)}
+                  className={`text-[10px] font-black tracking-widest transition-all`}
+                  style={{ color: lang === l ? 'var(--text-primary)' : 'var(--text-secondary)' }}
+                >
+                  {l}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex justify-center">
               <button
-                key={l}
-                onClick={() => setLang(l)}
-                className={`text-[10px] font-black tracking-widest transition-all`}
-                style={{ color: lang === l ? 'var(--text-primary)' : 'var(--text-secondary)' }}
+                onClick={toggleDarkMode}
+                className="p-2 rounded-full transition-colors hover:bg-black/5 flex items-center gap-2"
+                title="Toggle Dark Mode"
+                style={{ color: 'var(--text-secondary)' }}
               >
-                {l}
+                {isDarkMode ? <Sun size={16} /> : <Moon size={16} />}
+                <span className="text-[10px] font-black uppercase tracking-widest">
+                  {isDarkMode ? (lang === 'AR' ? 'نهاري' : 'Light') : (lang === 'AR' ? 'ليلي' : 'Dark')}
+                </span>
               </button>
-            ))}
+            </div>
           </div>
         </div>
       </div>
