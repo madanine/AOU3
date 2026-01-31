@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useApp } from '../../App';
 import { storage } from '../../storage';
+import { api } from '../../api';
 import { Language } from '../../types';
 import { KeyRound, User as UserIcon, ArrowRight, ShieldAlert } from 'lucide-react';
 
@@ -16,14 +17,38 @@ const LoginPage: React.FC = () => {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    // Switch to Real API Login
+    try {
+      // 1. Attempt Real Database Login
+      const result = await api.login(identifier, password);
+
+      if (result.success && result.user) {
+        // Success
+        setUser(result.user);
+        const target = result.user.role === 'admin' ? '/admin/dashboard' :
+          result.user.role === 'supervisor' ? '/supervisor/attendance' :
+            '/student/registration';
+        navigate(target);
+        return;
+      } else if (result.error) {
+        // API returned an explicit error
+        setError(lang === 'AR' ? 'بيانات الاعتماد غير صالحة' : result.error);
+        return;
+      }
+    } catch (err) {
+      // Fallback or Network Error
+      console.error("API Login failed, trying local fallback for demo...", err);
+    }
+
+    // --- FALLBACK TO LOCAL STORAGE (FOR DEMO/DEV PURPOSES) ---
     const users = storage.getUsers();
-    
+
     // 1. Check existing users (Main Admin / Student / Supervisor)
-    let foundUser = users.find(u => 
-      (u.email === identifier || u.universityId === identifier) && 
+    let foundUser = users.find(u =>
+      (u.email === identifier || u.universityId === identifier) &&
       u.password === password
     );
-    
+
     // 2. Check Sub-Admins from separate storage
     if (!foundUser) {
       const subAdmins = JSON.parse(localStorage.getItem('subAdmins') || '[]');
@@ -42,7 +67,7 @@ const LoginPage: React.FC = () => {
         } as any;
       }
     }
-    
+
     if (foundUser) {
       // Check if account is disabled
       if (foundUser.isDisabled) {
@@ -51,12 +76,12 @@ const LoginPage: React.FC = () => {
       }
 
       setUser(foundUser);
-      const target = foundUser.role === 'admin' ? '/admin/dashboard' : 
-                     foundUser.role === 'supervisor' ? '/supervisor/attendance' : 
-                     '/student/registration';
+      const target = foundUser.role === 'admin' ? '/admin/dashboard' :
+        foundUser.role === 'supervisor' ? '/supervisor/attendance' :
+          '/student/registration';
       navigate(target);
     } else {
-      setError(lang === 'AR' ? 'بيانات الاعتماد غير صالحة' : 'Invalid credentials');
+      setError(lang === 'AR' ? 'بيانات الاعتماد غير صالحة' : 'Invalid credentials (API & Local failed)');
     }
   };
 
