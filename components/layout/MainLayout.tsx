@@ -3,13 +3,13 @@ import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { useApp } from '../../App';
 import { Language } from '../../types';
-import { 
-  LayoutDashboard, 
-  BookOpen, 
-  Users, 
-  FileSpreadsheet, 
-  Settings, 
-  LogOut, 
+import {
+  LayoutDashboard,
+  BookOpen,
+  Users,
+  FileSpreadsheet,
+  Settings,
+  LogOut,
   User as UserIcon,
   Library,
   GraduationCap,
@@ -97,12 +97,12 @@ const MainLayout: React.FC = () => {
   };
 
   const menuItems = getMenuItems();
-  
+
   const isAuthorized = () => {
     if (user?.role !== 'admin') return true;
     const isSubAdmin = !!(user as any).permissions;
     if (!isSubAdmin) return true;
-    
+
     const perms = (user as any).permissions;
     const fullAccess = (user as any).fullAccess !== false;
     if (fullAccess) return true;
@@ -127,28 +127,28 @@ const MainLayout: React.FC = () => {
       {/* Mobile Header */}
       <div className="md:hidden flex items-center justify-between p-4 border-b sticky top-0 z-50 shadow-sm" style={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)' }}>
         <div className="flex items-center gap-2">
-           {settings.branding.logoBase64 ? (
-             <img src={settings.branding.logoBase64} alt="Logo" className="w-8 h-8 object-contain" />
-           ) : (
-             <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold" style={{ backgroundColor: 'var(--primary)' }}>A</div>
-           )}
-           <div className="flex flex-col">
+          {settings.branding.logoBase64 ? (
+            <img src={settings.branding.logoBase64} alt="Logo" className="w-8 h-8 object-contain" />
+          ) : (
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold" style={{ backgroundColor: 'var(--primary)' }}>A</div>
+          )}
+          <div className="flex flex-col">
             <span className="font-bold text-[10px] tracking-tight leading-none" style={{ color: 'var(--text-primary)' }}>
               {isRtl ? settings.branding.siteNameAr : settings.branding.siteNameEn}
             </span>
             <span className="text-[8px] font-bold opacity-70" style={{ color: 'var(--text-primary)' }}>{t.regionalCenter}</span>
-           </div>
+          </div>
         </div>
         <div className="flex items-center gap-2">
-          <button 
+          <button
             onClick={toggleDarkMode}
             className="p-2 rounded-lg transition-colors"
             style={{ color: 'var(--text-secondary)' }}
           >
             {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
           </button>
-          <button 
-            onClick={() => setSidebarOpen(!sidebarOpen)} 
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
             className="p-2 rounded-lg transition-colors"
             style={{ color: 'var(--text-secondary)' }}
           >
@@ -190,11 +190,10 @@ const MainLayout: React.FC = () => {
                   key={item.path}
                   to={item.path}
                   onClick={closeSidebar}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-semibold ${
-                    isActive ? 'shadow-lg' : ''
-                  }`}
-                  style={{ 
-                    backgroundColor: isActive ? 'var(--primary)' : 'transparent', 
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-semibold ${isActive ? 'shadow-lg' : ''
+                    }`}
+                  style={{
+                    backgroundColor: isActive ? 'var(--primary)' : 'transparent',
                     color: isActive ? '#fff' : 'var(--text-secondary)'
                   }}
                 >
@@ -207,7 +206,7 @@ const MainLayout: React.FC = () => {
 
           <div className="mt-auto pt-6 border-t border-[var(--border-color)] space-y-4">
             {/* Language Switcher Inside App */}
-            <div className="flex justify-center gap-4 py-4 border-b border-[var(--border-color)]">
+            <div className="flex justify-center gap-4 py-4 border-b border-[var(--border-color)] items-center">
               {(['AR', 'EN', 'FR', 'RU'] as Language[]).map(l => (
                 <button
                   key={l}
@@ -218,6 +217,15 @@ const MainLayout: React.FC = () => {
                   {l}
                 </button>
               ))}
+              <div className="w-px h-4 bg-[var(--border-color)] mx-1"></div>
+              <button
+                onClick={toggleDarkMode}
+                className="p-1 rounded-lg transition-colors hover:bg-black/5"
+                style={{ color: 'var(--text-secondary)' }}
+                title={isDarkMode ? 'Light Mode' : 'Dark Mode'}
+              >
+                {isDarkMode ? <Sun size={16} /> : <Moon size={16} />}
+              </button>
             </div>
 
             <div className="flex items-center justify-between gap-3 mb-2">
@@ -230,7 +238,7 @@ const MainLayout: React.FC = () => {
                   <span className="text-[8px] font-bold text-gray-400 uppercase tracking-tighter">{user?.role}</span>
                 </div>
               </div>
-              <button 
+              <button
                 onClick={handleLogout}
                 className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
                 title={t.logout}
@@ -249,8 +257,8 @@ const MainLayout: React.FC = () => {
 
       {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 md:hidden" 
+        <div
+          className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 md:hidden"
           onClick={closeSidebar}
         />
       )}

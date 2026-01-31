@@ -188,14 +188,11 @@ const LoginPage: React.FC = () => {
             <div className="flex justify-center">
               <button
                 onClick={toggleDarkMode}
-                className="p-2 rounded-full transition-colors hover:bg-black/5 flex items-center gap-2"
+                className="p-3 rounded-full transition-colors hover:bg-black/5 flex items-center justify-center"
                 title="Toggle Dark Mode"
                 style={{ color: 'var(--text-secondary)' }}
               >
-                {isDarkMode ? <Sun size={16} /> : <Moon size={16} />}
-                <span className="text-[10px] font-black uppercase tracking-widest">
-                  {isDarkMode ? (lang === 'AR' ? 'نهاري' : 'Light') : (lang === 'AR' ? 'ليلي' : 'Dark')}
-                </span>
+                {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
               </button>
             </div>
           </div>
