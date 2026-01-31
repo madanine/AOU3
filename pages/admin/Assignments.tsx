@@ -13,7 +13,7 @@ const AdminAssignments: React.FC = () => {
   const [selectedCourseId, setSelectedCourseId] = useState<string>('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  
+
   const [formData, setFormData] = useState<Partial<Assignment>>({
     title: '',
     subtitle: '',
@@ -57,7 +57,7 @@ const AdminAssignments: React.FC = () => {
       const next = assignments.filter(a => a.id !== id);
       setAssignments(next);
       storage.setAssignments(next);
-      
+
       const subs = storage.getSubmissions();
       storage.setSubmissions(subs.filter(s => s.assignmentId !== id));
     }
@@ -109,8 +109,8 @@ const AdminAssignments: React.FC = () => {
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-black text-gray-900 tracking-tight">{t.assignments}</h1>
-          <p className="text-gray-500 font-medium">{lang === 'AR' ? 'إدارة التكاليف والاختبارات' : 'Manage course assignments and tests'}</p>
+          <h1 className="text-3xl font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>{t.assignments}</h1>
+          <p className="font-medium" style={{ color: 'var(--text-secondary)' }}>{lang === 'AR' ? 'إدارة التكاليف والاختبارات' : 'Manage course assignments and tests'}</p>
         </div>
         <SemesterControls />
       </div>
@@ -118,7 +118,7 @@ const AdminAssignments: React.FC = () => {
       <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm flex flex-col md:flex-row gap-4 items-center">
         <div className="flex-1 w-full flex items-center gap-3 bg-gray-50 px-4 py-3 rounded-2xl border border-gray-100">
           <BookOpen className="text-gray-400" size={20} />
-          <select 
+          <select
             className="w-full bg-transparent outline-none font-black text-xs uppercase tracking-widest text-gray-600"
             value={selectedCourseId}
             onChange={e => setSelectedCourseId(e.target.value)}
@@ -127,8 +127,8 @@ const AdminAssignments: React.FC = () => {
             {courses.map(c => <option key={c.id} value={c.id}>{c.code} - {translate(c, 'title')}</option>)}
           </select>
         </div>
-        
-        <button 
+
+        <button
           disabled={!selectedCourseId}
           onClick={openAdd}
           className="bg-[var(--primary)] text-white px-6 py-3 rounded-2xl font-black shadow-xl hover:brightness-110 active:scale-95 transition-all flex items-center gap-2 text-xs uppercase tracking-widest disabled:opacity-30 disabled:grayscale"
@@ -150,7 +150,7 @@ const AdminAssignments: React.FC = () => {
                   <button onClick={() => handleDelete(a.id)} className="p-2 text-gray-400 hover:text-red-500 transition-colors"><Trash2 size={18} /></button>
                 </div>
               </div>
-              
+
               <h3 className="text-lg font-black text-gray-900 mb-1">{a.title}</h3>
               <p className="text-xs font-medium text-gray-500 line-clamp-2 mb-4">{a.subtitle}</p>
 
@@ -169,8 +169,8 @@ const AdminAssignments: React.FC = () => {
         </div>
       ) : (
         <div className="bg-white rounded-[2.5rem] border border-dashed border-gray-200 py-32 text-center flex flex-col items-center gap-4">
-           <BookOpen className="text-gray-100" size={80} />
-           <p className="text-gray-300 font-black text-xs uppercase tracking-widest">{lang === 'AR' ? 'اختر مادة للبدء' : 'Select a subject to begin'}</p>
+          <BookOpen className="text-gray-100" size={80} />
+          <p className="text-gray-300 font-black text-xs uppercase tracking-widest">{lang === 'AR' ? 'اختر مادة للبدء' : 'Select a subject to begin'}</p>
         </div>
       )}
 
@@ -181,16 +181,16 @@ const AdminAssignments: React.FC = () => {
               <h2 className="text-xl font-black text-gray-900">{editingId ? t.editAssignment : t.addAssignment}</h2>
               <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600"><X size={24} /></button>
             </div>
-            
+
             <form onSubmit={handleSubmit} className="p-8 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-[10px] font-black uppercase text-gray-400 ml-1">{lang === 'AR' ? 'العنوان الرئيسي' : 'Main Title'}</label>
-                  <input required value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl outline-none font-bold" />
+                  <input required value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl outline-none font-bold" />
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-black uppercase text-gray-400 ml-1">{t.assignmentType}</label>
-                  <select value={formData.type} onChange={e => setFormData({...formData, type: e.target.value as any})} className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl outline-none font-bold text-xs uppercase">
+                  <select value={formData.type} onChange={e => setFormData({ ...formData, type: e.target.value as any })} className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl outline-none font-bold text-xs uppercase">
                     <option value="file">{t.fileUpload}</option>
                     <option value="mcq">{t.mcq}</option>
                     <option value="essay">{t.essay}</option>
@@ -200,17 +200,17 @@ const AdminAssignments: React.FC = () => {
 
               <div className="space-y-1">
                 <label className="text-[10px] font-black uppercase text-gray-400 ml-1">{lang === 'AR' ? 'العنوان الفرعي / التعليمات' : 'Subtitle / Instructions'}</label>
-                <textarea value={formData.subtitle} onChange={e => setFormData({...formData, subtitle: e.target.value})} className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl outline-none font-bold text-sm min-h-[100px]" />
+                <textarea value={formData.subtitle} onChange={e => setFormData({ ...formData, subtitle: e.target.value })} className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl outline-none font-bold text-sm min-h-[100px]" />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-[10px] font-black uppercase text-gray-400 ml-1">{t.deadline}</label>
-                  <input type="datetime-local" required value={formData.deadline} onChange={e => setFormData({...formData, deadline: e.target.value})} className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl outline-none font-bold" />
+                  <input type="datetime-local" required value={formData.deadline} onChange={e => setFormData({ ...formData, deadline: e.target.value })} className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl outline-none font-bold" />
                 </div>
                 <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl border border-gray-100 mt-5">
-                   <input type="checkbox" id="show-results" checked={formData.showResults} onChange={e => setFormData({...formData, showResults: e.target.checked})} className="w-4 h-4 rounded border-gray-300" />
-                   <label htmlFor="show-results" className="text-xs font-black uppercase text-gray-600 cursor-pointer">{t.showResults}</label>
+                  <input type="checkbox" id="show-results" checked={formData.showResults} onChange={e => setFormData({ ...formData, showResults: e.target.checked })} className="w-4 h-4 rounded border-gray-300" />
+                  <label htmlFor="show-results" className="text-xs font-black uppercase text-gray-600 cursor-pointer">{t.showResults}</label>
                 </div>
               </div>
 
@@ -219,7 +219,7 @@ const AdminAssignments: React.FC = () => {
                   <div className="flex justify-between items-center">
                     <h3 className="text-sm font-black uppercase tracking-widest text-gray-400">{t.questions}</h3>
                     <button type="button" onClick={handleAddQuestion} className="px-4 py-2 bg-blue-50 text-[var(--primary)] text-[10px] font-black uppercase rounded-lg border border-blue-100 hover:bg-blue-100 transition-all flex items-center gap-2">
-                       <Plus size={14} /> {t.addQuestion}
+                      <Plus size={14} /> {t.addQuestion}
                     </button>
                   </div>
 
@@ -227,36 +227,36 @@ const AdminAssignments: React.FC = () => {
                     {formData.questions?.map((q, idx) => (
                       <div key={q.id} className="p-6 bg-gray-50 rounded-2xl border border-gray-100 space-y-4 relative group">
                         <button type="button" onClick={() => handleRemoveQuestion(idx)} className="absolute -top-3 -right-3 w-8 h-8 bg-white border border-red-100 text-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all shadow-sm"><X size={14} /></button>
-                        
+
                         <div className="flex gap-4">
-                          <span className="w-8 h-8 rounded-lg bg-gray-200 text-gray-500 flex items-center justify-center font-black text-xs shrink-0 mt-1">{idx+1}</span>
+                          <span className="w-8 h-8 rounded-lg bg-gray-200 text-gray-500 flex items-center justify-center font-black text-xs shrink-0 mt-1">{idx + 1}</span>
                           <input required placeholder={lang === 'AR' ? 'نص السؤال' : 'Question text'} value={q.text} onChange={e => handleQuestionChange(idx, 'text', e.target.value)} className="w-full px-4 py-2 bg-white border border-gray-100 rounded-xl outline-none font-bold text-sm" />
                         </div>
 
                         {formData.type === 'mcq' && (
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pl-12">
-                             {q.options?.map((opt, oIdx) => (
-                               <div key={oIdx} className="flex items-center gap-2">
-                                  <input 
-                                    type="radio" 
-                                    name={`correct-${q.id}`} 
-                                    checked={q.correctAnswer === opt && opt !== ''} 
-                                    onChange={() => handleQuestionChange(idx, 'correctAnswer', opt)}
-                                    disabled={!opt}
-                                    className="w-4 h-4 text-[var(--primary)] focus:ring-[var(--primary)]"
-                                  />
-                                  <input 
-                                    placeholder={lang === 'AR' ? `الخيار ${oIdx+1}` : `Option ${oIdx+1}`} 
-                                    value={opt} 
-                                    onChange={e => {
-                                      const nextOpts = [...(q.options || [])];
-                                      nextOpts[oIdx] = e.target.value;
-                                      handleQuestionChange(idx, 'options', nextOpts);
-                                    }} 
-                                    className="w-full px-3 py-1.5 bg-white border border-gray-100 rounded-lg outline-none text-xs font-bold" 
-                                  />
-                               </div>
-                             ))}
+                            {q.options?.map((opt, oIdx) => (
+                              <div key={oIdx} className="flex items-center gap-2">
+                                <input
+                                  type="radio"
+                                  name={`correct-${q.id}`}
+                                  checked={q.correctAnswer === opt && opt !== ''}
+                                  onChange={() => handleQuestionChange(idx, 'correctAnswer', opt)}
+                                  disabled={!opt}
+                                  className="w-4 h-4 text-[var(--primary)] focus:ring-[var(--primary)]"
+                                />
+                                <input
+                                  placeholder={lang === 'AR' ? `الخيار ${oIdx + 1}` : `Option ${oIdx + 1}`}
+                                  value={opt}
+                                  onChange={e => {
+                                    const nextOpts = [...(q.options || [])];
+                                    nextOpts[oIdx] = e.target.value;
+                                    handleQuestionChange(idx, 'options', nextOpts);
+                                  }}
+                                  className="w-full px-3 py-1.5 bg-white border border-gray-100 rounded-lg outline-none text-xs font-bold"
+                                />
+                              </div>
+                            ))}
                           </div>
                         )}
                       </div>
