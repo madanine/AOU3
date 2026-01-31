@@ -30,8 +30,9 @@ const LoginPage: React.FC = () => {
             '/student/registration';
         navigate(target);
         return;
-      } else if (result.error) {
-        // API returned an explicit error
+      } else if (result.error && result.error !== "Network error or server unavailable") {
+        // API returned an explicit CREDENTIALS error (e.g. wrong password), so we stop here.
+        // We only fall back if the API itself is down/unreachable.
         setError(lang === 'AR' ? 'بيانات الاعتماد غير صالحة' : result.error);
         return;
       }
