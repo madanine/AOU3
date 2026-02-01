@@ -167,8 +167,15 @@ export const storage = {
       updatedUsers.push(admin);
     }
 
+    // Safety check: ensure all local users have valid UUIDs
+    updatedUsers = updatedUsers.map(u => {
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(u.id);
+      if (!isUUID) return { ...u, id: crypto.randomUUID() };
+      return u;
+    });
+
     localStorage.setItem(KEYS.USERS, JSON.stringify(updatedUsers));
-    supabaseService.upsertUser(admin).catch(console.error);
+    supabaseService.upsertUser(admin).catch(() => { }); // Silence seed errors
 
     // 2. SEED COURSES (Additive)
     const existingCourses = storage.getCourses();

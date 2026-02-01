@@ -65,8 +65,10 @@ export const supabaseService = {
     },
 
     async upsertUser(user: User) {
-        const { error } = await supabase.from('profiles').upsert({
-            id: user.id, // Always send the ID (now guaranteed to be UUID or valid string)
+        // Safe check: and UUID must follow the standard pattern
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(user.id);
+
+        const payload: any = {
             email: user.email || `${user.universityId}@aou.edu`,
             full_name: user.fullName,
             role: user.role,
@@ -77,9 +79,17 @@ export const supabaseService = {
             assigned_courses: user.assignedCourses || [],
             supervisor_permissions: user.supervisorPermissions || null,
             is_disabled: user.isDisabled || false
-        }, {
+        };
+
+        // Only include ID if it's a valid UUID to avoid DB cast errors
+        if (isUUID) {
+            payload.id = user.id;
+        }
+
+        const { error } = await supabase.from('profiles').upsert(payload, {
             onConflict: 'university_id'
         });
+
         if (error) {
             console.error('Supabase Upsert Error:', error);
             throw error;
