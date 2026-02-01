@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../App';
 import { storage } from '../../storage';
+import { supabaseService } from '../../supabaseService';
 import { FileSpreadsheet, Download, Info, RefreshCw } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import SemesterControls from '../../components/admin/SemesterControls';
@@ -21,37 +22,54 @@ const AdminExport: React.FC = () => {
     }, 500);
   };
 
-  const exportToExcel = () => {
-    const students = storage.getUsers().filter(u => u.role === 'student');
-    const courses = storage.getCourses();
+  const [isExporting, setIsExporting] = useState(false);
 
-    const data = enrollments.map(e => {
-      const s = students.find(stu => stu.id === e.studentId || stu.universityId === e.studentId);
-      const c = courses.find(cou => cou.id === e.courseId || cou.code === e.courseId);
-      return {
-        [t.universityId]: s?.universityId || e.studentId,
-        [t.fullName]: s?.fullName || (lang === 'AR' ? 'طالب غير مسجل' : 'Unknown Student'),
-        [t.password]: s?.password || '—',
-        [t.email]: s?.email || '—',
-        [t.phone]: s?.phone || '—',
-        [t.major]: s?.major ? (t.majorList[s.major] || s.major) : '—',
-        [t.courseCode]: c?.code || e.courseId,
-        [t.courseTitle]: lang === 'AR' ? (c?.title_ar || c?.title) : (c?.title || c?.title_ar),
-        'التاريخ': new Date(e.enrolledAt).toLocaleString(lang === 'AR' ? 'ar-SA' : 'en-US')
-      };
-    });
+  const exportToExcel = async () => {
+    setIsExporting(true);
+    try {
+      // Fetch latest students from Supabase to ensure lookup works
+      const students = await supabaseService.getUsers();
+      const courses = storage.getCourses();
 
-    const worksheet = XLSX.utils.json_to_sheet(data);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Enrollments');
+      const data = enrollments.map(e => {
+        // Find student by ID or University ID (to support both legacy and UUID data)
+        const s = students.find(stu =>
+          stu.id === e.studentId ||
+          stu.universityId === e.studentId ||
+          stu.email === e.studentId
+        );
+        const c = courses.find(cou => cou.id === e.courseId || cou.code === e.courseId);
 
-    worksheet['!cols'] = [
-      { wch: 15 }, { wch: 25 }, { wch: 20 }, { wch: 30 }, { wch: 15 },
-      { wch: 25 }, { wch: 15 }, { wch: 30 }, { wch: 25 }
-    ];
+        return {
+          [t.universityId]: s?.universityId || e.studentId,
+          [t.fullName]: s?.fullName || (lang === 'AR' ? 'طالب غير مسجل' : 'Unknown Student'),
+          [t.password]: s?.password || '—',
+          [t.email]: s?.email || '—',
+          [t.phone]: s?.phone || '—',
+          [t.major]: s?.major ? (t.majorList[s.major] || s.major) : '—',
+          [t.courseCode]: c?.code || e.courseId,
+          [t.courseTitle]: lang === 'AR' ? (c?.title_ar || c?.title) : (c?.title || c?.title_ar),
+          'التاريخ': new Date(e.enrolledAt).toLocaleString(lang === 'AR' ? 'ar-SA' : 'en-US')
+        };
+      });
 
-    const semesterName = storage.getSemesters().find(s => s.id === settings.activeSemesterId)?.name || 'MASTER';
-    XLSX.writeFile(workbook, `AOU_${semesterName}_Enrollments_${new Date().toISOString().split('T')[0]}.xlsx`);
+      const worksheet = XLSX.utils.json_to_sheet(data);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Enrollments');
+
+      worksheet['!cols'] = [
+        { wch: 15 }, { wch: 25 }, { wch: 20 }, { wch: 30 }, { wch: 15 },
+        { wch: 25 }, { wch: 15 }, { wch: 30 }, { wch: 25 }
+      ];
+
+      const semesterName = storage.getSemesters().find(s => s.id === settings.activeSemesterId)?.name || 'MASTER';
+      XLSX.writeFile(workbook, `AOU_${semesterName}_Enrollments_${new Date().toISOString().split('T')[0]}.xlsx`);
+    } catch (err) {
+      console.error('Export failed:', err);
+      alert(lang === 'AR' ? 'فشل جلب بيانات الطلاب للتصدير' : 'Failed to fetch student data for export');
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   // Safely get the count text
@@ -100,11 +118,15 @@ const AdminExport: React.FC = () => {
 
         <button
           onClick={exportToExcel}
-          disabled={enrollments.length === 0}
+          disabled={enrollments.length === 0 || isExporting}
           className="w-full max-w-sm py-5 bg-emerald-500 text-white font-black rounded-3xl shadow-xl shadow-emerald-900/10 hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-4 mx-auto disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed uppercase text-xs tracking-widest"
         >
-          <Download size={24} />
-          {t.exportExcel}
+          {isExporting ? (
+            <RefreshCw size={24} className="animate-spin" />
+          ) : (
+            <Download size={24} />
+          )}
+          {isExporting ? (lang === 'AR' ? 'جاري التصدير...' : 'Exporting...') : t.exportExcel}
         </button>
       </div>
     </div>
