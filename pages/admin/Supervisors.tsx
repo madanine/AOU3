@@ -81,10 +81,10 @@ const AdminSupervisors: React.FC = () => {
       next = users.map(u => u.id === editingId ? { ...u, ...formData } : u);
     } else {
       const newUser: User = {
-        id: Math.random().toString(36).substring(7),
+        id: crypto.randomUUID(), // Generate a valid UUID
         ...(formData as User),
         role: 'supervisor',
-        email: `${formData.universityId}@aou.edu`,
+        email: formData.email || `${formData.universityId}@aou.edu`,
         createdAt: new Date().toISOString()
       };
       next = [...users, newUser];

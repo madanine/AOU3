@@ -67,12 +67,16 @@ const AdminStudents: React.FC = () => {
       updated = users.map(u => u.id === editingUser.id ? { ...u, ...formData } : u);
     } else {
       const newUser: User = {
-        id: Math.random().toString(36).substring(7),
+        id: crypto.randomUUID(), // Generate a valid UUID
         ...(formData as User),
         role: 'student',
         createdAt: new Date().toISOString(),
         isDisabled: false
       };
+      // Ensure email is set if missing
+      if (!newUser.email) {
+        newUser.email = `${newUser.universityId}@aou.edu`;
+      }
       updated = [...users, newUser];
     }
     setUsers(updated);

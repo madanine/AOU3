@@ -5,18 +5,22 @@ import { storage } from '../../storage';
 import { Plus, Shield, X, Save, Edit3, Trash2, Key, Lock, CheckSquare, CheckCircle, AlertTriangle, AlertCircle } from 'lucide-react';
 
 const AdminManagement: React.FC = () => {
-  const { user, lang, t } = useApp();
-  const [admins, setAdmins] = useState<any[]>(JSON.parse(localStorage.getItem('subAdmins') || '[]'));
+  const { user: currentUser, lang, t } = useApp();
+  const [users, setUsersState] = useState<any[]>(storage.getUsers());
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [showToast, setShowToast] = useState<{ show: boolean, msg: string, type: 'success' | 'error' }>({ show: false, msg: '', type: 'success' });
 
+  // Only secondary admins (role admin but not the primary seeded one)
+  const admins = users.filter(u => u.role === 'admin' && u.universityId !== 'aouadmin');
+
   const [formData, setFormData] = useState({
-    username: '',
+    universityId: '',
     password: '',
     fullName: '',
-    fullAccess: false,
+    email: '',
+    fullAccess: true,
     permissions: {
       dashboard: true,
       courses: true,
@@ -43,7 +47,7 @@ const AdminManagement: React.FC = () => {
   const openAdd = () => {
     setEditingId(null);
     setFormData({
-      username: '', password: '', fullName: '', fullAccess: false,
+      universityId: '', password: '', fullName: '', email: '', fullAccess: true,
       permissions: { dashboard: true, courses: true, attendance: true, supervisors: true, students: true, enrollments: true, exportData: true, siteSettings: true }
     });
     setIsModalOpen(true);
@@ -56,7 +60,7 @@ const AdminManagement: React.FC = () => {
   };
 
   const handleDeleteTrigger = (id: string) => {
-    if (user?.id === id) {
+    if (currentUser?.id === id) {
       setShowToast({ show: true, msg: lang === 'AR' ? 'لا يمكنك حذف حسابك الحالي' : 'You cannot delete your current account', type: 'error' });
       setTimeout(() => setShowToast({ ...showToast, show: false }), 3000);
       return;
@@ -66,9 +70,9 @@ const AdminManagement: React.FC = () => {
 
   const confirmDelete = () => {
     if (!deleteId) return;
-    const next = admins.filter(a => a.id !== deleteId);
-    setAdmins(next);
-    localStorage.setItem('subAdmins', JSON.stringify(next));
+    const next = users.filter(a => a.id !== deleteId);
+    setUsersState(next);
+    storage.setUsers(next);
     setDeleteId(null);
     setShowToast({ show: true, msg: lang === 'AR' ? 'تم حذف المسؤول' : 'Admin Deleted', type: 'success' });
     setTimeout(() => setShowToast({ ...showToast, show: false }), 3000);
@@ -84,19 +88,24 @@ const AdminManagement: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     let next;
+    const payload = {
+      ...formData,
+      email: formData.email || `${formData.universityId}@admin.aou.edu`,
+      role: 'admin' as const
+    };
+
     if (editingId) {
-      next = admins.map(a => a.id === editingId ? { ...a, ...formData } : a);
+      next = users.map(u => u.id === editingId ? { ...u, ...payload } : u);
     } else {
       const newAdmin = {
-        id: 'sub-' + Math.random().toString(36).substring(7),
-        ...formData,
-        role: 'admin',
+        id: crypto.randomUUID(),
+        ...payload,
         createdAt: new Date().toISOString()
       };
-      next = [...admins, newAdmin];
+      next = [...users, newAdmin];
     }
-    setAdmins(next);
-    localStorage.setItem('subAdmins', JSON.stringify(next));
+    setUsersState(next);
+    storage.setUsers(next);
     setIsModalOpen(false);
   };
 
@@ -132,15 +141,15 @@ const AdminManagement: React.FC = () => {
               </div>
             </div>
 
-            <h3 className="text-lg font-black" style={{ color: 'var(--text-primary)' }}>{adm.fullName || adm.username}</h3>
-            <p className="text-[10px] font-black uppercase tracking-widest mt-1" style={{ color: 'var(--text-secondary)' }}>User: {adm.username}</p>
+            <h3 className="text-lg font-black" style={{ color: 'var(--text-primary)' }}>{adm.fullName}</h3>
+            <p className="text-[10px] font-black uppercase tracking-widest mt-1" style={{ color: 'var(--text-secondary)' }}>ID: {adm.universityId}</p>
 
             <div className="mt-4">
               {adm.fullAccess ? (
                 <span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-[10px] font-black uppercase">{lang === 'AR' ? 'وصول كامل' : 'Full Access'}</span>
               ) : (
                 <div className="flex flex-wrap gap-1 mt-2">
-                  {Object.entries(adm.permissions).map(([key, val]) => val ? (
+                  {Object.entries(adm.permissions || {}).map(([key, val]) => val ? (
                     <span key={key} className="px-2 py-0.5 bg-gray-100 text-gray-500 rounded text-[9px] font-bold">
                       {permissionLabels[key]}
                     </span>
@@ -166,8 +175,8 @@ const AdminManagement: React.FC = () => {
                   <input required value={formData.fullName} onChange={e => setFormData({ ...formData, fullName: e.target.value })} className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-white/10 rounded-xl outline-none font-bold text-gray-900 dark:text-white" />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black uppercase ml-1" style={{ color: 'var(--text-secondary)' }}>{lang === 'AR' ? 'اسم المستخدم' : 'Username'}</label>
-                  <input required value={formData.username} onChange={e => setFormData({ ...formData, username: e.target.value })} className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-white/10 rounded-xl outline-none font-bold text-gray-900 dark:text-white" />
+                  <label className="text-[10px] font-black uppercase ml-1" style={{ color: 'var(--text-secondary)' }}>{lang === 'AR' ? 'الرقم الجامعي / المعرف' : 'ID / Username'}</label>
+                  <input required value={formData.universityId} onChange={e => setFormData({ ...formData, universityId: e.target.value })} className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-white/10 rounded-xl outline-none font-bold text-gray-900 dark:text-white" />
                 </div>
               </div>
               <div className="space-y-1">

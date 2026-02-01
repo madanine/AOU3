@@ -56,7 +56,7 @@ const LoginPage: React.FC = () => {
           const { data: remoteUser, error: remoteError } = await supabase
             .from('profiles')
             .select('*')
-            .or(`university_id.eq.${identifier},email.eq.${identifier},email.eq.${identifier}@aou.edu`)
+            .or(`university_id.eq.${identifier},email.eq.${identifier},email.eq.${identifier}@aou.edu,email.eq.${identifier}@admin.aou.edu`)
             .single();
 
           if (remoteUser && remoteUser.password === password) {
