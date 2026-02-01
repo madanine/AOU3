@@ -298,10 +298,14 @@ export const storage = {
     const doctorsAr = ['د. محمد أحمد', 'د. سارة علي', 'د. خالد عمر', 'د. فاطمة حسن', 'د. جون سميث', 'د. ليلى محمود', 'د. عمر فاروق'];
 
     let currentCourses = storage.getCourses();
+    let madeChanges = false;
 
-    // Add missing courses
+    // Add missing courses OR update semesterId for existing ones
     allCoursesData.forEach((input, index) => {
-      if (!currentCourses.find(c => c.code === input.code)) {
+      const existingIndex = currentCourses.findIndex(c => c.code === input.code);
+
+      if (existingIndex === -1) {
+        // Add new
         const randomDay = days[Math.floor(Math.random() * days.length)];
         const randomTime = times[Math.floor(Math.random() * times.length)];
         const randomDocIdx = Math.floor(Math.random() * doctors.length);
@@ -320,11 +324,20 @@ export const storage = {
           semesterId: activeSemId
         };
         currentCourses.push(newCourse);
+        madeChanges = true;
+      } else {
+        // Update existing to current semester if different
+        if (currentCourses[existingIndex].semesterId !== activeSemId) {
+          currentCourses[existingIndex].semesterId = activeSemId;
+          madeChanges = true;
+        }
       }
     });
 
-    // Save only if we added something new to local state to avoid override loops, but here we want to ensure they exist
-    storage.setCourses(currentCourses, true);
+    // Save only if we added/modified something
+    if (madeChanges) {
+      storage.setCourses(currentCourses, true);
+    }
 
     const admin = {
       id: '00000000-0000-0000-0000-000000000001',
