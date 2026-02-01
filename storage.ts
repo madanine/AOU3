@@ -1,6 +1,6 @@
-
 import { User, Course, Enrollment, SiteSettings, AttendanceRecord, Semester, Assignment, Submission } from './types';
 import { DEFAULT_SETTINGS } from './constants';
+import { supabaseService } from './supabaseService';
 
 const KEYS = {
   USERS: 'aou_users',
@@ -16,17 +16,60 @@ const KEYS = {
 };
 
 export const storage = {
+  // Sync logic
+  async syncFromSupabase() {
+    try {
+      const users = await supabaseService.getUsers();
+      if (users.length > 0) this.setUsers(users);
+
+      const courses = await supabaseService.getCourses();
+      if (courses.length > 0) this.setCourses(courses);
+
+      const enrollments = await supabaseService.getEnrollments();
+      if (enrollments.length > 0) this.setEnrollments(enrollments);
+
+      const settings = await supabaseService.getSettings();
+      if (settings) this.setSettings(settings);
+
+      const semesters = await supabaseService.getSemesters();
+      if (semesters.length > 0) this.setSemesters(semesters);
+
+      const assignments = await supabaseService.getAssignments();
+      if (assignments.length > 0) this.setAssignments(assignments);
+
+      const submissions = await supabaseService.getSubmissions();
+      if (submissions.length > 0) this.setSubmissions(submissions);
+
+      console.log('Successfully synced from Supabase');
+    } catch (e) {
+      console.warn('Failed to sync from Supabase, using localStorage:', e);
+    }
+  },
+
   getUsers: (): User[] => JSON.parse(localStorage.getItem(KEYS.USERS) || '[]'),
-  setUsers: (users: User[]) => localStorage.setItem(KEYS.USERS, JSON.stringify(users)),
-  
+  setUsers: (users: User[]) => {
+    localStorage.setItem(KEYS.USERS, JSON.stringify(users));
+    // Background sync
+    users.forEach(u => supabaseService.upsertUser(u).catch(console.error));
+  },
+
   getCourses: (): Course[] => JSON.parse(localStorage.getItem(KEYS.COURSES) || '[]'),
-  setCourses: (courses: Course[]) => localStorage.setItem(KEYS.COURSES, JSON.stringify(courses)),
-  
+  setCourses: (courses: Course[]) => {
+    localStorage.setItem(KEYS.COURSES, JSON.stringify(courses));
+    courses.forEach(c => supabaseService.upsertCourse(c).catch(console.error));
+  },
+
   getEnrollments: (): Enrollment[] => JSON.parse(localStorage.getItem(KEYS.ENROLLMENTS) || '[]'),
-  setEnrollments: (enrollments: Enrollment[]) => localStorage.setItem(KEYS.ENROLLMENTS, JSON.stringify(enrollments)),
-  
+  setEnrollments: (enrollments: Enrollment[]) => {
+    localStorage.setItem(KEYS.ENROLLMENTS, JSON.stringify(enrollments));
+    enrollments.forEach(e => supabaseService.upsertEnrollment(e).catch(console.error));
+  },
+
   getSettings: (): SiteSettings => JSON.parse(localStorage.getItem(KEYS.SETTINGS) || JSON.stringify(DEFAULT_SETTINGS)),
-  setSettings: (settings: SiteSettings) => localStorage.setItem(KEYS.SETTINGS, JSON.stringify(settings)),
+  setSettings: (settings: SiteSettings) => {
+    localStorage.setItem(KEYS.SETTINGS, JSON.stringify(settings));
+    supabaseService.updateSettings(settings).catch(console.error);
+  },
 
   getAuthUser: (): User | null => JSON.parse(localStorage.getItem(KEYS.AUTH_USER) || 'null'),
   setAuthUser: (user: User | null) => localStorage.setItem(KEYS.AUTH_USER, JSON.stringify(user)),
@@ -50,7 +93,7 @@ export const storage = {
     // 0. SEED SEMESTERS & MIGRATION
     let semesters = storage.getSemesters();
     let settings = storage.getSettings();
-    
+
     if (semesters.length === 0) {
       const defaultSem = { id: 'sem-default', name: 'FALL 2024', createdAt: new Date().toISOString() };
       semesters = [defaultSem];

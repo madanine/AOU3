@@ -57,6 +57,7 @@ const App: React.FC = () => {
   const [user, setUserState] = useState<User | null>(storage.getAuthUser());
   const [lang, setLangState] = useState<Language>(storage.getLanguage() as Language);
   const [settings, setSettings] = useState<SiteSettings>(storage.getSettings());
+  const [isLoading, setIsLoading] = useState(true);
 
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const stored = localStorage.getItem('aou_dark_mode');
@@ -66,7 +67,16 @@ const App: React.FC = () => {
   const t = TRANSLATIONS[lang];
 
   useEffect(() => {
-    storage.seed();
+    const init = async () => {
+      await storage.syncFromSupabase();
+      storage.seed();
+
+      // Update states after sync
+      setUserState(storage.getAuthUser());
+      setSettings(storage.getSettings());
+      setIsLoading(false);
+    };
+    init();
   }, []);
 
 
@@ -116,6 +126,17 @@ const App: React.FC = () => {
     document.documentElement.dir = t.dir;
     document.documentElement.lang = lang.toLowerCase();
   }, [lang, t.dir]);
+
+  if (isLoading) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-[var(--background)]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-[var(--primary)] border-t-transparent rounded-full animate-spin"></div>
+          <p className="font-black text-[var(--primary)] animate-pulse">SUPABASE SYNCING...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <AppContext.Provider value={{
