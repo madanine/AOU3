@@ -115,7 +115,7 @@ export const storage = {
       storage.setEnrollments(enrollments);
     }
 
-    // 1. SEED USERS (Additive)
+    // 1. SEED USERS (Additive but filtered)
     const existingUsers = storage.getUsers();
 
     // New Admin Credentials requested by USER
@@ -125,18 +125,22 @@ export const storage = {
       password: 'Aou@676',
       fullName: 'AOU Administrator',
       role: 'admin' as const,
-      universityId: 'aouadmin', // This is the ID used for login
-      createdAt: new Date().toISOString()
+      universityId: 'aouadmin',
+      createdAt: '2026-02-01T00:00:00.000Z'
     };
 
-    let updatedUsers = [...existingUsers];
-    // Add admin if not exists
-    if (!updatedUsers.find(u => u.universityId === admin.universityId)) {
+    // Filter out old test admins if any
+    let updatedUsers = existingUsers.filter(u => u.universityId !== 'ADMIN-001' && u.email !== 'admin@aou.edu');
+
+    // Add/Update new admin
+    const adminIndex = updatedUsers.findIndex(u => u.universityId === admin.universityId);
+    if (adminIndex > -1) {
+      updatedUsers[adminIndex] = { ...updatedUsers[adminIndex], ...admin };
+    } else {
       updatedUsers.push(admin);
     }
 
     localStorage.setItem(KEYS.USERS, JSON.stringify(updatedUsers));
-    // Also sync to cloud
     supabaseService.upsertUser(admin).catch(console.error);
 
     // 2. SEED COURSES (Additive)

@@ -122,7 +122,7 @@ const LoginPage: React.FC = () => {
               className="w-full py-4 text-white font-black uppercase tracking-widest rounded-2xl shadow-xl hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-50"
               style={{ backgroundColor: 'var(--primary)' }}
             >
-              {isLoading ? (lang === 'AR' ? 'جاري التحقق...' : 'Verifying...') : (lang === 'AR' ? 'دخول برقم الهوية' : 'Login with ID')}
+              {isLoading ? (lang === 'AR' ? 'جاري التحقق...' : 'Verifying...') : (lang === 'AR' ? 'تسجيل الدخول' : 'Sign In')}
               {!isLoading && <LogIn size={20} className={lang === 'AR' ? 'rotate-180' : ''} />}
             </button>
 
