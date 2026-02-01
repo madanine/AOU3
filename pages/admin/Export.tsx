@@ -29,14 +29,15 @@ const AdminExport: React.FC = () => {
     try {
       // Fetch latest students from Supabase to ensure lookup works
       const students = await supabaseService.getUsers();
+      // Also fetch semesters to get correct local data
+      await storage.syncFromSupabase();
       const courses = storage.getCourses();
 
       const data = enrollments.map(e => {
-        // Find student by ID or University ID (to support both legacy and UUID data)
+        // Robust lookup: try ID, then UniversityID
         const s = students.find(stu =>
           stu.id === e.studentId ||
-          stu.universityId === e.studentId ||
-          stu.email === e.studentId
+          stu.universityId === e.studentId
         );
         const c = courses.find(cou => cou.id === e.courseId || cou.code === e.courseId);
 
