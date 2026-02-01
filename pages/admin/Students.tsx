@@ -66,28 +66,24 @@ const AdminStudents: React.FC = () => {
     e.preventDefault();
     setIsSaving(true);
     try {
-      let updated;
-      if (editingUser) {
-        updated = users.map(u => u.id === editingUser.id ? { ...u, ...formData } : u);
-      } else {
-        const newUser: User = {
-          id: crypto.randomUUID(), // Generate a valid UUID
+      const userToSave: User = editingUser
+        ? { ...editingUser, ...formData } as User
+        : {
+          id: crypto.randomUUID(),
           ...(formData as User),
           role: 'student',
           createdAt: new Date().toISOString(),
           isDisabled: false
         };
-        // Ensure email is set if missing
-        if (!newUser.email) {
-          newUser.email = `${newUser.universityId}@aou.edu`;
-        }
-        updated = [...users, newUser];
+
+      if (!userToSave.email) {
+        userToSave.email = `${userToSave.universityId}@aou.edu`;
       }
 
-      // Save to cloud AND wait for it before closing
-      await storage.setUsers(updated);
+      // Save ONLY this user to cloud and wait for success
+      const updatedList = await storage.saveUser(userToSave);
 
-      setUsers(updated);
+      setUsers(updatedList);
       setIsModalOpen(false);
     } catch (err: any) {
       console.error('Save failed:', err);

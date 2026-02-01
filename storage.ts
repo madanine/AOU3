@@ -61,15 +61,24 @@ export const storage = {
   setUsers: async (users: User[], sync = true) => {
     localStorage.setItem(KEYS.USERS, JSON.stringify(users));
     if (sync) {
-      // Upsert users and wait for completion to ensure cloud persistence
-      try {
-        await Promise.all(users.map(u => supabaseService.upsertUser(u)));
-        console.log('All users synced to cloud');
-      } catch (err) {
-        console.error('Failed to sync some users to cloud:', err);
-        throw err; // Propagate error to UI
-      }
+      // Just a fallback, better to use saveUser for individual updates
+      try { await Promise.all(users.map(u => supabaseService.upsertUser(u))); } catch (e) { }
     }
+  },
+  saveUser: async (user: User) => {
+    const users = storage.getUsers();
+    const index = users.findIndex(u => u.universityId === user.universityId);
+    let updated;
+    if (index > -1) {
+      updated = [...users];
+      updated[index] = user;
+    } else {
+      updated = [...users, user];
+    }
+    localStorage.setItem(KEYS.USERS, JSON.stringify(updated));
+    // Important: Sync ONLY this user to Supabase
+    await supabaseService.upsertUser(user);
+    return updated;
   },
 
   getCourses: (): Course[] => JSON.parse(localStorage.getItem(KEYS.COURSES) || '[]'),
@@ -136,9 +145,9 @@ export const storage = {
     // 1. SEED USERS (Additive but filtered)
     const existingUsers = storage.getUsers();
 
-    // New Admin Credentials requested by USER
+    // New Admin Credentials requested by USER with valid UUID
     const admin = {
-      id: 'admin-primary',
+      id: '00000000-0000-0000-0000-000000000001', // Fixed UUID for admin
       email: 'aouadmin@aou.edu',
       password: 'Aou@676',
       fullName: 'AOU Administrator',

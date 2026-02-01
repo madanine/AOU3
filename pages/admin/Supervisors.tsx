@@ -80,26 +80,24 @@ const AdminSupervisors: React.FC = () => {
     e.preventDefault();
     setIsSaving(true);
     try {
-      let next;
       const payload = {
         ...formData,
         email: formData.email || `${formData.universityId}@aou.edu`,
         role: 'supervisor' as const
       };
 
-      if (editingId) {
-        next = users.map(u => u.id === editingId ? { ...u, ...payload } : u);
-      } else {
-        const newUser: User = {
-          id: crypto.randomUUID(), // Generate a valid UUID
+      const userToSave: User = editingId
+        ? { ...users.find(u => u.id === editingId), ...payload } as User
+        : {
+          id: crypto.randomUUID(),
           ...payload,
           createdAt: new Date().toISOString()
         };
-        next = [...users, newUser];
-      }
 
-      await storage.setUsers(next);
-      setUsers(next);
+      // Save ONLY this user to cloud and wait for success
+      const updatedList = await storage.saveUser(userToSave);
+
+      setUsers(updatedList);
       setIsModalOpen(false);
     } catch (err) {
       console.error('Save failed:', err);

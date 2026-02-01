@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../App';
 import { storage } from '../../storage';
+import { User } from '../../types';
 import { Plus, Shield, X, Save, Edit3, Trash2, Key, Lock, CheckSquare, CheckCircle, AlertTriangle, AlertCircle } from 'lucide-react';
 
 const AdminManagement: React.FC = () => {
@@ -98,19 +99,16 @@ const AdminManagement: React.FC = () => {
         role: 'admin' as const
       };
 
-      if (editingId) {
-        next = users.map(u => u.id === editingId ? { ...u, ...payload } : u);
-      } else {
-        const newAdmin = {
+      const userToSave: User = editingId
+        ? { ...users.find(u => u.id === editingId), ...payload } as User
+        : {
           id: crypto.randomUUID(),
           ...payload,
           createdAt: new Date().toISOString()
         };
-        next = [...users, newAdmin];
-      }
 
-      await storage.setUsers(next);
-      setUsersState(next);
+      const updatedList = await storage.saveUser(userToSave);
+      setUsersState(updatedList);
       setIsModalOpen(false);
       setShowToast({ show: true, msg: lang === 'AR' ? 'تم حفظ التغييرات' : 'Changes Saved', type: 'success' });
       setTimeout(() => setShowToast({ ...showToast, show: false }), 3000);
