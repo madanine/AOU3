@@ -74,24 +74,39 @@ const AdminSupervisors: React.FC = () => {
     setFormData({ ...formData, assignedCourses: Array.from(next) });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    let next;
-    if (editingId) {
-      next = users.map(u => u.id === editingId ? { ...u, ...formData } : u);
-    } else {
-      const newUser: User = {
-        id: crypto.randomUUID(), // Generate a valid UUID
-        ...(formData as User),
-        role: 'supervisor',
+    setIsSaving(true);
+    try {
+      let next;
+      const payload = {
+        ...formData,
         email: formData.email || `${formData.universityId}@aou.edu`,
-        createdAt: new Date().toISOString()
+        role: 'supervisor' as const
       };
-      next = [...users, newUser];
+
+      if (editingId) {
+        next = users.map(u => u.id === editingId ? { ...u, ...payload } : u);
+      } else {
+        const newUser: User = {
+          id: crypto.randomUUID(), // Generate a valid UUID
+          ...payload,
+          createdAt: new Date().toISOString()
+        };
+        next = [...users, newUser];
+      }
+
+      await storage.setUsers(next);
+      setUsers(next);
+      setIsModalOpen(false);
+    } catch (err) {
+      console.error('Save failed:', err);
+      alert(lang === 'AR' ? 'فشل حفظ البيانات في السحابة. يرجى مراجعة صلاحيات SQL.' : 'Failed to save to cloud. Please check SQL permissions.');
+    } finally {
+      setIsSaving(false);
     }
-    setUsers(next);
-    storage.setUsers(next);
-    setIsModalOpen(false);
   };
 
   return (
@@ -241,8 +256,12 @@ const AdminSupervisors: React.FC = () => {
                 </div>
               </div>
 
-              <button type="submit" className="w-full py-4 bg-[var(--primary)] text-white font-black rounded-2xl shadow-xl flex items-center justify-center gap-2 uppercase text-xs tracking-widest">
-                <Save size={18} /> {lang === 'AR' ? 'حفظ البيانات' : 'Save Supervisor'}
+              <button
+                type="submit"
+                disabled={isSaving}
+                className="w-full py-4 bg-[var(--primary)] text-white font-black rounded-2xl shadow-xl flex items-center justify-center gap-2 uppercase text-xs tracking-widest disabled:opacity-50"
+              >
+                {isSaving ? (lang === 'AR' ? 'جاري الحفظ...' : 'Saving...') : <><Save size={18} /> {lang === 'AR' ? 'حفظ البيانات' : 'Save Supervisor'}</>}
               </button>
             </form>
           </div>

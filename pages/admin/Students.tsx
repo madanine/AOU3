@@ -60,28 +60,41 @@ const AdminStudents: React.FC = () => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    let updated;
-    if (editingUser) {
-      updated = users.map(u => u.id === editingUser.id ? { ...u, ...formData } : u);
-    } else {
-      const newUser: User = {
-        id: crypto.randomUUID(), // Generate a valid UUID
-        ...(formData as User),
-        role: 'student',
-        createdAt: new Date().toISOString(),
-        isDisabled: false
-      };
-      // Ensure email is set if missing
-      if (!newUser.email) {
-        newUser.email = `${newUser.universityId}@aou.edu`;
+    setIsSaving(true);
+    try {
+      let updated;
+      if (editingUser) {
+        updated = users.map(u => u.id === editingUser.id ? { ...u, ...formData } : u);
+      } else {
+        const newUser: User = {
+          id: crypto.randomUUID(), // Generate a valid UUID
+          ...(formData as User),
+          role: 'student',
+          createdAt: new Date().toISOString(),
+          isDisabled: false
+        };
+        // Ensure email is set if missing
+        if (!newUser.email) {
+          newUser.email = `${newUser.universityId}@aou.edu`;
+        }
+        updated = [...users, newUser];
       }
-      updated = [...users, newUser];
+
+      // Save to cloud AND wait for it before closing
+      await storage.setUsers(updated);
+
+      setUsers(updated);
+      setIsModalOpen(false);
+    } catch (err: any) {
+      console.error('Save failed:', err);
+      alert(lang === 'AR' ? 'فشل حفظ البيانات في السحابة. يرجى مراجعة صلاحيات SQL.' : 'Failed to save to cloud. Please check SQL permissions.');
+    } finally {
+      setIsSaving(false);
     }
-    setUsers(updated);
-    storage.setUsers(updated);
-    setIsModalOpen(false);
   };
 
   return (
@@ -270,11 +283,10 @@ const AdminStudents: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="flex-[2] py-4 text-white font-black rounded-2xl shadow-xl hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-2 uppercase text-xs tracking-widest"
-                  style={{ backgroundColor: 'var(--primary)' }}
+                  disabled={isSaving}
+                  className="flex-[2] py-4 bg-[var(--primary)] text-white font-black rounded-2xl shadow-xl flex items-center justify-center gap-2 uppercase text-xs tracking-widest disabled:opacity-50"
                 >
-                  <Save size={18} />
-                  {t.save}
+                  {isSaving ? (lang === 'AR' ? 'جاري الحفظ...' : 'Saving...') : <><Save size={18} /> {lang === 'AR' ? 'حفظ البيانات' : 'Save Student'}</>}
                 </button>
               </div>
             </form>

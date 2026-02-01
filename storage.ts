@@ -30,8 +30,18 @@ export const storage = {
         supabaseService.getSubmissions()
       ]);
 
-      // Update LocalStorage directly without triggering re-sync to avoid loops
-      if (users.length > 0) localStorage.setItem(KEYS.USERS, JSON.stringify(users));
+      // Update LocalStorage but MERGE instead of overwrite to prevent losing local-only data
+      if (users.length > 0) {
+        const localUsers = storage.getUsers();
+        // Keep local users that aren't in remote yet
+        const merged = [...users];
+        localUsers.forEach(lu => {
+          if (!merged.find(ru => ru.universityId === lu.universityId)) {
+            merged.push(lu);
+          }
+        });
+        localStorage.setItem(KEYS.USERS, JSON.stringify(merged));
+      }
       if (courses.length > 0) localStorage.setItem(KEYS.COURSES, JSON.stringify(courses));
       if (enrollments.length > 0) localStorage.setItem(KEYS.ENROLLMENTS, JSON.stringify(enrollments));
       if (settings) localStorage.setItem(KEYS.SETTINGS, JSON.stringify(settings));
@@ -48,11 +58,17 @@ export const storage = {
   },
 
   getUsers: (): User[] => JSON.parse(localStorage.getItem(KEYS.USERS) || '[]'),
-  setUsers: (users: User[], sync = true) => {
+  setUsers: async (users: User[], sync = true) => {
     localStorage.setItem(KEYS.USERS, JSON.stringify(users));
     if (sync) {
-      // Upsert users one by one (ideally would be a bulk operation)
-      users.forEach(u => supabaseService.upsertUser(u).catch(console.error));
+      // Upsert users and wait for completion to ensure cloud persistence
+      try {
+        await Promise.all(users.map(u => supabaseService.upsertUser(u)));
+        console.log('All users synced to cloud');
+      } catch (err) {
+        console.error('Failed to sync some users to cloud:', err);
+        throw err; // Propagate error to UI
+      }
     }
   },
 

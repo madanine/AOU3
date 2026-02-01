@@ -85,28 +85,41 @@ const AdminManagement: React.FC = () => {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    let next;
-    const payload = {
-      ...formData,
-      email: formData.email || `${formData.universityId}@admin.aou.edu`,
-      role: 'admin' as const
-    };
+  const [isSaving, setIsSaving] = useState(false);
 
-    if (editingId) {
-      next = users.map(u => u.id === editingId ? { ...u, ...payload } : u);
-    } else {
-      const newAdmin = {
-        id: crypto.randomUUID(),
-        ...payload,
-        createdAt: new Date().toISOString()
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSaving(true);
+    try {
+      let next;
+      const payload = {
+        ...formData,
+        email: formData.email || `${formData.universityId}@admin.aou.edu`,
+        role: 'admin' as const
       };
-      next = [...users, newAdmin];
+
+      if (editingId) {
+        next = users.map(u => u.id === editingId ? { ...u, ...payload } : u);
+      } else {
+        const newAdmin = {
+          id: crypto.randomUUID(),
+          ...payload,
+          createdAt: new Date().toISOString()
+        };
+        next = [...users, newAdmin];
+      }
+
+      await storage.setUsers(next);
+      setUsersState(next);
+      setIsModalOpen(false);
+      setShowToast({ show: true, msg: lang === 'AR' ? 'تم حفظ التغييرات' : 'Changes Saved', type: 'success' });
+      setTimeout(() => setShowToast({ ...showToast, show: false }), 3000);
+    } catch (err) {
+      console.error('Save failed:', err);
+      alert(lang === 'AR' ? 'فشل حفظ البيانات في السحابة. يرجى مراجعة صلاحيات SQL.' : 'Failed to save to cloud. Please check SQL permissions.');
+    } finally {
+      setIsSaving(false);
     }
-    setUsersState(next);
-    storage.setUsers(next);
-    setIsModalOpen(false);
   };
 
   return (
@@ -212,8 +225,12 @@ const AdminManagement: React.FC = () => {
                 </div>
               )}
 
-              <button type="submit" className="w-full py-4 bg-[var(--primary)] text-white font-black rounded-2xl shadow-xl flex items-center justify-center gap-2 uppercase text-xs tracking-widest">
-                <Save size={18} /> {lang === 'AR' ? 'حفظ البيانات' : 'Save Admin'}
+              <button
+                type="submit"
+                disabled={isSaving}
+                className="w-full py-4 bg-[var(--primary)] text-white font-black rounded-2xl shadow-xl flex items-center justify-center gap-2 uppercase text-xs tracking-widest disabled:opacity-50"
+              >
+                {isSaving ? (lang === 'AR' ? 'جاري الحفظ...' : 'Saving...') : <><Save size={18} /> {lang === 'AR' ? 'حفظ البيانات' : 'Save Admin'}</>}
               </button>
             </form>
           </div>
