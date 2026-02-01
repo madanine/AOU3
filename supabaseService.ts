@@ -66,19 +66,24 @@ export const supabaseService = {
 
     async upsertUser(user: User) {
         const { error } = await supabase.from('profiles').upsert({
-            id: user.id.length > 20 ? user.id : undefined, // Check if it's a UUID
-            email: user.email,
+            id: user.id.length > 30 ? user.id : undefined, // Only send if it's a valid UUID
+            email: user.email || `${user.universityId}@aou.edu`,
             full_name: user.fullName,
             role: user.role,
             university_id: user.universityId,
-            phone: user.phone,
-            major: user.major,
-            password: user.password, // Store password
-            assigned_courses: user.assignedCourses,
-            supervisor_permissions: user.supervisorPermissions,
-            is_disabled: user.isDisabled
+            phone: user.phone || '',
+            major: user.major || '',
+            password: user.password, // This is crucial for fallback login
+            assigned_courses: user.assignedCourses || [],
+            supervisor_permissions: user.supervisorPermissions || null,
+            is_disabled: user.isDisabled || false
+        }, {
+            onConflict: 'university_id' // Tell Supabase to update if this ID exists
         });
-        if (error) throw error;
+        if (error) {
+            console.error('Supabase Upsert Error:', error);
+            throw error;
+        }
     },
 
     // Courses
