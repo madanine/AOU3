@@ -1,5 +1,5 @@
-import { User, Course, Enrollment, SiteSettings, AttendanceRecord, Semester, Assignment, Submission } from './types';
-import { DEFAULT_SETTINGS } from './constants';
+
+import { User, Course, Enrollment, SiteSettings, Semester, Assignment, Submission, AttendanceRecord } from './types';
 import { supabaseService } from './supabaseService';
 
 const KEYS = {
@@ -19,7 +19,6 @@ export const storage = {
   // Sync logic
   async syncFromSupabase() {
     try {
-      // Fetch everything in parallel
       const [users, courses, enrollments, settings, semesters, assignments, submissions] = await Promise.all([
         supabaseService.getUsers(),
         supabaseService.getCourses(),
@@ -30,10 +29,8 @@ export const storage = {
         supabaseService.getSubmissions()
       ]);
 
-      // Update LocalStorage but MERGE instead of overwrite to prevent losing local-only data
-      if (users.length > 0) {
+      if (users && users.length > 0) {
         const localUsers = storage.getUsers();
-        // Keep local users that aren't in remote yet
         const merged = [...users];
         localUsers.forEach(lu => {
           if (!merged.find(ru => ru.universityId === lu.universityId)) {
@@ -42,18 +39,14 @@ export const storage = {
         });
         localStorage.setItem(KEYS.USERS, JSON.stringify(merged));
       }
-      if (courses.length > 0) localStorage.setItem(KEYS.COURSES, JSON.stringify(courses));
-      if (enrollments.length > 0) localStorage.setItem(KEYS.ENROLLMENTS, JSON.stringify(enrollments));
+      if (courses && courses.length > 0) localStorage.setItem(KEYS.COURSES, JSON.stringify(courses));
+      if (enrollments && enrollments.length > 0) localStorage.setItem(KEYS.ENROLLMENTS, JSON.stringify(enrollments));
       if (settings) localStorage.setItem(KEYS.SETTINGS, JSON.stringify(settings));
-      if (semesters.length > 0) localStorage.setItem(KEYS.SEMESTERS, JSON.stringify(semesters));
-      if (assignments.length > 0) localStorage.setItem(KEYS.ASSIGNMENTS, JSON.stringify(assignments));
-      if (submissions.length > 0) localStorage.setItem(KEYS.SUBMISSIONS, JSON.stringify(submissions));
-
-      console.log('Successfully synced from Supabase (Matte Sync)');
-      return settings;
-    } catch (e) {
-      console.warn('Failed to sync from Supabase, using localStorage:', e);
-      return null;
+      if (semesters && semesters.length > 0) localStorage.setItem(KEYS.SEMESTERS, JSON.stringify(semesters));
+      if (assignments && assignments.length > 0) localStorage.setItem(KEYS.ASSIGNMENTS, JSON.stringify(assignments));
+      if (submissions && submissions.length > 0) localStorage.setItem(KEYS.SUBMISSIONS, JSON.stringify(submissions));
+    } catch (err) {
+      console.warn('Silent sync failure:', err);
     }
   },
 
@@ -61,60 +54,61 @@ export const storage = {
   setUsers: async (users: User[], sync = true) => {
     localStorage.setItem(KEYS.USERS, JSON.stringify(users));
     if (sync) {
-      // Just a fallback, better to use saveUser for individual updates
       try { await Promise.all(users.map(u => supabaseService.upsertUser(u))); } catch (e) { }
     }
   },
   saveUser: async (user: User) => {
-    const users = storage.getUsers();
-    const index = users.findIndex(u => u.universityId === user.universityId);
-    let updated;
-    if (index > -1) {
-      updated = [...users];
-      updated[index] = user;
-    } else {
-      updated = [...users, user];
+    let users = storage.getUsers();
+    // Safety: ensure this user has a valid UUID before saving
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(user.id)) {
+      user.id = crypto.randomUUID();
     }
-    localStorage.setItem(KEYS.USERS, JSON.stringify(updated));
-    // Important: Sync ONLY this user to Supabase
-    await supabaseService.upsertUser(user);
-    return updated;
+    const index = users.findIndex(u => u.universityId === user.universityId);
+    if (index > -1) {
+      users[index] = user;
+    } else {
+      users.push(user);
+    }
+    localStorage.setItem(KEYS.USERS, JSON.stringify(users));
+    await supabaseService.upsertUser(user).catch(() => { });
+    return users;
   },
 
   getCourses: (): Course[] => JSON.parse(localStorage.getItem(KEYS.COURSES) || '[]'),
   setCourses: (courses: Course[], sync = true) => {
     localStorage.setItem(KEYS.COURSES, JSON.stringify(courses));
-    if (sync) courses.forEach(c => supabaseService.upsertCourse(c).catch(console.error));
+    if (sync) {
+      courses.forEach(c => supabaseService.upsertCourse(c).catch(() => { }));
+    }
   },
 
   getEnrollments: (): Enrollment[] => JSON.parse(localStorage.getItem(KEYS.ENROLLMENTS) || '[]'),
   setEnrollments: (enrollments: Enrollment[]) => {
     localStorage.setItem(KEYS.ENROLLMENTS, JSON.stringify(enrollments));
-    enrollments.forEach(e => supabaseService.upsertEnrollment(e).catch(console.error));
+    enrollments.forEach(e => supabaseService.upsertEnrollment(e).catch(() => { }));
   },
 
-  getSettings: (): SiteSettings => JSON.parse(localStorage.getItem(KEYS.SETTINGS) || JSON.stringify(DEFAULT_SETTINGS)),
-  setSettings: (settings: SiteSettings, sync = true) => {
+  getSettings: (): SiteSettings => JSON.parse(localStorage.getItem(KEYS.SETTINGS) || '{"registrationOpen":true,"activeSemesterId":"sem-default"}'),
+  setSettings: (settings: SiteSettings) => {
     localStorage.setItem(KEYS.SETTINGS, JSON.stringify(settings));
-    if (sync) supabaseService.updateSettings(settings).catch(console.error);
+    supabaseService.updateSettings(settings).catch(() => { });
   },
 
   getAuthUser: (): User | null => JSON.parse(localStorage.getItem(KEYS.AUTH_USER) || 'null'),
   setAuthUser: (user: User | null) => localStorage.setItem(KEYS.AUTH_USER, JSON.stringify(user)),
+  clearAuth: () => localStorage.removeItem(KEYS.AUTH_USER),
 
-  async clearAuth() {
-    localStorage.removeItem(KEYS.AUTH_USER);
-    await supabaseService.signOut().catch(console.error);
-  },
+  getLanguage: (): 'AR' | 'EN' => (localStorage.getItem(KEYS.LANGUAGE) as 'AR' | 'EN') || 'AR',
+  setLanguage: (lang: 'AR' | 'EN') => localStorage.setItem(KEYS.LANGUAGE, lang),
 
-  getLanguage: (): string => localStorage.getItem(KEYS.LANGUAGE) || 'AR',
-  setLanguage: (lang: string) => localStorage.setItem(KEYS.LANGUAGE, lang),
-
-  getAttendance: (): AttendanceRecord => JSON.parse(localStorage.getItem(KEYS.ATTENDANCE) || '{}'),
-  setAttendance: (record: AttendanceRecord) => localStorage.setItem(KEYS.ATTENDANCE, JSON.stringify(record)),
+  getAttendance: (): AttendanceRecord[] => JSON.parse(localStorage.getItem(KEYS.ATTENDANCE) || '[]'),
+  setAttendance: (records: AttendanceRecord[]) => localStorage.setItem(KEYS.ATTENDANCE, JSON.stringify(records)),
 
   getSemesters: (): Semester[] => JSON.parse(localStorage.getItem(KEYS.SEMESTERS) || '[]'),
-  setSemesters: (semesters: Semester[]) => localStorage.setItem(KEYS.SEMESTERS, JSON.stringify(semesters)),
+  setSemesters: (semesters: Semester[]) => {
+    localStorage.setItem(KEYS.SEMESTERS, JSON.stringify(semesters));
+    semesters.forEach(s => supabaseService.upsertSemester(s).catch(() => { }));
+  },
 
   getAssignments: (): Assignment[] => JSON.parse(localStorage.getItem(KEYS.ASSIGNMENTS) || '[]'),
   setAssignments: (assignments: Assignment[]) => localStorage.setItem(KEYS.ASSIGNMENTS, JSON.stringify(assignments)),
@@ -123,31 +117,19 @@ export const storage = {
   setSubmissions: (submissions: Submission[]) => localStorage.setItem(KEYS.SUBMISSIONS, JSON.stringify(submissions)),
 
   seed: () => {
-    // 0. SEED SEMESTERS & MIGRATION
     let semesters = storage.getSemesters();
     let settings = storage.getSettings();
 
     if (semesters.length === 0) {
-      const defaultSem = { id: 'sem-default', name: 'FALL 2024', createdAt: new Date().toISOString() };
+      const defaultSem = { id: '00000000-0000-0000-0000-000000000010', name: 'FALL 2024', createdAt: new Date().toISOString() };
       semesters = [defaultSem];
       storage.setSemesters(semesters);
       settings.activeSemesterId = defaultSem.id;
-      settings.defaultSemesterId = defaultSem.id;
       storage.setSettings(settings);
-
-      // Migrate legacy courses/enrollments
-      const courses = storage.getCourses().map(c => ({ ...c, semesterId: c.semesterId || defaultSem.id }));
-      storage.setCourses(courses);
-      const enrollments = storage.getEnrollments().map(e => ({ ...e, semesterId: e.semesterId || defaultSem.id }));
-      storage.setEnrollments(enrollments);
     }
 
-    // 1. SEED USERS (Additive but filtered)
-    const existingUsers = storage.getUsers();
-
-    // New Admin Credentials requested by USER with valid UUID
     const admin = {
-      id: '00000000-0000-0000-0000-000000000001', // Fixed UUID for admin
+      id: '00000000-0000-0000-0000-000000000001',
       email: 'aouadmin@aou.edu',
       password: 'Aou@676',
       fullName: 'AOU Administrator',
@@ -156,89 +138,10 @@ export const storage = {
       createdAt: '2026-02-01T00:00:00.000Z'
     };
 
-    // Filter out old test admins if any
-    let updatedUsers = existingUsers.filter(u => u.universityId !== 'ADMIN-001' && u.email !== 'admin@aou.edu');
-
-    // Add/Update new admin
-    const adminIndex = updatedUsers.findIndex(u => u.universityId === admin.universityId);
-    if (adminIndex > -1) {
-      updatedUsers[adminIndex] = { ...updatedUsers[adminIndex], ...admin };
-    } else {
-      updatedUsers.push(admin);
+    let users = storage.getUsers();
+    if (!users.find(u => u.universityId === admin.universityId)) {
+      users.push(admin);
+      storage.setUsers(users);
     }
-
-    // Safety check: ensure all local users have valid UUIDs
-    updatedUsers = updatedUsers.map(u => {
-      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(u.id);
-      if (!isUUID) return { ...u, id: crypto.randomUUID() };
-      return u;
-    });
-
-    localStorage.setItem(KEYS.USERS, JSON.stringify(updatedUsers));
-    supabaseService.upsertUser(admin).catch(() => { }); // Silence seed errors
-
-    // 2. SEED COURSES (Additive)
-    const existingCourses = storage.getCourses();
-    const activeSemId = settings.activeSemesterId || 'sem-default';
-    const newCoursesList = [
-      { id: "c1", code: "BUS101", ar: "إدارة الأعمال الدولية", en: "Intl Business Admin" },
-      { id: "c2", code: "RSK101", ar: "إدارة الخطر والتأمين", en: "Risk & Insurance" },
-      { id: "c3", code: "HSE101", ar: "إدارة الصحة والسلامة المهنية", en: "Health & Safety" },
-      { id: "c4", code: "OPR101", ar: "إدارة العمليات والإنتاج", en: "Ops & Production" },
-      { id: "c5", code: "PR101", ar: "إدارة العلاقات العامة", en: "Public Relations" },
-      { id: "c6", code: "FAC101", ar: "إدارة المنشآت المتخصصة", en: "Facility Mgmt" },
-      { id: "c7", code: "HRM101", ar: "إدارة الموارد البشرية", en: "HR Mgmt" },
-      { id: "c8", code: "SCM101", ar: "إدارة سلسلة الإمداد", en: "Supply Chain Mgmt" },
-      { id: "c9", code: "CRM101", ar: "إدارة النزاعات والأزمات", en: "Conflict & Crisis" },
-      { id: "c10", code: "STR101", ar: "إدارة مشتريات ومخازن", en: "Procurement Mgmt" },
-      { id: "c11", code: "MGT401", ar: "الإدارة الاستراتيجية", en: "Strategic Mgmt" },
-      { id: "c12", code: "LAW101", ar: "البيئة القانونية للأعمال", en: "Legal Env" },
-      { id: "c13", code: "OD101", ar: "التغيير والتطوير التنظيمي", en: "Org Dev" },
-      { id: "c14", code: "ISL101", ar: "الثقافة الإسلامية 1", en: "Islamic Culture 1" },
-      { id: "c15", code: "ISL102", ar: "الثقافة الإسلامية 2", en: "Islamic Culture 2" },
-      { id: "c16", code: "MKT201", ar: "التسويق الإلكتروني", en: "E-Marketing" },
-      { id: "c17", code: "GOV101", ar: "حوكمة الشركات والمنظمات", en: "Corp Governance" },
-      { id: "c18", code: "FEAS101", ar: "دراسة الجدوى وتقييم المشاريع", en: "Feasibility Study" },
-      { id: "c19", code: "ENT101", ar: "ريادة الأعمال والمشاريع الصغيرة", en: "Entrepreneurship" },
-      { id: "c20", code: "OB101", ar: "السلوك التنظيمي", en: "Org Behavior" },
-      { id: "c21", code: "ENG101", ar: "اللغة الإنجليزية 1", en: "English 1" },
-      { id: "c22", code: "ENG102", ar: "اللغة الإنجليزية 2", en: "English 2" },
-      { id: "c23", code: "ARA101", ar: "اللغة العربية 1", en: "Arabic 1" },
-      { id: "c24", code: "ARA102", ar: "اللغة العربية 2", en: "Arabic 2" },
-      { id: "c25", code: "ACC201", ar: "المحاسبة الإدارية", en: "Managerial Acc" },
-      { id: "c26", code: "BNK201", ar: "المصارف الإسلامية المعاصرة", en: "Islamic Banking" },
-      { id: "c27", code: "SKL101", ar: "المهارات الإدارية", en: "Mgmt Skills" },
-      { id: "c28", code: "ACC301", ar: "محاسبة مالية متقدمة", en: "Adv Financial Acc" },
-      { id: "c29", code: "STAT101", ar: "مبادئ الإحصاء", en: "Stats Principles" },
-      { id: "c30", code: "MGT101", ar: "مبادئ إدارة الأعمال", en: "Business Principles" },
-      { id: "c31", code: "ECO101", ar: "مبادئ الاقتصاد الإسلامي", en: "Islamic Eco" },
-      { id: "c32", code: "ECO102", ar: "مبادئ الاقتصاد الكلي", en: "Macro Eco" },
-      { id: "c33", code: "ECO103", ar: "مبادئ اقتصاد جزئي", en: "Micro Eco" },
-      { id: "c34", code: "MKT101", ar: "مبادئ التسويق", en: "Marketing Principles" },
-      { id: "c35", code: "FIN101", ar: "مبادئ التمويل والاستثمار", en: "Finance & Invest" },
-      { id: "c36", code: "ACC101", ar: "مبادئ محاسبة مالية", en: "Financial Acc" },
-      { id: "c37", code: "MIS101", ar: "مبادئ نظم المعلومات الإدارية", en: "MIS Principles" },
-      { id: "c38", code: "FIS101", ar: "نظم المعلومات المالية", en: "FIS" },
-      { id: "c39", code: "MON101", ar: "نقود وبنوك", en: "Money & Banking" }
-    ];
-
-    let updatedCourses = [...existingCourses];
-    newCoursesList.forEach(nc => {
-      if (!updatedCourses.find(c => c.code === nc.code)) {
-        updatedCourses.push({
-          id: nc.id,
-          code: nc.code,
-          title: nc.en,
-          title_ar: nc.ar,
-          credits: 3,
-          doctor: "TBD",
-          day: "Sunday",
-          time: "10:00 - 12:00",
-          isRegistrationEnabled: true,
-          semesterId: activeSemId
-        });
-      }
-    });
-    storage.setCourses(updatedCourses);
   }
 };

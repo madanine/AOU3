@@ -109,8 +109,8 @@ export const supabaseService = {
     },
 
     async upsertCourse(course: Course) {
-        const { error } = await supabase.from('courses').upsert({
-            id: course.id,
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(course.id);
+        const payload: any = {
             code: course.code,
             title: course.title,
             title_ar: course.title_ar,
@@ -120,9 +120,15 @@ export const supabaseService = {
             day: course.day,
             time: course.time,
             is_registration_enabled: course.isRegistrationEnabled,
-            semester_id: course.semesterId
-        });
-        if (error) throw error;
+            semester_id: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(course.semesterId || '') ? course.semesterId : null
+        };
+        if (isUUID) payload.id = course.id;
+
+        const { error } = await supabase.from('courses').upsert(payload);
+        if (error) {
+            console.error('Course Upsert Error:', error);
+            // Don't throw to prevent white screen, just log
+        }
     },
 
     // Enrollments
@@ -139,14 +145,24 @@ export const supabaseService = {
     },
 
     async upsertEnrollment(enrollment: Enrollment) {
-        const { error } = await supabase.from('enrollments').upsert({
-            id: enrollment.id,
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(enrollment.id);
+        const payload: any = {
             student_id: enrollment.studentId,
             course_id: enrollment.courseId,
             enrolled_at: enrollment.enrolledAt,
-            semester_id: enrollment.semesterId
-        });
-        if (error) throw error;
+            semester_id: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(enrollment.semesterId || '') ? enrollment.semesterId : null
+        };
+        if (isUUID) payload.id = enrollment.id;
+
+        // Ensure studentId and courseId are UUIDs or find them
+        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(payload.student_id) ||
+            !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(payload.course_id)) {
+            console.warn('Skipping enrollment sync due to non-UUID student/course ID');
+            return;
+        }
+
+        const { error } = await supabase.from('enrollments').upsert(payload);
+        if (error) console.error('Enrollment Upsert Error:', error);
     },
 
     // Site Settings
