@@ -19,30 +19,31 @@ export const storage = {
   // Sync logic
   async syncFromSupabase() {
     try {
-      const users = await supabaseService.getUsers();
-      if (users.length > 0) this.setUsers(users);
+      // Fetch everything in parallel
+      const [users, courses, enrollments, settings, semesters, assignments, submissions] = await Promise.all([
+        supabaseService.getUsers(),
+        supabaseService.getCourses(),
+        supabaseService.getEnrollments(),
+        supabaseService.getSettings(),
+        supabaseService.getSemesters(),
+        supabaseService.getAssignments(),
+        supabaseService.getSubmissions()
+      ]);
 
-      const courses = await supabaseService.getCourses();
-      if (courses.length > 0) this.setCourses(courses);
+      // Update LocalStorage directly without triggering re-sync to avoid loops
+      if (users.length > 0) localStorage.setItem(KEYS.USERS, JSON.stringify(users));
+      if (courses.length > 0) localStorage.setItem(KEYS.COURSES, JSON.stringify(courses));
+      if (enrollments.length > 0) localStorage.setItem(KEYS.ENROLLMENTS, JSON.stringify(enrollments));
+      if (settings) localStorage.setItem(KEYS.SETTINGS, JSON.stringify(settings));
+      if (semesters.length > 0) localStorage.setItem(KEYS.SEMESTERS, JSON.stringify(semesters));
+      if (assignments.length > 0) localStorage.setItem(KEYS.ASSIGNMENTS, JSON.stringify(assignments));
+      if (submissions.length > 0) localStorage.setItem(KEYS.SUBMISSIONS, JSON.stringify(submissions));
 
-      const enrollments = await supabaseService.getEnrollments();
-      if (enrollments.length > 0) this.setEnrollments(enrollments);
-
-      const settings = await supabaseService.getSettings();
-      if (settings) this.setSettings(settings);
-
-      const semesters = await supabaseService.getSemesters();
-      if (semesters.length > 0) this.setSemesters(semesters);
-
-      const assignments = await supabaseService.getAssignments();
-      if (assignments.length > 0) this.setAssignments(assignments);
-
-      const submissions = await supabaseService.getSubmissions();
-      if (submissions.length > 0) this.setSubmissions(submissions);
-
-      console.log('Successfully synced from Supabase');
+      console.log('Successfully synced from Supabase (Matte Sync)');
+      return settings;
     } catch (e) {
       console.warn('Failed to sync from Supabase, using localStorage:', e);
+      return null;
     }
   },
 
@@ -116,45 +117,27 @@ export const storage = {
 
     // 1. SEED USERS (Additive)
     const existingUsers = storage.getUsers();
-    const demoStudents = ["1", "2", "3", "4", "5"].map(id => ({
-      id: `student-${id}`,
-      email: `${id}@aou.edu`,
-      password: id,
-      fullName: `Student ${id}`,
-      role: 'student' as const,
-      universityId: id,
-      createdAt: new Date().toISOString()
-    }));
 
+    // New Admin Credentials requested by USER
     const admin = {
-      id: 'admin-0',
-      email: 'admin@aou.edu',
-      password: 'admin123',
-      fullName: 'System Administrator',
+      id: 'admin-primary',
+      email: 'aouadmin@aou.edu',
+      password: 'Aou@676',
+      fullName: 'AOU Administrator',
       role: 'admin' as const,
-      universityId: 'ADMIN-001',
+      universityId: 'aouadmin', // This is the ID used for login
       createdAt: new Date().toISOString()
     };
 
-    const supervisor = {
-      id: 'supervisor-111',
-      email: '111@aou.edu',
-      password: '111',
-      fullName: 'Supervisor Abdullah',
-      role: 'supervisor' as const,
-      universityId: '111',
-      assignedCourses: ['1', '2'],
-      createdAt: new Date().toISOString()
-    };
-
-    const toAdd = [admin, supervisor, ...demoStudents];
     let updatedUsers = [...existingUsers];
-    toAdd.forEach(user => {
-      if (!updatedUsers.find(u => u.universityId === user.universityId)) {
-        updatedUsers.push(user);
-      }
-    });
-    storage.setUsers(updatedUsers);
+    // Add admin if not exists
+    if (!updatedUsers.find(u => u.universityId === admin.universityId)) {
+      updatedUsers.push(admin);
+    }
+
+    localStorage.setItem(KEYS.USERS, JSON.stringify(updatedUsers));
+    // Also sync to cloud
+    supabaseService.upsertUser(admin).catch(console.error);
 
     // 2. SEED COURSES (Additive)
     const existingCourses = storage.getCourses();

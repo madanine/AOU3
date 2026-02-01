@@ -70,10 +70,15 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const init = async () => {
-      // 1. Check current session
+      // 1. Always sync settings from Supabase (Publicly accessible branding)
+      const syncedSettings = await storage.syncFromSupabase();
+      if (syncedSettings) {
+        setSettings(syncedSettings);
+      }
+
+      // 2. Check current session for user profile
       const session = await supabaseService.getSession();
       if (session) {
-        await storage.syncFromSupabase();
         try {
           const profile = await supabaseService.getProfile(session.user.id);
           setUserState(profile);
@@ -84,6 +89,7 @@ const App: React.FC = () => {
       }
 
       storage.seed();
+      // Ensure we have current local settings after seed possibly changed them
       setSettings(storage.getSettings());
       setIsLoading(false);
     };
