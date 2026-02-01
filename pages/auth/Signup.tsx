@@ -2,9 +2,9 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useApp } from '../../App';
-import { storage } from '../../storage';
+import { supabaseService } from '../../supabaseService';
 import { User, Major } from '../../types';
-import { User as UserIcon, Mail, KeyRound, Phone, ArrowRight, ShieldCheck } from 'lucide-react';
+import { User as UserIcon, Mail, KeyRound, Phone, ArrowRight, ShieldCheck, Loader2 } from 'lucide-react';
 
 const SignupPage: React.FC = () => {
   const { setUser, t, lang, settings } = useApp();
@@ -21,38 +21,50 @@ const SignupPage: React.FC = () => {
   });
 
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSignup = (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
     setError('');
-    const users = storage.getUsers();
 
     if (formData.password !== formData.confirmPassword) {
       setError(lang === 'AR' ? 'كلمات المرور غير متطابقة' : 'Passwords do not match');
+      setIsLoading(false);
       return;
     }
 
-    if (users.find(u => u.email === formData.email)) {
-      setError(lang === 'AR' ? 'البريد الإلكتروني موجود بالفعل' : 'Email already exists');
-      return;
+    try {
+      // 1. Sign up via Supabase Auth
+      // The trigger we added to SQL will handle profile creation in the 'profiles' table.
+      const authUser = await supabaseService.signUp(formData.email, formData.password, {
+        full_name: formData.fullName,
+        university_id: formData.universityId,
+        role: 'student',
+        phone: formData.phone,
+        major: formData.major
+      });
+
+      if (authUser) {
+        // Success
+        // We wait a bit or try to fetch profile to ensure trigger finished
+        setTimeout(async () => {
+          try {
+            const profile = await supabaseService.getProfile(authUser.id);
+            setUser(profile);
+            navigate('/student/registration');
+          } catch (e) {
+            console.error('Wait for profile failed', e);
+            // Fallback: manually fetch again in a bit or redirect to login
+            navigate('/auth/login');
+          }
+        }, 1500);
+      }
+    } catch (err: any) {
+      console.error('Signup error:', err);
+      setError(err.message || (lang === 'AR' ? 'فشل إنشاء الحساب' : 'Signup failed'));
+      setIsLoading(false);
     }
-
-    if (users.find(u => u.universityId === formData.universityId)) {
-      setError(lang === 'AR' ? 'الرقم الجامعي موجود بالفعل' : 'University ID already exists');
-      return;
-    }
-
-    const { confirmPassword, ...dataToSave } = formData;
-    const newUser: User = {
-      id: Math.random().toString(36).substring(7),
-      ...dataToSave,
-      role: 'student',
-      createdAt: new Date().toISOString()
-    };
-
-    storage.setUsers([...users, newUser]);
-    setUser(newUser);
-    navigate('/student/registration');
   };
 
   const forceWesternNumerals = (val: string) => {
@@ -197,11 +209,21 @@ const SignupPage: React.FC = () => {
 
             <button
               type="submit"
-              className="w-full py-4 mt-4 text-white font-black uppercase tracking-widest rounded-[1.5rem] shadow-xl hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-3"
+              disabled={isLoading}
+              className="w-full py-4 mt-4 text-white font-black uppercase tracking-widest rounded-[1.5rem] shadow-xl hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-50"
               style={{ backgroundColor: 'var(--primary)' }}
             >
-              {t.signup}
-              <ArrowRight size={20} className={lang === 'AR' ? 'rotate-180' : ''} />
+              {isLoading ? (
+                <>
+                  {lang === 'AR' ? 'جاري إنشاء الحساب...' : 'Creating Account...'}
+                  <Loader2 className="animate-spin" size={20} />
+                </>
+              ) : (
+                <>
+                  {t.signup}
+                  <ArrowRight size={20} className={lang === 'AR' ? 'rotate-180' : ''} />
+                </>
+              )}
             </button>
 
             <div className="text-center pt-2">

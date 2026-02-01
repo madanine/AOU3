@@ -97,3 +97,25 @@ create table site_settings (
 
 -- Add sample admin (Note: This is just for profiles table, actual login must be done via Supabase Auth)
 -- You will need to create a user in Supabase Auth first, then add them here.
+
+-- 9. Automatic Profile Creation Trigger
+create or replace function public.handle_new_user()
+returns trigger as $$
+begin
+  insert into public.profiles (id, email, full_name, role, university_id, major)
+  values (
+    new.id,
+    new.email,
+    coalesce(new.raw_user_meta_data->>'full_name', 'User'),
+    coalesce(new.raw_user_meta_data->>'role', 'student'),
+    coalesce(new.raw_user_meta_data->>'university_id', 'UID-' || floor(random()*1000000)::text),
+    new.raw_user_meta_data->>'major'
+  );
+  return new;
+end;
+$$ language plpgsql security definer;
+
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute procedure public.handle_new_user();
+

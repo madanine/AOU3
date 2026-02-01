@@ -2,6 +2,8 @@
 import React, { useState, useEffect, createContext, useContext } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { storage } from './storage';
+import { supabase } from './supabase';
+import { supabaseService } from './supabaseService';
 import { User, Language, SiteSettings } from './types';
 import { TRANSLATIONS } from './constants';
 import './src/print-styles.css';
@@ -68,15 +70,42 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const init = async () => {
-      await storage.syncFromSupabase();
-      storage.seed();
+      // 1. Check current session
+      const session = await supabaseService.getSession();
+      if (session) {
+        await storage.syncFromSupabase();
+        try {
+          const profile = await supabaseService.getProfile(session.user.id);
+          setUserState(profile);
+          storage.setAuthUser(profile);
+        } catch (e) {
+          console.error('Failed to fetch profile on init', e);
+        }
+      }
 
-      // Update states after sync
-      setUserState(storage.getAuthUser());
+      storage.seed();
       setSettings(storage.getSettings());
       setIsLoading(false);
     };
     init();
+
+    // 2. Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session) {
+        try {
+          const profile = await supabaseService.getProfile(session.user.id);
+          setUserState(profile);
+          storage.setAuthUser(profile);
+        } catch (e) {
+          console.error('Auth change profile fetch failed', e);
+        }
+      } else if (event === 'SIGNED_OUT') {
+        setUserState(null);
+        storage.setAuthUser(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
 

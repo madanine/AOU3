@@ -3,9 +3,9 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useApp } from '../../App';
 import { storage } from '../../storage';
-import { api } from '../../api';
-import { Language } from '../../types';
-import { KeyRound, User as UserIcon, ArrowRight, ShieldAlert, Sun, Moon } from 'lucide-react';
+import { supabaseService } from '../../supabaseService';
+import { User, Language } from '../../types';
+import { KeyRound, User as UserIcon, ArrowRight, ShieldAlert, Sun, Moon, LogIn } from 'lucide-react';
 
 const LoginPage: React.FC = () => {
   const { setUser, t, lang, setLang, settings, isDarkMode, toggleDarkMode } = useApp();
@@ -13,76 +13,37 @@ const LoginPage: React.FC = () => {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
     setError('');
-    // Switch to Real API Login
-    try {
-      // 1. Attempt Real Database Login
-      const result = await api.login(identifier, password);
 
-      if (result.success && result.user) {
-        // Success
-        setUser(result.user);
-        const target = result.user.role === 'admin' ? '/admin/dashboard' :
-          result.user.role === 'supervisor' ? '/supervisor/attendance' :
+    try {
+      const email = identifier.includes('@') ? identifier : `${identifier}@aou.edu`;
+      const authUser = await supabaseService.signIn(email, password);
+
+      if (authUser) {
+        const profile = await supabaseService.getProfile(authUser.id);
+
+        if (profile.isDisabled) {
+          setError(t.accountDisabledMsg);
+          await supabaseService.signOut();
+          return;
+        }
+
+        setUser(profile);
+        const target = profile.role === 'admin' ? '/admin/dashboard' :
+          profile.role === 'supervisor' ? '/supervisor/attendance' :
             '/student/registration';
         navigate(target);
-        return;
-      } else if (result.error && result.error !== "Network error or server unavailable") {
-        // API returned an explicit CREDENTIALS error (e.g. wrong password), so we stop here.
-        // We only fall back if the API itself is down/unreachable.
-        setError(lang === 'AR' ? 'بيانات الاعتماد غير صالحة' : result.error);
-        return;
       }
-    } catch (err) {
-      // Fallback or Network Error
-      console.error("API Login failed, trying local fallback for demo...", err);
-    }
-
-    // --- FALLBACK TO LOCAL STORAGE (FOR DEMO/DEV PURPOSES) ---
-    const users = storage.getUsers();
-
-    // 1. Check existing users (Main Admin / Student / Supervisor)
-    let foundUser = users.find(u =>
-      (u.email === identifier || u.universityId === identifier) &&
-      u.password === password
-    );
-
-    // 2. Check Sub-Admins from separate storage
-    if (!foundUser) {
-      const subAdmins = JSON.parse(localStorage.getItem('subAdmins') || '[]');
-      const sub = subAdmins.find((a: any) => a.username === identifier && a.password === password);
-      if (sub) {
-        foundUser = {
-          id: sub.id,
-          email: sub.username + '@subadmin.aou',
-          fullName: sub.fullName || sub.username,
-          universityId: sub.username,
-          role: 'admin',
-          createdAt: sub.createdAt,
-          password: sub.password,
-          permissions: sub.permissions,
-          fullAccess: sub.fullAccess
-        } as any;
-      }
-    }
-
-    if (foundUser) {
-      // Check if account is disabled
-      if (foundUser.isDisabled) {
-        setError(t.accountDisabledMsg);
-        return;
-      }
-
-      setUser(foundUser);
-      const target = foundUser.role === 'admin' ? '/admin/dashboard' :
-        foundUser.role === 'supervisor' ? '/supervisor/attendance' :
-          '/student/registration';
-      navigate(target);
-    } else {
-      setError(lang === 'AR' ? 'بيانات الاعتماد غير صالحة' : 'Invalid credentials (API & Local failed)');
+    } catch (err: any) {
+      console.error('Login error:', err);
+      setError(lang === 'AR' ? 'بيانات الاعتماد غير صالحة' : 'Invalid credentials');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -157,11 +118,12 @@ const LoginPage: React.FC = () => {
 
             <button
               type="submit"
-              className="w-full py-4 text-white font-black uppercase tracking-widest rounded-2xl shadow-xl hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-3"
+              disabled={isLoading}
+              className="w-full py-4 text-white font-black uppercase tracking-widest rounded-2xl shadow-xl hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-50"
               style={{ backgroundColor: 'var(--primary)' }}
             >
-              {t.login}
-              <ArrowRight size={20} className={lang === 'AR' ? 'rotate-180' : ''} />
+              {isLoading ? (lang === 'AR' ? 'جاري التحقق...' : 'Verifying...') : (lang === 'AR' ? 'دخول برقم الهوية' : 'Login with ID')}
+              {!isLoading && <LogIn size={20} className={lang === 'AR' ? 'rotate-180' : ''} />}
             </button>
 
             <div className="text-center pt-2">

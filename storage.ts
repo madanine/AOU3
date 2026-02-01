@@ -74,6 +74,11 @@ export const storage = {
   getAuthUser: (): User | null => JSON.parse(localStorage.getItem(KEYS.AUTH_USER) || 'null'),
   setAuthUser: (user: User | null) => localStorage.setItem(KEYS.AUTH_USER, JSON.stringify(user)),
 
+  async clearAuth() {
+    localStorage.removeItem(KEYS.AUTH_USER);
+    await supabaseService.signOut().catch(console.error);
+  },
+
   getLanguage: (): string => localStorage.getItem(KEYS.LANGUAGE) || 'AR',
   setLanguage: (lang: string) => localStorage.setItem(KEYS.LANGUAGE, lang),
 

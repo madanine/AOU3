@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useNavigate, useLocation, Navigate } from 'react-router-dom';
+import { storage } from '../../storage';
 import { useApp } from '../../App';
 import { Language } from '../../types';
 import {
@@ -47,7 +48,8 @@ const MainLayout: React.FC = () => {
     };
   }, [sidebarOpen]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await storage.clearAuth();
     setUser(null);
     navigate('/auth/login');
   };
