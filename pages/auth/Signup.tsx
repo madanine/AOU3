@@ -62,7 +62,13 @@ const SignupPage: React.FC = () => {
       }
     } catch (err: any) {
       console.error('Signup error:', err);
-      setError(err.message || (lang === 'AR' ? 'فشل إنشاء الحساب' : 'Signup failed'));
+      let errorMsg = err.message;
+      if (lang === 'AR') {
+        if (errorMsg.includes('rate limit')) errorMsg = 'تم تجاوز حد المحاولات المسموح به. يرجى المحاولة لاحقاً.';
+        else if (errorMsg.includes('already registered')) errorMsg = 'هذا البريد الإلكتروني مسجل بالفعل.';
+        else errorMsg = 'فشل إنشاء الحساب. تأكد من البيانات وحاول مجدداً.';
+      }
+      setError(errorMsg);
       setIsLoading(false);
     }
   };

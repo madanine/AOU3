@@ -7,7 +7,7 @@ import * as XLSX from 'xlsx';
 import SemesterControls from '../../components/admin/SemesterControls';
 
 const AdminExport: React.FC = () => {
-  const { t, settings } = useApp();
+  const { t, settings, lang } = useApp();
   const [allEnrollments, setAllEnrollments] = useState(storage.getEnrollments());
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -26,18 +26,18 @@ const AdminExport: React.FC = () => {
     const courses = storage.getCourses();
 
     const data = enrollments.map(e => {
-      const s = students.find(stu => stu.id === e.studentId);
-      const c = courses.find(cou => cou.id === e.courseId);
+      const s = students.find(stu => stu.id === e.studentId || stu.universityId === e.studentId);
+      const c = courses.find(cou => cou.id === e.courseId || cou.code === e.courseId);
       return {
-        [t.universityId]: s?.universityId,
-        [t.fullName]: s?.fullName,
+        [t.universityId]: s?.universityId || e.studentId,
+        [t.fullName]: s?.fullName || (lang === 'AR' ? 'طالب غير مسجل' : 'Unknown Student'),
         [t.password]: s?.password || '—',
-        [t.email]: s?.email,
-        [t.phone]: s?.phone || 'N/A',
-        [t.major]: s?.major ? t.majorList[s.major] || s.major : 'Undeclared',
-        [t.courseCode]: c?.code,
-        [t.courseTitle]: c?.title,
-        'Enrolled At': new Date(e.enrolledAt).toLocaleString()
+        [t.email]: s?.email || '—',
+        [t.phone]: s?.phone || '—',
+        [t.major]: s?.major ? (t.majorList[s.major] || s.major) : '—',
+        [t.courseCode]: c?.code || e.courseId,
+        [t.courseTitle]: lang === 'AR' ? (c?.title_ar || c?.title) : (c?.title || c?.title_ar),
+        'التاريخ': new Date(e.enrolledAt).toLocaleString(lang === 'AR' ? 'ar-SA' : 'en-US')
       };
     });
 

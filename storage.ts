@@ -48,16 +48,18 @@ export const storage = {
   },
 
   getUsers: (): User[] => JSON.parse(localStorage.getItem(KEYS.USERS) || '[]'),
-  setUsers: (users: User[]) => {
+  setUsers: (users: User[], sync = true) => {
     localStorage.setItem(KEYS.USERS, JSON.stringify(users));
-    // Background sync
-    users.forEach(u => supabaseService.upsertUser(u).catch(console.error));
+    if (sync) {
+      // Upsert users one by one (ideally would be a bulk operation)
+      users.forEach(u => supabaseService.upsertUser(u).catch(console.error));
+    }
   },
 
   getCourses: (): Course[] => JSON.parse(localStorage.getItem(KEYS.COURSES) || '[]'),
-  setCourses: (courses: Course[]) => {
+  setCourses: (courses: Course[], sync = true) => {
     localStorage.setItem(KEYS.COURSES, JSON.stringify(courses));
-    courses.forEach(c => supabaseService.upsertCourse(c).catch(console.error));
+    if (sync) courses.forEach(c => supabaseService.upsertCourse(c).catch(console.error));
   },
 
   getEnrollments: (): Enrollment[] => JSON.parse(localStorage.getItem(KEYS.ENROLLMENTS) || '[]'),
@@ -67,9 +69,9 @@ export const storage = {
   },
 
   getSettings: (): SiteSettings => JSON.parse(localStorage.getItem(KEYS.SETTINGS) || JSON.stringify(DEFAULT_SETTINGS)),
-  setSettings: (settings: SiteSettings) => {
+  setSettings: (settings: SiteSettings, sync = true) => {
     localStorage.setItem(KEYS.SETTINGS, JSON.stringify(settings));
-    supabaseService.updateSettings(settings).catch(console.error);
+    if (sync) supabaseService.updateSettings(settings).catch(console.error);
   },
 
   getAuthUser: (): User | null => JSON.parse(localStorage.getItem(KEYS.AUTH_USER) || 'null'),

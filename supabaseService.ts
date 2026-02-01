@@ -40,6 +40,7 @@ export const supabaseService = {
             ...data,
             fullName: data.full_name,
             universityId: data.university_id,
+            password: data.password, // Include password
             assignedCourses: data.assigned_courses,
             supervisorPermissions: data.supervisor_permissions,
             isDisabled: data.is_disabled,
@@ -55,6 +56,7 @@ export const supabaseService = {
             ...p,
             fullName: p.full_name,
             universityId: p.university_id,
+            password: p.password, // Include password
             assignedCourses: p.assigned_courses,
             supervisorPermissions: p.supervisor_permissions,
             isDisabled: p.is_disabled,
@@ -64,13 +66,14 @@ export const supabaseService = {
 
     async upsertUser(user: User) {
         const { error } = await supabase.from('profiles').upsert({
-            id: user.id.includes('-') ? user.id : undefined, // Check if it's a UUID
+            id: user.id.length > 20 ? user.id : undefined, // Check if it's a UUID
             email: user.email,
             full_name: user.fullName,
             role: user.role,
             university_id: user.universityId,
             phone: user.phone,
             major: user.major,
+            password: user.password, // Store password
             assigned_courses: user.assignedCourses,
             supervisor_permissions: user.supervisorPermissions,
             is_disabled: user.isDisabled

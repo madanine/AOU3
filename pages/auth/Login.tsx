@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useApp } from '../../App';
 import { storage } from '../../storage';
+import { supabase } from '../../supabase';
 import { supabaseService } from '../../supabaseService';
 import { User, Language } from '../../types';
 import { KeyRound, User as UserIcon, ArrowRight, ShieldAlert, Sun, Moon, LogIn } from 'lucide-react';
@@ -43,11 +44,40 @@ const LoginPage: React.FC = () => {
       }
 
       // --- FALLBACK TO LOCAL/PROFILES TABLE ---
-      const users = storage.getUsers();
-      const foundUser = users.find(u =>
+      let users = storage.getUsers();
+      let foundUser = users.find(u =>
         (u.email === identifier || u.universityId === identifier || u.email === `${identifier}@aou.edu`) &&
         u.password === password
       );
+
+      // If not in local storage, try fetching from Supabase Profiles table directly
+      if (!foundUser) {
+        try {
+          const { data: remoteUser, error: remoteError } = await supabase
+            .from('profiles')
+            .select('*')
+            .or(`university_id.eq.${identifier},email.eq.${identifier},email.eq.${identifier}@aou.edu`)
+            .single();
+
+          if (remoteUser && remoteUser.password === password) {
+            foundUser = {
+              ...remoteUser,
+              fullName: remoteUser.full_name,
+              universityId: remoteUser.university_id,
+              password: remoteUser.password,
+              assignedCourses: remoteUser.assigned_courses,
+              supervisorPermissions: remoteUser.supervisor_permissions,
+              isDisabled: remoteUser.is_disabled,
+              createdAt: remoteUser.created_at
+            } as User;
+
+            // Save to local storage for next time
+            storage.setUsers([...users, foundUser], false);
+          }
+        } catch (e) {
+          console.error('Remote profile fetch failed:', e);
+        }
+      }
 
       if (foundUser) {
         if (foundUser.isDisabled) {

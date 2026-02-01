@@ -8,6 +8,7 @@ create table profiles (
   university_id text unique not null,
   phone text,
   major text,
+  password text, -- Added for fallback users
   assigned_courses text[], -- Array of course IDs
   supervisor_permissions jsonb, -- {attendance: boolean, assignments: boolean, grading: boolean}
   is_disabled boolean default false,
