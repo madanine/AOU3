@@ -1,6 +1,7 @@
 
 import { User, Course, Enrollment, SiteSettings, Semester, Assignment, Submission, AttendanceRecord } from './types';
 import { supabaseService } from './supabaseService';
+import { DEFAULT_SETTINGS } from './constants';
 
 const KEYS = {
   USERS: 'aou_users',
@@ -45,8 +46,11 @@ export const storage = {
       if (semesters && semesters.length > 0) localStorage.setItem(KEYS.SEMESTERS, JSON.stringify(semesters));
       if (assignments && assignments.length > 0) localStorage.setItem(KEYS.ASSIGNMENTS, JSON.stringify(assignments));
       if (submissions && submissions.length > 0) localStorage.setItem(KEYS.SUBMISSIONS, JSON.stringify(submissions));
+
+      return settings || storage.getSettings();
     } catch (err) {
       console.warn('Silent sync failure:', err);
+      return storage.getSettings();
     }
   },
 
@@ -88,7 +92,18 @@ export const storage = {
     enrollments.forEach(e => supabaseService.upsertEnrollment(e).catch(() => { }));
   },
 
-  getSettings: (): SiteSettings => JSON.parse(localStorage.getItem(KEYS.SETTINGS) || '{"registrationOpen":true,"activeSemesterId":"sem-default"}'),
+  getSettings: (): SiteSettings => {
+    const stored = localStorage.getItem(KEYS.SETTINGS);
+    if (!stored) return DEFAULT_SETTINGS;
+    try {
+      const parsed = JSON.parse(stored);
+      // Ensure critical fields exist
+      if (!parsed.theme || !parsed.branding) return DEFAULT_SETTINGS;
+      return parsed;
+    } catch (e) {
+      return DEFAULT_SETTINGS;
+    }
+  },
   setSettings: (settings: SiteSettings) => {
     localStorage.setItem(KEYS.SETTINGS, JSON.stringify(settings));
     supabaseService.updateSettings(settings).catch(() => { });
@@ -99,7 +114,10 @@ export const storage = {
   clearAuth: () => localStorage.removeItem(KEYS.AUTH_USER),
 
   getLanguage: (): 'AR' | 'EN' => (localStorage.getItem(KEYS.LANGUAGE) as 'AR' | 'EN') || 'AR',
-  setLanguage: (lang: 'AR' | 'EN') => localStorage.setItem(KEYS.LANGUAGE, lang),
+  setLanguage: (lang: 'AR' | 'EN') => {
+    localStorage.setItem(KEYS.LANGUAGE, lang);
+    document.documentElement.lang = lang.toLowerCase();
+  },
 
   getAttendance: (): AttendanceRecord[] => JSON.parse(localStorage.getItem(KEYS.ATTENDANCE) || '[]'),
   setAttendance: (records: AttendanceRecord[]) => localStorage.setItem(KEYS.ATTENDANCE, JSON.stringify(records)),
