@@ -19,6 +19,19 @@ export interface User {
     assignments: boolean;
     grading: boolean;
   };
+  permissions?: {
+    dashboard: boolean;
+    courses: boolean;
+    attendance: boolean;
+    supervisors: boolean;
+    students: boolean;
+    enrollments: boolean;
+    exportData: boolean;
+    siteSettings: boolean;
+    assignments?: boolean;
+    grading?: boolean;
+  };
+  fullAccess?: boolean;
   isDisabled?: boolean; // خاصية لتعطيل الحساب
 }
 
