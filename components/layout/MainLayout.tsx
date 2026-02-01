@@ -141,7 +141,7 @@ const MainLayout: React.FC = () => {
   const closeSidebar = () => setSidebarOpen(false);
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row relative" style={{ backgroundColor: 'var(--background)' }}>
+    <div className="h-screen overflow-hidden flex flex-col md:flex-row relative" style={{ backgroundColor: 'var(--background)' }}>
       {/* Mobile Header */}
       <div className="md:hidden flex items-center justify-between p-4 border-b sticky top-0 z-50 shadow-sm" style={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)' }}>
         <div className="flex items-center gap-2">
@@ -269,13 +269,13 @@ const MainLayout: React.FC = () => {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col relative overflow-y-auto w-full h-full max-h-screen">
+      <main className="flex-1 flex flex-col relative overflow-y-auto w-full">
         <div className="flex-1 p-6 md:p-10">
           <Outlet />
         </div>
 
         {/* Footer */}
-        <footer className="py-6 px-6 md:px-10 border-t mt-auto" style={{ borderColor: 'var(--border-color)', backgroundColor: 'transparent' }}>
+        <footer className="py-6 px-6 md:px-10 border-t mt-auto shrink-0" style={{ borderColor: 'var(--border-color)', backgroundColor: 'transparent' }}>
           <div className="text-center space-y-1">
             <p className="text-[10px] font-black uppercase tracking-widest opacity-40">
               {settings.branding.footerText}
