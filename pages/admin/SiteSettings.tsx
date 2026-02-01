@@ -68,7 +68,7 @@ const AdminSiteSettings: React.FC = () => {
   const removeLogo = () => {
     setDraftSettings({
       ...draftSettings,
-      branding: { ...draftSettings.branding, logoBase64: undefined }
+      branding: { ...draftSettings.branding, logoBase64: undefined, logo: '/assets/aou-logo.jpg' }
     });
   };
 
@@ -199,18 +199,23 @@ const AdminSiteSettings: React.FC = () => {
               <div>
                 <h3 className="text-[10px] font-black uppercase tracking-widest mb-4" style={{ color: 'var(--text-secondary)' }}>{t.officialLogo}</h3>
                 <div className="flex items-center gap-6 p-6 bg-gray-50 dark:bg-black/20 border-2 border-dashed border-gray-200 dark:border-white/10 rounded-[2rem]">
-                  {draftSettings.branding.logoBase64 ? (
+                  {(draftSettings.branding.logo || draftSettings.branding.logoBase64) ? (
                     <div className="relative group">
-                      <div className="w-20 h-20 bg-white dark:bg-slate-800 rounded-2xl p-2 shadow-md flex items-center justify-center">
-                        <img src={draftSettings.branding.logoBase64} alt="Preview" className="max-w-full max-h-full object-contain" />
+                      <div className="w-32 h-32 flex items-center justify-center">
+                        <img
+                          src={draftSettings.branding.logo || draftSettings.branding.logoBase64}
+                          alt="Preview"
+                          className="max-w-full max-h-full object-contain"
+                        />
                       </div>
-                      <button onClick={removeLogo} className="absolute -top-3 -right-3 p-2 bg-red-500 text-white rounded-full"><Trash2 size={14} /></button>
+                      <button onClick={removeLogo} className="absolute -top-3 -right-3 p-2 bg-red-500 text-white rounded-full shadow-lg hover:bg-red-600 transition-colors"><Trash2 size={14} /></button>
                     </div>
                   ) : (
                     <div className="w-20 h-20 bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-white/5 flex items-center justify-center text-gray-300 dark:text-gray-600"><Upload size={32} /></div>
                   )}
                   <div className="flex-1">
-                    <p className="text-sm font-bold text-gray-700 dark:text-gray-300">{t.uploadNewLogo}</p>
+                    <p className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">{t.uploadNewLogo}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">{lang === 'AR' ? 'رفع شعار جديد سيحل محل الشعار الافتراضي' : 'Uploading a new logo will replace the default one'}</p>
                     <input type="file" accept="image/*" onChange={handleLogoUpload} className="mt-2 text-xs text-gray-500" />
                   </div>
                 </div>

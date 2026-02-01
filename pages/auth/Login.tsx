@@ -97,8 +97,8 @@ const LoginPage: React.FC = () => {
       <div className="w-full max-w-md z-10 my-auto">
         <div className="bg-[var(--card-bg)] rounded-[2.5rem] shadow-2xl overflow-hidden border border-[var(--border-color)]">
           <div className="p-10 pb-4 text-center">
-            {settings.branding.logoBase64 ? (
-              <img src={settings.branding.logoBase64} alt="Logo" className="w-24 h-24 mx-auto mb-6 object-contain" />
+            {(settings.branding.logo || settings.branding.logoBase64) ? (
+              <img src={settings.branding.logo || settings.branding.logoBase64} alt="Logo" className="h-24 w-auto mx-auto mb-6 object-contain" />
             ) : (
               <div className="w-20 h-20 bg-[var(--primary)] rounded-3xl mx-auto flex items-center justify-center text-white font-bold text-3xl shadow-xl mb-6">
                 A
@@ -171,30 +171,28 @@ const LoginPage: React.FC = () => {
             </div>
           </form>
 
-          <div className="p-6 flex flex-col gap-4 border-t" style={{ borderColor: 'var(--border-color)' }}>
-            <div className="flex justify-center gap-6">
-              {(['AR', 'EN', 'FR', 'RU'] as Language[]).map(l => (
-                <button
-                  key={l}
-                  onClick={() => setLang(l)}
-                  className={`text-[10px] font-black tracking-widest transition-all`}
-                  style={{ color: lang === l ? 'var(--text-primary)' : 'var(--text-secondary)' }}
-                >
-                  {l}
-                </button>
-              ))}
-            </div>
+          <div className="p-6 flex justify-center items-center gap-6 border-t" style={{ borderColor: 'var(--border-color)' }}>
+            <button
+              onClick={toggleDarkMode}
+              className="p-2 rounded-lg transition-colors hover:bg-black/5"
+              title="Toggle Dark Mode"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
 
-            <div className="flex justify-center">
+            <div className="w-px h-6 bg-[var(--border-color)]"></div>
+
+            {(['RU', 'FR', 'EN', 'AR'] as Language[]).map(l => (
               <button
-                onClick={toggleDarkMode}
-                className="p-3 rounded-full transition-colors hover:bg-black/5 flex items-center justify-center"
-                title="Toggle Dark Mode"
-                style={{ color: 'var(--text-secondary)' }}
+                key={l}
+                onClick={() => setLang(l)}
+                className={`text-[10px] font-black tracking-widest transition-all px-2 py-1 rounded-md hover:bg-black/5`}
+                style={{ color: lang === l ? 'var(--text-primary)' : 'var(--text-secondary)' }}
               >
-                {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+                {l}
               </button>
-            </div>
+            ))}
           </div>
         </div>
       </div>

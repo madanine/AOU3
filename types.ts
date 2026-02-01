@@ -14,6 +14,11 @@ export interface User {
   major?: Major | string;
   createdAt: string;
   assignedCourses?: string[]; // IDs of courses for supervisors
+  supervisorPermissions?: {
+    attendance: boolean;
+    assignments: boolean;
+    grading: boolean;
+  };
   isDisabled?: boolean; // خاصية لتعطيل الحساب
 }
 
@@ -33,6 +38,7 @@ export interface SiteSettings {
     siteNameAr: string;
     siteNameEn: string;
     logoBase64?: string;
+    logo?: string; // Path to logo file
     footerText: string;
     announcements: string[]; // base64 images
   };

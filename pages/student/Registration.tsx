@@ -22,7 +22,7 @@ const Registration: React.FC = () => {
     const existingIds = confirmedEnrollments
       .filter(e => e.studentId === user?.id && (!activeSemId || e.semesterId === activeSemId))
       .map(e => e.courseId);
-    
+
     setPendingSelection(new Set(existingIds));
     if (existingIds.length === 0) {
       setIsEditing(true);
@@ -40,14 +40,14 @@ const Registration: React.FC = () => {
 
   const semesterCourses = courses.filter(c => !activeSemId || c.semesterId === activeSemId);
 
-  const filteredCourses = semesterCourses.filter(c => 
-    translate(c, 'title').toLowerCase().includes(searchTerm.toLowerCase()) || 
+  const filteredCourses = semesterCourses.filter(c =>
+    translate(c, 'title').toLowerCase().includes(searchTerm.toLowerCase()) ||
     c.code.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const togglePending = (courseId: string) => {
     if (isClosed && !isEditing) return;
-    
+
     setPendingSelection(prev => {
       const next = new Set(prev);
       if (next.has(courseId)) {
@@ -55,9 +55,9 @@ const Registration: React.FC = () => {
       } else {
         // RULE 1: Max 6 courses per semester
         if (next.size >= 6) {
-          setMessage({ 
-            text: lang === 'AR' ? 'الحد الأقصى هو 6 مواد لكل فصل' : 'Maximum 6 courses per semester', 
-            type: 'error' 
+          setMessage({
+            text: lang === 'AR' ? 'الحد الأقصى هو 6 مواد لكل فصل' : 'Maximum 6 courses per semester',
+            type: 'error'
           });
           setTimeout(() => setMessage(null), 3000);
           return prev;
@@ -65,16 +65,16 @@ const Registration: React.FC = () => {
 
         // RULE 2: Previous semester check
         const targetCourse = courses.find(c => c.id === courseId);
-        const alreadyTaken = confirmedEnrollments.some(e => 
-          e.studentId === user?.id && 
-          e.semesterId !== activeSemId && 
+        const alreadyTaken = confirmedEnrollments.some(e =>
+          e.studentId === user?.id &&
+          e.semesterId !== activeSemId &&
           courses.find(c => c.id === e.courseId)?.code === targetCourse?.code
         );
 
         if (alreadyTaken) {
-          setMessage({ 
-            text: lang === 'AR' ? 'لا يمكن تسجيل هذه المادة لأنها مسجلة في فصل سابق' : 'Course already taken in a previous semester', 
-            type: 'error' 
+          setMessage({
+            text: lang === 'AR' ? 'لا يمكن تسجيل هذه المادة لأنها مسجلة في فصل سابق' : 'Course already taken in a previous semester',
+            type: 'error'
           });
           setTimeout(() => setMessage(null), 3000);
           return prev;
@@ -88,10 +88,10 @@ const Registration: React.FC = () => {
 
   const handleConfirm = () => {
     if (isClosed) return;
-    const otherEnrollments = confirmedEnrollments.filter(e => 
+    const otherEnrollments = confirmedEnrollments.filter(e =>
       e.studentId !== user?.id || (activeSemId && e.semesterId !== activeSemId)
     );
-    
+
     const newEnrollments: Enrollment[] = Array.from(pendingSelection as Set<string>).map(courseId => ({
       id: Math.random().toString(36).substring(7),
       studentId: user?.id || '',
@@ -99,7 +99,7 @@ const Registration: React.FC = () => {
       enrolledAt: new Date().toISOString(),
       semesterId: activeSemId
     }));
-    
+
     const final = [...otherEnrollments, ...newEnrollments];
     storage.setEnrollments(final);
     setConfirmedEnrollments(final);
@@ -122,18 +122,18 @@ const Registration: React.FC = () => {
       {settings.branding.announcements.length > 0 && (
         <div className="relative w-full h-48 md:h-64 rounded-[2.5rem] overflow-hidden shadow-xl group">
           <div className="w-full h-full flex transition-transform duration-700 ease-in-out" style={{ transform: `translateX(${settings.theme.borderColor === 'rtl' ? '' : '-'}${activeSlide * 100}%)` }}>
-             {settings.branding.announcements.map((img, i) => (
-               <div key={i} className="min-w-full h-full bg-gray-100 flex items-center justify-center">
-                 <img src={img} alt="Announcement" className="w-full h-full object-cover" />
-               </div>
-             ))}
+            {settings.branding.announcements.map((img, i) => (
+              <div key={i} className="min-w-full h-full bg-gray-100 flex items-center justify-center">
+                <img src={img} alt="Announcement" className="w-full h-full object-cover" />
+              </div>
+            ))}
           </div>
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
             {settings.branding.announcements.map((_, i) => (
-              <button 
-                key={i} 
+              <button
+                key={i}
                 onClick={() => setActiveSlide(i)}
-                className={`w-2 h-2 rounded-full transition-all ${activeSlide === i ? 'bg-white w-6' : 'bg-white/50'}`} 
+                className={`w-2 h-2 rounded-full transition-all ${activeSlide === i ? 'bg-white w-6' : 'bg-white/50'}`}
               />
             ))}
           </div>
@@ -142,7 +142,7 @@ const Registration: React.FC = () => {
 
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black text-gray-900 tracking-tight">{t.registration}</h1>
+          <h1 className="text-3xl font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>{t.registration}</h1>
           <p className="font-medium mt-1" style={{ color: 'var(--text-secondary)' }}>{t.welcome}, {user?.fullName}</p>
         </div>
         {!isClosed && (
@@ -171,10 +171,10 @@ const Registration: React.FC = () => {
           {filteredCourses.map(course => {
             const isSelected = pendingSelection.has(course.id);
             const canRegister = course.isRegistrationEnabled && !isClosed;
-            
+
             return (
-              <div 
-                key={course.id} 
+              <div
+                key={course.id}
                 className={`bg-white rounded-3xl p-6 border transition-all hover:shadow-xl ${isSelected ? 'border-[var(--primary)] ring-2 ring-[var(--primary)]/10' : 'border-gray-100 shadow-sm'}`}
               >
                 <div className="flex justify-between items-start mb-4">
@@ -185,29 +185,28 @@ const Registration: React.FC = () => {
                     <span className="text-[10px] font-black text-red-500 bg-red-50 px-2 py-1 rounded-lg uppercase">{t.registrationClosed}</span>
                   )}
                 </div>
-                
-                <h3 className="text-xl font-black text-gray-900 mb-2 leading-snug">{translate(course, 'title')}</h3>
+
+                <h3 className="text-xl font-black mb-2 leading-snug" style={{ color: 'var(--text-primary)' }}>{translate(course, 'title')}</h3>
                 <div className="flex flex-wrap gap-4 mb-4">
                   <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>
-                      <DocIcon size={14} className="text-[var(--primary)]" />
-                      <span>{translate(course, 'doctor')}</span>
+                    <DocIcon size={14} className="text-[var(--primary)]" />
+                    <span>{translate(course, 'doctor')}</span>
                   </div>
                   <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>
-                      <Clock size={14} className="text-[var(--primary)]" />
-                      <span>{t.days[course.day as keyof typeof t.days]}, {course.time}</span>
+                    <Clock size={14} className="text-[var(--primary)]" />
+                    <span>{t.days[course.day as keyof typeof t.days]}, {course.time}</span>
                   </div>
                 </div>
 
                 <p className="text-xs font-medium mb-6 line-clamp-2" style={{ color: 'var(--text-secondary)' }}>{translate(course, 'description')}</p>
-                
+
                 <button
                   disabled={!canRegister || !isEditing}
                   onClick={() => togglePending(course.id)}
-                  className={`w-full py-3 px-4 rounded-xl font-black text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${
-                    isSelected 
-                      ? 'bg-red-50 text-red-600 hover:bg-red-100' 
+                  className={`w-full py-3 px-4 rounded-xl font-black text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${isSelected
+                      ? 'bg-red-50 text-red-600 hover:bg-red-100'
                       : 'bg-[var(--primary)] text-white hover:brightness-110 shadow-lg shadow-blue-900/10'
-                  } disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed`}
+                    } disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed`}
                 >
                   {isSelected ? (
                     <><Trash2 size={16} /> {t.unregister}</>
@@ -222,7 +221,7 @@ const Registration: React.FC = () => {
 
         <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-2xl p-8 max-w-4xl mx-auto w-full">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-black text-gray-900 tracking-tight">{t.selectedCourses}</h2>
+            <h2 className="text-xl font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>{t.selectedCourses}</h2>
             <div className="flex items-center gap-2">
               <span className={`px-3 py-1 rounded-full text-[10px] font-black ${pendingSelection.size > 6 ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-[var(--primary)]'}`}>
                 {pendingSelection.size} / 6
@@ -237,7 +236,7 @@ const Registration: React.FC = () => {
                   <BookOpen size={14} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-black text-gray-900 truncate">{translate(course, 'title')}</p>
+                  <p className="text-xs font-black truncate" style={{ color: 'var(--text-primary)' }}>{translate(course, 'title')}</p>
                   <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>{course.code}</p>
                 </div>
                 {!isClosed && isEditing && (

@@ -8,7 +8,7 @@ import SemesterControls from '../../components/admin/SemesterControls';
 import * as XLSX from 'xlsx';
 
 const AdminGrading: React.FC = () => {
-  const { t, lang, settings, translate } = useApp();
+  const { user, t, lang, settings, translate } = useApp();
   const [courses, setCourses] = useState<Course[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
@@ -25,11 +25,17 @@ const AdminGrading: React.FC = () => {
   const activeSemId = settings.activeSemesterId || 'sem-default';
 
   useEffect(() => {
-    setCourses(storage.getCourses().filter(c => c.semesterId === activeSemId));
+    let filteredCourses = storage.getCourses().filter(c => c.semesterId === activeSemId);
+
+    if (user?.role === 'supervisor') {
+      filteredCourses = filteredCourses.filter(c => user.assignedCourses?.includes(c.id));
+    }
+
+    setCourses(filteredCourses);
     setAssignments(storage.getAssignments().filter(a => a.semesterId === activeSemId));
     setSubmissions(storage.getSubmissions());
     setStudents(storage.getUsers().filter(u => u.role === 'student'));
-  }, [activeSemId]);
+  }, [activeSemId, user]);
 
   const assignmentSubmissions = submissions.filter(s => s.assignmentId === selectedAssignmentId);
   const selectedAssignment = assignments.find(a => a.id === selectedAssignmentId);
@@ -157,7 +163,7 @@ const AdminGrading: React.FC = () => {
 
       {selectedAssignmentId ? (
         <div className="space-y-4">
-          <div className="flex items-center justify-between px-2">
+          <div className="flex flex-wrap items-center justify-between px-2 gap-4">
             <div className="flex items-center gap-4">
               <h2 className="text-sm font-black text-gray-400 uppercase tracking-widest">
                 {filteredSubmissions.length} {lang === 'AR' ? 'تسليماً' : 'Submissions'}

@@ -135,7 +135,7 @@ const AdminEnrollments: React.FC = () => {
       </div>
 
       <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm flex flex-col md:flex-row gap-4 items-center">
-        <div className="flex items-center gap-2 bg-gray-50 p-1 rounded-xl border border-gray-100">
+        <div className="flex flex-wrap items-center gap-2 bg-gray-50 p-1 rounded-xl border border-gray-100">
           <button onClick={() => setFilterMode('all')} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${filterMode === 'all' ? 'bg-white text-[var(--primary)] shadow-sm' : 'text-gray-400'}`}>{t.filterAll}</button>
           <button onClick={() => setFilterMode('course')} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${filterMode === 'course' ? 'bg-white text-[var(--primary)] shadow-sm' : 'text-gray-400'}`}>{t.filterByCourse}</button>
           <button onClick={() => setFilterMode('student')} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${filterMode === 'student' ? 'bg-white text-[var(--primary)] shadow-sm' : 'text-gray-400'}`}>{t.filterByStudent}</button>

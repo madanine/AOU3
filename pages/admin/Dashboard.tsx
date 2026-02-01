@@ -35,8 +35,8 @@ const AdminDashboard: React.FC = () => {
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-black text-gray-900 tracking-tight">{t.dashboard}</h1>
-          <p className="text-gray-500 font-medium">{t.systemOverview}</p>
+          <h1 className="text-3xl font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>{t.dashboard}</h1>
+          <p className="font-medium" style={{ color: 'var(--text-secondary)' }}>{t.systemOverview}</p>
         </div>
         <SemesterControls />
       </div>
@@ -48,8 +48,8 @@ const AdminDashboard: React.FC = () => {
               <stat.icon size={28} />
             </div>
             <div>
-              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{stat.label}</p>
-              <p className="text-2xl font-black text-gray-900 leading-none mt-1">{stat.value}</p>
+              <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>{stat.label}</p>
+              <p className="text-2xl font-black leading-none mt-1" style={{ color: 'var(--text-primary)' }}>{stat.value}</p>
             </div>
           </div>
         ))}
@@ -58,7 +58,7 @@ const AdminDashboard: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
           <div className="flex items-center justify-between mb-8">
-            <h2 className="text-xl font-black text-gray-900 flex items-center gap-3">
+            <h2 className="text-xl font-black flex items-center gap-3" style={{ color: 'var(--text-primary)' }}>
               <TrendingUp size={20} className="text-[var(--primary)]" />
               {t.enrollmentDist}
             </h2>
@@ -67,11 +67,11 @@ const AdminDashboard: React.FC = () => {
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 800, fill: '#94a3b8'}} />
-                <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#94a3b8'}} />
-                <Tooltip 
-                  cursor={{fill: '#f8fafc'}}
-                  contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}}
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 800, fill: '#94a3b8' }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} />
+                <Tooltip
+                  cursor={{ fill: '#f8fafc' }}
+                  contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
                 />
                 <Bar dataKey="enrollments" radius={[6, 6, 0, 0]}>
                   {chartData.map((entry, index) => (
@@ -84,7 +84,7 @@ const AdminDashboard: React.FC = () => {
         </div>
 
         <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
-          <h2 className="text-xl font-black text-gray-900 mb-6 flex items-center gap-3">
+          <h2 className="text-xl font-black mb-6 flex items-center gap-3" style={{ color: 'var(--text-primary)' }}>
             <Calendar size={20} className="text-[var(--primary)]" />
             {t.recentActivity}
           </h2>
@@ -99,18 +99,18 @@ const AdminDashboard: React.FC = () => {
                     {s?.fullName.charAt(0)}
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-gray-900 leading-snug">
-                       <span className="text-[var(--primary)]">{s?.fullName}</span> {t.register.toLowerCase()} {c?.code}
+                    <p className="text-xs font-bold leading-snug" style={{ color: 'var(--text-primary)' }}>
+                      <span className="text-[var(--primary)]">{s?.fullName}</span> {t.register.toLowerCase()} {c?.code}
                     </p>
-                    <p className="text-[10px] text-gray-400 mt-1 uppercase font-black tracking-widest">{new Date(e.enrolledAt).toLocaleString()}</p>
+                    <p className="text-[10px] mt-1 uppercase font-black tracking-widest" style={{ color: 'var(--text-secondary)' }}>{new Date(e.enrolledAt).toLocaleString()}</p>
                   </div>
                 </div>
               );
             })}
             {enrollments.length === 0 && (
               <div className="flex flex-col items-center justify-center h-full text-center">
-                 <Calendar className="text-gray-200 mb-2" size={40} />
-                 <p className="text-gray-400 text-xs font-black uppercase tracking-widest">{t.noData}</p>
+                <Calendar className="text-gray-200 mb-2" size={40} />
+                <p className="text-gray-400 text-xs font-black uppercase tracking-widest">{t.noData}</p>
               </div>
             )}
           </div>

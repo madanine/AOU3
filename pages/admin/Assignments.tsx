@@ -7,7 +7,7 @@ import { Plus, Edit3, Trash2, X, Save, ClipboardList, BookOpen, Clock, Trash, Al
 import SemesterControls from '../../components/admin/SemesterControls';
 
 const AdminAssignments: React.FC = () => {
-  const { t, lang, settings, translate } = useApp();
+  const { user, t, lang, settings, translate } = useApp();
   const [courses, setCourses] = useState<Course[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [selectedCourseId, setSelectedCourseId] = useState<string>('');
@@ -26,9 +26,15 @@ const AdminAssignments: React.FC = () => {
   const activeSemId = settings.activeSemesterId || 'sem-default';
 
   useEffect(() => {
-    setCourses(storage.getCourses().filter(c => c.semesterId === activeSemId));
+    let filteredCourses = storage.getCourses().filter(c => c.semesterId === activeSemId);
+
+    if (user?.role === 'supervisor') {
+      filteredCourses = filteredCourses.filter(c => user.assignedCourses?.includes(c.id));
+    }
+
+    setCourses(filteredCourses);
     setAssignments(storage.getAssignments());
-  }, [activeSemId]);
+  }, [activeSemId, user]);
 
   const courseAssignments = assignments.filter(a => a.courseId === selectedCourseId && a.semesterId === activeSemId);
 

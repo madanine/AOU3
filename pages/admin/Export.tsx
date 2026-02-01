@@ -24,7 +24,7 @@ const AdminExport: React.FC = () => {
   const exportToExcel = () => {
     const students = storage.getUsers().filter(u => u.role === 'student');
     const courses = storage.getCourses();
-    
+
     const data = enrollments.map(e => {
       const s = students.find(stu => stu.id === e.studentId);
       const c = courses.find(cou => cou.id === e.courseId);
@@ -44,10 +44,10 @@ const AdminExport: React.FC = () => {
     const worksheet = XLSX.utils.json_to_sheet(data);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Enrollments');
-    
-    worksheet['!cols'] = [ 
-      { wch: 15 }, { wch: 25 }, { wch: 20 }, { wch: 30 }, { wch: 15 }, 
-      { wch: 25 }, { wch: 15 }, { wch: 30 }, { wch: 25 } 
+
+    worksheet['!cols'] = [
+      { wch: 15 }, { wch: 25 }, { wch: 20 }, { wch: 30 }, { wch: 15 },
+      { wch: 25 }, { wch: 15 }, { wch: 30 }, { wch: 25 }
     ];
 
     const semesterName = storage.getSemesters().find(s => s.id === settings.activeSemesterId)?.name || 'MASTER';
@@ -61,8 +61,8 @@ const AdminExport: React.FC = () => {
     <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-black text-gray-900 tracking-tight">{t.export}</h1>
-          <p className="text-gray-500 font-medium">{t.exportReports}</p>
+          <h1 className="text-3xl font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>{t.export}</h1>
+          <p className="font-medium" style={{ color: 'var(--text-secondary)' }}>{t.exportReports}</p>
         </div>
         <div className="flex items-center gap-4">
           <SemesterControls />
@@ -82,8 +82,8 @@ const AdminExport: React.FC = () => {
         </div>
 
         <div className="space-y-4">
-          <h2 className="text-2xl font-black text-gray-900 uppercase tracking-tight">{t.exportTitle}</h2>
-          <p className="text-gray-500 max-w-md mx-auto font-medium text-sm">
+          <h2 className="text-2xl font-black uppercase tracking-tight" style={{ color: 'var(--text-primary)' }}>{t.exportTitle}</h2>
+          <p className="max-w-md mx-auto font-medium text-sm" style={{ color: 'var(--text-secondary)' }}>
             {t.exportSubtitleText}
           </p>
         </div>
@@ -91,10 +91,10 @@ const AdminExport: React.FC = () => {
         <div className="p-6 bg-slate-50 rounded-[2rem] flex items-start gap-4 text-left max-w-xl mx-auto border border-slate-100">
           <Info className="text-[var(--primary)] flex-shrink-0 mt-0.5" size={20} />
           <div className="space-y-1">
-             <p className="text-[10px] font-black text-gray-900 uppercase tracking-widest">{t.exportInfoTitle}</p>
-             <p className="text-xs text-gray-500 leading-relaxed font-medium">
-               {exportInfoText}
-             </p>
+            <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--text-primary)' }}>{t.exportInfoTitle}</p>
+            <p className="text-xs leading-relaxed font-medium" style={{ color: 'var(--text-secondary)' }}>
+              {exportInfoText}
+            </p>
           </div>
         </div>
 

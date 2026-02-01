@@ -9,7 +9,7 @@ import { User as UserIcon, Mail, KeyRound, Phone, ArrowRight, ShieldCheck } from
 const SignupPage: React.FC = () => {
   const { setUser, t, lang, settings } = useApp();
   const navigate = useNavigate();
-  
+
   const [formData, setFormData] = useState({
     fullName: '',
     universityId: '',
@@ -26,7 +26,7 @@ const SignupPage: React.FC = () => {
     e.preventDefault();
     setError('');
     const users = storage.getUsers();
-    
+
     if (formData.password !== formData.confirmPassword) {
       setError(lang === 'AR' ? 'كلمات المرور غير متطابقة' : 'Passwords do not match');
       return;
@@ -66,8 +66,8 @@ const SignupPage: React.FC = () => {
       <div className="w-full max-w-2xl z-10 my-auto">
         <div className="bg-[var(--card-bg)] rounded-[2.5rem] shadow-2xl overflow-hidden border border-[var(--border-color)]">
           <div className="p-10 pb-0 flex flex-col items-center text-center">
-            {settings.branding.logoBase64 ? (
-              <img src={settings.branding.logoBase64} alt="Logo" className="w-20 h-20 object-contain mb-4" />
+            {(settings.branding.logo || settings.branding.logoBase64) ? (
+              <img src={settings.branding.logo || settings.branding.logoBase64} alt="Logo" className="h-20 w-auto object-contain mb-4" />
             ) : (
               <div className="w-16 h-16 bg-[var(--primary)] rounded-2xl flex items-center justify-center text-white font-bold text-2xl shadow-lg mb-4">A</div>
             )}
@@ -97,7 +97,7 @@ const SignupPage: React.FC = () => {
                   <input
                     required
                     value={formData.fullName}
-                    onChange={(e) => setFormData({...formData, fullName: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                     className={inputClasses}
                     placeholder={t.fullName}
                   />
@@ -111,7 +111,7 @@ const SignupPage: React.FC = () => {
                   <input
                     required
                     value={formData.universityId}
-                    onChange={(e) => setFormData({...formData, universityId: forceWesternNumerals(e.target.value)})}
+                    onChange={(e) => setFormData({ ...formData, universityId: forceWesternNumerals(e.target.value) })}
                     className={inputClasses}
                     placeholder="1234567"
                   />
@@ -126,7 +126,7 @@ const SignupPage: React.FC = () => {
                     type="email"
                     required
                     value={formData.email}
-                    onChange={(e) => setFormData({...formData, email: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     className={inputClasses}
                     placeholder="email@university.edu"
                   />
@@ -139,7 +139,7 @@ const SignupPage: React.FC = () => {
                   <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-black/50" size={16} />
                   <input
                     value={formData.phone}
-                    onChange={(e) => setFormData({...formData, phone: forceWesternNumerals(e.target.value)})}
+                    onChange={(e) => setFormData({ ...formData, phone: forceWesternNumerals(e.target.value) })}
                     className={inputClasses}
                     placeholder="+966 50 123 4567"
                   />
@@ -154,7 +154,7 @@ const SignupPage: React.FC = () => {
                     type="password"
                     required
                     value={formData.password}
-                    onChange={(e) => setFormData({...formData, password: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                     className={inputClasses}
                   />
                 </div>
@@ -170,7 +170,7 @@ const SignupPage: React.FC = () => {
                     type="password"
                     required
                     value={formData.confirmPassword}
-                    onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                     className={inputClasses}
                   />
                 </div>
@@ -182,10 +182,9 @@ const SignupPage: React.FC = () => {
                   <select
                     required
                     value={formData.major}
-                    onChange={(e) => setFormData({...formData, major: e.target.value as Major})}
-                    className={`w-full py-3 bg-white/20 border border-[var(--border-color)] rounded-xl focus:ring-2 focus:ring-[var(--primary)] focus:bg-white/40 outline-none transition-all text-sm font-bold text-black appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23000000%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C/polyline%3E%3C/svg%3E')] bg-[length:20px] bg-no-repeat ${
-                      lang === 'AR' ? 'bg-[left_1rem_center] pl-10 pr-4' : 'bg-[right_1rem_center] pr-10 pl-4'
-                    }`}
+                    onChange={(e) => setFormData({ ...formData, major: e.target.value as Major })}
+                    className={`w-full py-3 bg-white/20 border border-[var(--border-color)] rounded-xl focus:ring-2 focus:ring-[var(--primary)] focus:bg-white/40 outline-none transition-all text-sm font-bold text-black appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23000000%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C/polyline%3E%3C/svg%3E')] bg-[length:20px] bg-no-repeat ${lang === 'AR' ? 'bg-[left_1rem_center] pl-10 pr-4' : 'bg-[right_1rem_center] pr-10 pl-4'
+                      }`}
                   >
                     <option value="">{t.selectMajor}</option>
                     {Object.entries(t.majorList).map(([key, value]) => (

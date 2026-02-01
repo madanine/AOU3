@@ -11,7 +11,7 @@ const AdminStudents: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  
+
   const [formData, setFormData] = useState<Partial<User>>({
     fullName: '',
     universityId: '',
@@ -22,8 +22,8 @@ const AdminStudents: React.FC = () => {
   });
 
   const students = users.filter(u => u.role === 'student');
-  const filteredStudents = students.filter(s => 
-    s.fullName.toLowerCase().includes(searchTerm.toLowerCase()) || 
+  const filteredStudents = students.filter(s =>
+    s.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     s.universityId.toLowerCase().includes(searchTerm.toLowerCase()) ||
     s.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -107,8 +107,8 @@ const AdminStudents: React.FC = () => {
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="w-full pl-12 pr-4 py-3 border rounded-2xl outline-none font-bold text-xs transition-all"
-          style={{ 
-            backgroundColor: 'var(--card-bg)', 
+          style={{
+            backgroundColor: 'var(--card-bg)',
             borderColor: 'var(--border-color)',
             color: 'var(--text-primary)'
           }}
@@ -128,8 +128,8 @@ const AdminStudents: React.FC = () => {
           </thead>
           <tbody className="divide-y" style={{ borderColor: 'var(--border-color)' }}>
             {filteredStudents.map(student => (
-              <tr 
-                key={student.id} 
+              <tr
+                key={student.id}
                 className={`transition-colors ${student.isDisabled ? 'opacity-50 grayscale bg-gray-50/50 dark:bg-black/20' : 'hover:bg-gray-50/30 dark:hover:bg-white/5'}`}
               >
                 <td className="px-6 py-4">
@@ -153,21 +153,21 @@ const AdminStudents: React.FC = () => {
                 </td>
                 <td className="px-6 py-4">
                   <div className="flex items-center justify-end gap-2">
-                    <button 
+                    <button
                       onClick={() => handleToggleStatus(student.id)}
                       className={`p-2 rounded-xl transition-all border ${student.isDisabled ? 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20' : 'text-amber-500 bg-amber-500/10 border-amber-500/20'}`}
                       title={student.isDisabled ? t.enable : t.disable}
                     >
                       {student.isDisabled ? <UserCheck size={18} /> : <UserMinus size={18} />}
                     </button>
-                    <button 
+                    <button
                       onClick={() => handleOpenEdit(student)}
                       className="p-2 transition-all border rounded-xl hover:bg-blue-50/10"
                       style={{ color: 'var(--text-secondary)', borderColor: 'var(--border-color)' }}
                     >
                       <Edit2 size={18} />
                     </button>
-                    <button 
+                    <button
                       onClick={() => handleDelete(student.id)}
                       className="p-2 transition-all border border-red-500/10 rounded-xl text-red-500 hover:bg-red-500/10"
                     >
@@ -202,9 +202,8 @@ const AdminStudents: React.FC = () => {
                   <input
                     required
                     value={formData.fullName}
-                    onChange={(e) => setFormData({...formData, fullName: e.target.value})}
-                    className="w-full px-4 py-3 rounded-xl border outline-none font-bold text-sm"
-                    style={{ backgroundColor: isDarkMode ? '#1a1a1a' : '#f8fafc', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
+                    onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl border outline-none font-bold text-sm bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-900 dark:text-white"
                   />
                 </div>
                 <div className="space-y-1">
@@ -212,9 +211,8 @@ const AdminStudents: React.FC = () => {
                   <input
                     required
                     value={formData.universityId}
-                    onChange={(e) => setFormData({...formData, universityId: e.target.value})}
-                    className="w-full px-4 py-3 rounded-xl border outline-none font-bold text-sm"
-                    style={{ backgroundColor: isDarkMode ? '#1a1a1a' : '#f8fafc', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
+                    onChange={(e) => setFormData({ ...formData, universityId: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl border outline-none font-bold text-sm bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-900 dark:text-white"
                   />
                 </div>
                 <div className="space-y-1">
@@ -223,9 +221,8 @@ const AdminStudents: React.FC = () => {
                     required
                     type="email"
                     value={formData.email}
-                    onChange={(e) => setFormData({...formData, email: e.target.value})}
-                    className="w-full px-4 py-3 rounded-xl border outline-none font-bold text-sm"
-                    style={{ backgroundColor: isDarkMode ? '#1a1a1a' : '#f8fafc', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl border outline-none font-bold text-sm bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-900 dark:text-white"
                   />
                 </div>
                 <div className="space-y-1">
@@ -236,10 +233,9 @@ const AdminStudents: React.FC = () => {
                       required={!editingUser}
                       type="text"
                       value={formData.password}
-                      onChange={(e) => setFormData({...formData, password: e.target.value})}
+                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                       placeholder={editingUser ? (lang === 'AR' ? 'اتركه فارغاً للمحافظة على القديم' : 'Leave empty to keep old') : ''}
-                      className="w-full pl-10 pr-4 py-3 rounded-xl border outline-none font-bold text-sm"
-                      style={{ backgroundColor: isDarkMode ? '#1a1a1a' : '#f8fafc', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
+                      className="w-full pl-10 pr-4 py-3 rounded-xl border outline-none font-bold text-sm bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-900 dark:text-white"
                     />
                   </div>
                 </div>
@@ -248,9 +244,8 @@ const AdminStudents: React.FC = () => {
                   <select
                     required
                     value={formData.major}
-                    onChange={(e) => setFormData({...formData, major: e.target.value})}
-                    className="w-full px-4 py-3 rounded-xl border outline-none font-bold text-sm appearance-none"
-                    style={{ backgroundColor: isDarkMode ? '#1a1a1a' : '#f8fafc', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
+                    onChange={(e) => setFormData({ ...formData, major: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl border outline-none font-bold text-sm appearance-none bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-900 dark:text-white"
                   >
                     <option value="">{t.selectMajor}</option>
                     {Object.entries(t.majorList).map(([key, value]) => (

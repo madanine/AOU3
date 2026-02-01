@@ -4,6 +4,7 @@ import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { storage } from './storage';
 import { User, Language, SiteSettings } from './types';
 import { TRANSLATIONS } from './constants';
+import './src/print-styles.css';
 
 // Pages
 import LoginPage from './pages/auth/Login';
@@ -152,6 +153,8 @@ const App: React.FC = () => {
 
             {/* Supervisor Routes */}
             <Route path="/supervisor/attendance" element={<AdminAttendance />} />
+            <Route path="/supervisor/assignments" element={<AdminAssignments />} />
+            <Route path="/supervisor/grading" element={<AdminGrading />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/auth/login" />} />

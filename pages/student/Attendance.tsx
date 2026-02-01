@@ -15,11 +15,11 @@ const Attendance: React.FC = () => {
   const myAttendance = enrollments.map(e => {
     const course = courses.find(c => c.id === e.courseId)!;
     const records = (attendance[course.id]?.[user?.id || '']) || Array(12).fill(null);
-    
+
     const presentCount = records.filter(r => r === true).length;
     const absentCount = records.filter(r => r === false).length;
     const unrecordedCount = 12 - (presentCount + absentCount);
-    
+
     const recordedTotal = presentCount + absentCount;
     // Percentage based on recorded only as per rules
     const percentage = recordedTotal > 0 ? Math.round((presentCount / recordedTotal) * 100) : 0;
@@ -55,11 +55,11 @@ const Attendance: React.FC = () => {
                 <BookMarked size={28} />
               </div>
               <div>
-                <h3 className="font-black text-black text-lg leading-tight">
+                <h3 className="font-black text-lg leading-tight" style={{ color: 'var(--text-primary)' }}>
                   {translate(course, 'title')}
                 </h3>
                 <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest mt-1" style={{ color: 'var(--text-secondary)' }}>
-                  <span className="text-black font-bold">{course.code}</span>
+                  <span className="font-bold" style={{ color: 'var(--text-primary)' }}>{course.code}</span>
                   <span>•</span>
                   <span className="text-emerald-600 font-bold">{presentCount} {lang === 'AR' ? 'حاضر' : 'Present'}</span>
                   <span>•</span>
@@ -69,13 +69,13 @@ const Attendance: React.FC = () => {
                 </div>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-6">
               <div className="text-right">
-                <p className="text-2xl font-black text-black leading-none">{percentage}%</p>
+                <p className="text-2xl font-black leading-none" style={{ color: 'var(--text-primary)' }}>{percentage}%</p>
                 <p className="text-[8px] font-black uppercase tracking-widest mt-1 opacity-50">Attendance</p>
               </div>
-              <button 
+              <button
                 onClick={() => setSelectedCourse(course.id)}
                 className="p-3 bg-black/5 rounded-2xl border border-black/5 hover:bg-black/10 transition-all flex items-center gap-2"
               >
@@ -88,8 +88,8 @@ const Attendance: React.FC = () => {
 
         {myAttendance.length === 0 && (
           <div className="text-center py-24 bg-[var(--card-bg)] rounded-[2.5rem] border border-dashed border-black/20">
-             <BookMarked className="mx-auto text-black/20 mb-6" size={64} />
-             <p className="text-black/40 font-black text-xs uppercase tracking-widest">{t.noData}</p>
+            <BookMarked className="mx-auto text-black/20 mb-6" size={64} />
+            <p className="font-black text-xs uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>{t.noData}</p>
           </div>
         )}
       </div>
@@ -100,8 +100,8 @@ const Attendance: React.FC = () => {
           <div className="bg-white w-full max-w-lg rounded-t-[2.5rem] sm:rounded-[2.5rem] p-8 shadow-2xl animate-in slide-in-from-bottom duration-300">
             <div className="flex items-center justify-between mb-8">
               <div>
-                <h3 className="text-xl font-black text-gray-900">{translate(activeCourse.course, 'title')}</h3>
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">{activeCourse.course.code}</p>
+                <h3 className="text-xl font-black" style={{ color: 'var(--text-primary)' }}>{translate(activeCourse.course, 'title')}</h3>
+                <p className="text-[10px] font-black uppercase tracking-widest mt-1" style={{ color: 'var(--text-secondary)' }}>{activeCourse.course.code}</p>
               </div>
               <button onClick={() => setSelectedCourse(null)} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
                 <X size={24} />
@@ -113,38 +113,37 @@ const Attendance: React.FC = () => {
                 const status = activeCourse.records[i];
                 return (
                   <div key={i} className="flex flex-col items-center gap-1.5">
-                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border transition-all ${
-                      status === true ? 'bg-emerald-50 border-emerald-100 text-emerald-600' :
-                      status === false ? 'bg-red-50 border-red-100 text-red-600' :
-                      'bg-gray-50 border-gray-100 text-gray-300'
-                    }`}>
+                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border transition-all ${status === true ? 'bg-emerald-50 border-emerald-100 text-emerald-600' :
+                        status === false ? 'bg-red-50 border-red-100 text-red-600' :
+                          'bg-gray-50 border-gray-100 text-gray-300'
+                      }`}>
                       {status === true ? <Check size={20} strokeWidth={3} /> :
-                       status === false ? <X size={20} strokeWidth={3} /> :
-                       <Minus size={20} strokeWidth={3} />}
+                        status === false ? <X size={20} strokeWidth={3} /> :
+                          <Minus size={20} strokeWidth={3} />}
                     </div>
-                    <span className="text-[9px] font-black text-gray-400 uppercase">م{i + 1}</span>
+                    <span className="text-[9px] font-black uppercase" style={{ color: 'var(--text-secondary)' }}>م{i + 1}</span>
                   </div>
                 );
               })}
             </div>
 
             <div className="bg-gray-50 rounded-2xl p-4 flex justify-between items-center border border-gray-100">
-               <div className="text-center flex-1 border-r">
-                 <p className="text-lg font-black text-emerald-600">{activeCourse.presentCount}</p>
-                 <p className="text-[8px] font-black uppercase text-gray-400">{lang === 'AR' ? 'حاضر' : 'Present'}</p>
-               </div>
-               <div className="text-center flex-1 border-r">
-                 <p className="text-lg font-black text-red-600">{activeCourse.absentCount}</p>
-                 <p className="text-[8px] font-black uppercase text-gray-400">{lang === 'AR' ? 'غائب' : 'Absent'}</p>
-               </div>
-               <div className="text-center flex-1 border-r">
-                 <p className="text-lg font-black text-gray-400">{activeCourse.unrecordedCount}</p>
-                 <p className="text-[8px] font-black uppercase text-gray-400">{lang === 'AR' ? 'لم تُرصد' : 'Unrecorded'}</p>
-               </div>
-               <div className="text-center flex-1">
-                 <p className="text-lg font-black text-blue-600">{activeCourse.percentage}%</p>
-                 <p className="text-[8px] font-black uppercase text-gray-400">{lang === 'AR' ? 'النسبة' : 'Rate'}</p>
-               </div>
+              <div className="text-center flex-1 border-r">
+                <p className="text-lg font-black text-emerald-600">{activeCourse.presentCount}</p>
+                <p className="text-[8px] font-black uppercase text-gray-400">{lang === 'AR' ? 'حاضر' : 'Present'}</p>
+              </div>
+              <div className="text-center flex-1 border-r">
+                <p className="text-lg font-black text-red-600">{activeCourse.absentCount}</p>
+                <p className="text-[8px] font-black uppercase text-gray-400">{lang === 'AR' ? 'غائب' : 'Absent'}</p>
+              </div>
+              <div className="text-center flex-1 border-r">
+                <p className="text-lg font-black text-gray-400">{activeCourse.unrecordedCount}</p>
+                <p className="text-[8px] font-black uppercase text-gray-400">{lang === 'AR' ? 'لم تُرصد' : 'Unrecorded'}</p>
+              </div>
+              <div className="text-center flex-1">
+                <p className="text-lg font-black text-blue-600">{activeCourse.percentage}%</p>
+                <p className="text-[8px] font-black uppercase text-gray-400">{lang === 'AR' ? 'النسبة' : 'Rate'}</p>
+              </div>
             </div>
           </div>
         </div>

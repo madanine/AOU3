@@ -29,9 +29,9 @@ const AdminCourses: React.FC = () => {
 
   const handleOpenAdd = () => {
     setEditingCourse(null);
-    setFormData({ 
-      code: '', title: '', title_ar: '', credits: 3, description: '', description_ar: '', 
-      doctor: '', doctor_ar: '', day: 'Sunday', time: '10:00 - 12:00', isRegistrationEnabled: true 
+    setFormData({
+      code: '', title: '', title_ar: '', credits: 3, description: '', description_ar: '',
+      doctor: '', doctor_ar: '', day: 'Sunday', time: '10:00 - 12:00', isRegistrationEnabled: true
     });
     setIsModalOpen(true);
   };
@@ -51,7 +51,7 @@ const AdminCourses: React.FC = () => {
   };
 
   const toggleCourseRegistration = (course: Course) => {
-    const updated = allCourses.map(c => 
+    const updated = allCourses.map(c =>
       c.id === course.id ? { ...c, isRegistrationEnabled: !c.isRegistrationEnabled } : c
     );
     setAllCourses(updated);
@@ -80,8 +80,8 @@ const AdminCourses: React.FC = () => {
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">{t.courses}</h1>
-          <p className="text-gray-500 font-medium">{t.manageCurriculum}</p>
+          <h1 className="text-3xl font-extrabold tracking-tight" style={{ color: 'var(--text-primary)' }}>{t.courses}</h1>
+          <p className="font-medium" style={{ color: 'var(--text-secondary)' }}>{t.manageCurriculum}</p>
         </div>
         <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
           <SemesterControls />
@@ -103,10 +103,10 @@ const AdminCourses: React.FC = () => {
                 {course.code}
               </span>
               <div className="flex gap-2">
-                <button 
-                   onClick={() => toggleCourseRegistration(course)}
-                   className={`p-1.5 rounded-lg transition-colors ${course.isRegistrationEnabled ? 'text-emerald-500 bg-emerald-50' : 'text-red-500 bg-red-50'}`}
-                   title={course.isRegistrationEnabled ? t.regEnabled : t.regDisabled}
+                <button
+                  onClick={() => toggleCourseRegistration(course)}
+                  className={`p-1.5 rounded-lg transition-colors ${course.isRegistrationEnabled ? 'text-emerald-500 bg-emerald-50' : 'text-red-500 bg-red-50'}`}
+                  title={course.isRegistrationEnabled ? t.regEnabled : t.regDisabled}
                 >
                   {course.isRegistrationEnabled ? <ToggleRight size={20} /> : <ToggleLeft size={20} />}
                 </button>
@@ -118,9 +118,9 @@ const AdminCourses: React.FC = () => {
                 </button>
               </div>
             </div>
-            
-            <h3 className="text-lg font-black text-gray-900 mb-2 leading-snug">{translate(course, 'title')}</h3>
-            
+
+            <h3 className="text-lg font-black mb-2 leading-snug" style={{ color: 'var(--text-primary)' }}>{translate(course, 'title')}</h3>
+
             <div className="space-y-2 mb-4">
               <div className="flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-widest">
                 <DocIcon size={14} className="text-gray-300" />
@@ -142,20 +142,20 @@ const AdminCourses: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 overflow-y-auto max-h-[90vh]">
             <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-              <h2 className="text-xl font-black text-gray-900">{editingCourse ? t.editCourse : t.addCourse}</h2>
-              <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600">
+              <h2 className="text-xl font-black" style={{ color: 'var(--text-primary)' }}>{editingCourse ? t.editCourse : t.addCourse}</h2>
+              <button onClick={() => setIsModalOpen(false)} style={{ color: 'var(--text-secondary)' }}>
                 <X size={24} />
               </button>
             </div>
             <form onSubmit={handleSubmit} className="p-6 space-y-6">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{t.courseCode}</label>
+                  <label className="text-[10px] font-black uppercase tracking-widest ml-1" style={{ color: 'var(--text-secondary)' }}>{t.courseCode}</label>
                   <input
                     required
                     value={formData.code}
-                    onChange={(e) => setFormData({...formData, code: e.target.value})}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none text-sm font-bold"
+                    onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                    className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none text-sm font-bold text-gray-900 dark:text-white"
                   />
                 </div>
                 <div className="space-y-1">
@@ -164,8 +164,8 @@ const AdminCourses: React.FC = () => {
                     type="number"
                     required
                     value={formData.credits}
-                    onChange={(e) => setFormData({...formData, credits: parseInt(e.target.value)})}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none text-sm font-bold"
+                    onChange={(e) => setFormData({ ...formData, credits: parseInt(e.target.value) })}
+                    className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none text-sm font-bold text-gray-900 dark:text-white"
                   />
                 </div>
               </div>
@@ -176,8 +176,8 @@ const AdminCourses: React.FC = () => {
                   <input
                     required
                     value={formData.title}
-                    onChange={(e) => setFormData({...formData, title: e.target.value})}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl outline-none text-sm font-bold"
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-white/10 rounded-xl outline-none text-sm font-bold text-gray-900 dark:text-white"
                   />
                 </div>
                 <div className="space-y-1">
@@ -186,8 +186,8 @@ const AdminCourses: React.FC = () => {
                     required
                     dir="rtl"
                     value={formData.title_ar}
-                    onChange={(e) => setFormData({...formData, title_ar: e.target.value})}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl outline-none text-sm font-bold"
+                    onChange={(e) => setFormData({ ...formData, title_ar: e.target.value })}
+                    className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-white/10 rounded-xl outline-none text-sm font-bold text-gray-900 dark:text-white"
                   />
                 </div>
               </div>
@@ -198,8 +198,8 @@ const AdminCourses: React.FC = () => {
                   <input
                     required
                     value={formData.doctor}
-                    onChange={(e) => setFormData({...formData, doctor: e.target.value})}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl outline-none text-sm font-bold"
+                    onChange={(e) => setFormData({ ...formData, doctor: e.target.value })}
+                    className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-white/10 rounded-xl outline-none text-sm font-bold text-gray-900 dark:text-white"
                   />
                 </div>
                 <div className="space-y-1">
@@ -208,8 +208,8 @@ const AdminCourses: React.FC = () => {
                     required
                     dir="rtl"
                     value={formData.doctor_ar}
-                    onChange={(e) => setFormData({...formData, doctor_ar: e.target.value})}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl outline-none text-sm font-bold"
+                    onChange={(e) => setFormData({ ...formData, doctor_ar: e.target.value })}
+                    className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-white/10 rounded-xl outline-none text-sm font-bold text-gray-900 dark:text-white"
                   />
                 </div>
               </div>
@@ -219,8 +219,8 @@ const AdminCourses: React.FC = () => {
                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{t.day}</label>
                   <select
                     value={formData.day}
-                    onChange={(e) => setFormData({...formData, day: e.target.value})}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl outline-none text-sm font-bold"
+                    onChange={(e) => setFormData({ ...formData, day: e.target.value })}
+                    className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-white/10 rounded-xl outline-none text-sm font-bold text-gray-900 dark:text-white"
                   >
                     {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(d => <option key={d} value={d}>{d}</option>)}
                   </select>
@@ -230,8 +230,8 @@ const AdminCourses: React.FC = () => {
                   <input
                     required
                     value={formData.time}
-                    onChange={(e) => setFormData({...formData, time: e.target.value})}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl outline-none text-sm font-bold"
+                    onChange={(e) => setFormData({ ...formData, time: e.target.value })}
+                    className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-white/10 rounded-xl outline-none text-sm font-bold text-gray-900 dark:text-white"
                     placeholder="10:00 - 12:00"
                   />
                 </div>

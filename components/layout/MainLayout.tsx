@@ -82,9 +82,20 @@ const MainLayout: React.FC = () => {
       return filtered;
     }
     if (user?.role === 'supervisor') {
-      return [
-        { label: lang === 'AR' ? 'التحضير' : 'Attendance', path: '/supervisor/attendance', icon: CheckSquare, key: 'attendance' },
-      ];
+      const perms = user.supervisorPermissions || { attendance: true, assignments: false, grading: false };
+      const items = [];
+
+      if (perms.attendance) {
+        items.push({ label: lang === 'AR' ? 'التحضير' : 'Attendance', path: '/supervisor/attendance', icon: CheckSquare, key: 'attendance' });
+      }
+      if (perms.assignments) {
+        items.push({ label: t.assignments, path: '/supervisor/assignments', icon: ClipboardList, key: 'assignments' });
+      }
+      if (perms.grading) {
+        items.push({ label: t.grading, path: '/supervisor/grading', icon: GradIcon, key: 'grading' });
+      }
+
+      return items;
     }
     return [
       { label: t.registration, path: '/student/registration', icon: GraduationCap, key: 'registration' },
@@ -127,8 +138,8 @@ const MainLayout: React.FC = () => {
       {/* Mobile Header */}
       <div className="md:hidden flex items-center justify-between p-4 border-b sticky top-0 z-50 shadow-sm" style={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)' }}>
         <div className="flex items-center gap-2">
-          {settings.branding.logoBase64 ? (
-            <img src={settings.branding.logoBase64} alt="Logo" className="w-8 h-8 object-contain" />
+          {(settings.branding.logo || settings.branding.logoBase64) ? (
+            <img src={settings.branding.logo || settings.branding.logoBase64} alt="Logo" className="h-10 w-auto object-contain" />
           ) : (
             <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold" style={{ backgroundColor: 'var(--primary)' }}>A</div>
           )}
@@ -167,8 +178,8 @@ const MainLayout: React.FC = () => {
         <div className="h-full flex flex-col p-6 w-full">
           <div className="flex items-center justify-between mb-10">
             <div className="flex items-center gap-3">
-              {settings.branding.logoBase64 ? (
-                <img src={settings.branding.logoBase64} alt="Logo" className="w-10 h-10 object-contain" />
+              {(settings.branding.logo || settings.branding.logoBase64) ? (
+                <img src={settings.branding.logo || settings.branding.logoBase64} alt="Logo" className="h-12 w-auto object-contain" />
               ) : (
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg" style={{ backgroundColor: 'var(--primary)' }}>A</div>
               )}
@@ -251,8 +262,22 @@ const MainLayout: React.FC = () => {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 p-6 md:p-10 overflow-y-auto custom-scrollbar h-screen">
-        <Outlet />
+      <main className="flex-1 flex flex-col overflow-y-auto custom-scrollbar h-screen">
+        <div className="flex-1 p-6 md:p-10">
+          <Outlet />
+        </div>
+
+        {/* Footer */}
+        <footer className="mt-auto py-6 px-6 md:px-10 border-t" style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--card-bg)' }}>
+          <div className="max-w-6xl mx-auto text-center space-y-1">
+            <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>
+              {settings.branding.siteNameEn} {settings.branding.footerText}
+            </p>
+            <p className="text-[10px] font-black uppercase tracking-widest opacity-60" style={{ color: 'var(--text-secondary)' }}>
+              by Abdullah
+            </p>
+          </div>
+        </footer>
       </main>
 
       {/* Mobile Sidebar Overlay */}

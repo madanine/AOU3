@@ -4,15 +4,15 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useApp } from '../../App';
 import { storage } from '../../storage';
 import { Assignment, Submission, Course } from '../../types';
-import { 
-  ArrowLeft, 
-  Upload, 
-  CheckCircle2, 
-  AlertCircle, 
-  Clock, 
-  FileText, 
-  CheckSquare, 
-  Send, 
+import {
+  ArrowLeft,
+  Upload,
+  CheckCircle2,
+  AlertCircle,
+  Clock,
+  FileText,
+  CheckSquare,
+  Send,
   X,
   ClipboardList,
   ChevronRight,
@@ -31,7 +31,7 @@ const StudentAssignmentSubmission: React.FC = () => {
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
-  
+
   // Form States
   const [file, setFile] = useState<{ name: string, data: string } | null>(null);
   const [mcqAnswers, setMcqAnswers] = useState<string[]>([]);
@@ -102,7 +102,7 @@ const StudentAssignmentSubmission: React.FC = () => {
 
     const allSubmissions = storage.getSubmissions();
     storage.setSubmissions([...allSubmissions, submission]);
-    
+
     setTimeout(() => {
       refreshSubmissions();
       setIsSubmitting(false);
@@ -127,7 +127,7 @@ const StudentAssignmentSubmission: React.FC = () => {
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500 pb-20">
       <div className="flex items-center justify-between">
-        <button 
+        <button
           onClick={() => navigate('/student/assignments')}
           className="flex items-center gap-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors font-black uppercase text-xs tracking-widest"
         >
@@ -135,8 +135,8 @@ const StudentAssignmentSubmission: React.FC = () => {
           {t.cancel}
         </button>
         <div className="text-right">
-          <h1 className="text-2xl font-black text-gray-900 leading-tight">{translate(course, 'title')}</h1>
-          <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">{course.code}</p>
+          <h1 className="text-2xl font-black leading-tight" style={{ color: 'var(--text-primary)' }}>{translate(course, 'title')}</h1>
+          <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>{course.code}</p>
         </div>
       </div>
 
@@ -145,9 +145,9 @@ const StudentAssignmentSubmission: React.FC = () => {
           {assignments.map(a => {
             const sub = getSubmissionForAssignment(a.id);
             const isLate = new Date() > new Date(a.deadline) && !sub;
-            
+
             return (
-              <div 
+              <div
                 key={a.id}
                 onClick={() => setSelectedAssignment(a)}
                 className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-xl transition-all cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-4 group"
@@ -157,8 +157,8 @@ const StudentAssignmentSubmission: React.FC = () => {
                     {sub ? <CheckCircle2 size={24} /> : <ClipboardList size={24} />}
                   </div>
                   <div>
-                    <h3 className="font-black text-gray-900">{a.title}</h3>
-                    <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest mt-1 text-gray-400">
+                    <h3 className="font-black" style={{ color: 'var(--text-primary)' }}>{a.title}</h3>
+                    <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest mt-1" style={{ color: 'var(--text-secondary)' }}>
                       <span className={isLate ? 'text-red-500' : ''}>{t.deadline}: {new Date(a.deadline).toLocaleDateString()}</span>
                       <span>•</span>
                       <span>{t[a.type === 'file' ? 'fileUpload' : a.type === 'mcq' ? 'mcq' : 'essay']}</span>
@@ -171,7 +171,7 @@ const StudentAssignmentSubmission: React.FC = () => {
                     <div className="text-right flex items-center gap-3">
                       {a.showResults && sub.grade && (
                         <div className="flex flex-col items-end">
-                          <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest">{t.grade}</span>
+                          <span className="text-[8px] font-black uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>{t.grade}</span>
                           <span className="text-sm font-black text-emerald-600">{sub.grade}</span>
                         </div>
                       )}
@@ -198,10 +198,10 @@ const StudentAssignmentSubmission: React.FC = () => {
         <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
           <div className="p-8 border-b border-gray-100 flex justify-between items-start">
             <div>
-              <h2 className="text-2xl font-black text-gray-900">{selectedAssignment.title}</h2>
-              <p className="text-sm font-medium text-gray-500 mt-1">{selectedAssignment.subtitle}</p>
+              <h2 className="text-2xl font-black" style={{ color: 'var(--text-primary)' }}>{selectedAssignment.title}</h2>
+              <p className="text-sm font-medium mt-1" style={{ color: 'var(--text-secondary)' }}>{selectedAssignment.subtitle}</p>
             </div>
-            <button 
+            <button
               onClick={() => setSelectedAssignment(null)}
               className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
             >
@@ -213,53 +213,53 @@ const StudentAssignmentSubmission: React.FC = () => {
           {getSubmissionForAssignment(selectedAssignment.id) && selectedAssignment.showResults ? (
             <div className="p-8 space-y-8 animate-in fade-in duration-500">
               <div className="flex flex-col items-center justify-center p-8 bg-emerald-50 rounded-[2rem] border border-emerald-100 text-center gap-4">
-                 <Trophy className="text-emerald-500" size={64} />
-                 <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600">{t.grade}</p>
-                    <h2 className="text-4xl font-black text-emerald-700">{getSubmissionForAssignment(selectedAssignment.id)?.grade || '—'}</h2>
-                 </div>
-                 <p className="text-xs font-bold text-emerald-600/70">{lang === 'AR' ? 'تم تصحيح إجاباتك تلقائياً' : 'Your answers have been auto-graded'}</p>
+                <Trophy className="text-emerald-500" size={64} />
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600">{t.grade}</p>
+                  <h2 className="text-4xl font-black text-emerald-700">{getSubmissionForAssignment(selectedAssignment.id)?.grade || '—'}</h2>
+                </div>
+                <p className="text-xs font-bold text-emerald-600/70">{lang === 'AR' ? 'تم تصحيح إجاباتك تلقائياً' : 'Your answers have been auto-graded'}</p>
               </div>
 
               <div className="space-y-6">
-                 {selectedAssignment.questions.map((q, idx) => {
-                   const studentAnswer = getSubmissionForAssignment(selectedAssignment.id)?.answers?.[idx];
-                   const isCorrect = studentAnswer === q.correctAnswer;
-                   
-                   return (
-                     <div key={q.id} className={`p-6 rounded-3xl border ${isCorrect ? 'bg-emerald-50/30 border-emerald-100' : 'bg-red-50/30 border-red-100'}`}>
-                        <div className="flex gap-4">
-                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black flex-shrink-0 ${isCorrect ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'}`}>
-                            {idx + 1}
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-lg font-bold text-gray-900">{q.text}</p>
-                            <div className="mt-4 space-y-2">
-                               <div className="flex items-center gap-2">
-                                  <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest">{lang === 'AR' ? 'إجابتك' : 'Your Answer'}:</span>
-                                  <span className={`text-sm font-black ${isCorrect ? 'text-emerald-600' : 'text-red-600'}`}>{studentAnswer || '—'}</span>
-                                  {isCorrect ? <CheckCircle2 size={16} className="text-emerald-500" /> : <XCircle size={16} className="text-red-500" />}
-                               </div>
-                               {!isCorrect && (
-                                 <div className="flex items-center gap-2">
-                                    <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest">{lang === 'AR' ? 'الإجابة الصحيحة' : 'Correct Answer'}:</span>
-                                    <span className="text-sm font-black text-emerald-600">{q.correctAnswer}</span>
-                                 </div>
-                               )}
+                {selectedAssignment.questions.map((q, idx) => {
+                  const studentAnswer = getSubmissionForAssignment(selectedAssignment.id)?.answers?.[idx];
+                  const isCorrect = studentAnswer === q.correctAnswer;
+
+                  return (
+                    <div key={q.id} className={`p-6 rounded-3xl border ${isCorrect ? 'bg-emerald-50/30 border-emerald-100' : 'bg-red-50/30 border-red-100'}`}>
+                      <div className="flex gap-4">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black flex-shrink-0 ${isCorrect ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'}`}>
+                          {idx + 1}
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-lg font-bold text-gray-900">{q.text}</p>
+                          <div className="mt-4 space-y-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest">{lang === 'AR' ? 'إجابتك' : 'Your Answer'}:</span>
+                              <span className={`text-sm font-black ${isCorrect ? 'text-emerald-600' : 'text-red-600'}`}>{studentAnswer || '—'}</span>
+                              {isCorrect ? <CheckCircle2 size={16} className="text-emerald-500" /> : <XCircle size={16} className="text-red-500" />}
                             </div>
+                            {!isCorrect && (
+                              <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest">{lang === 'AR' ? 'الإجابة الصحيحة' : 'Correct Answer'}:</span>
+                                <span className="text-sm font-black text-emerald-600">{q.correctAnswer}</span>
+                              </div>
+                            )}
                           </div>
                         </div>
-                     </div>
-                   );
-                 })}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           ) : getSubmissionForAssignment(selectedAssignment.id) ? (
             /* Submitted but results hidden */
             <div className="p-20 text-center space-y-4">
-               <CheckCircle2 size={64} className="mx-auto text-emerald-500" />
-               <h2 className="text-xl font-black text-gray-900">{lang === 'AR' ? 'تم تسليم التكليف بنجاح' : 'Assignment Submitted Successfully'}</h2>
-               <p className="text-gray-500 text-sm font-medium">{lang === 'AR' ? 'سيتم عرض النتائج بمجرد اعتمادها من قبل الأستاذ.' : 'Results will be shown once approved by the professor.'}</p>
+              <CheckCircle2 size={64} className="mx-auto text-emerald-500" />
+              <h2 className="text-xl font-black" style={{ color: 'var(--text-primary)' }}>{lang === 'AR' ? 'تم تسليم التكليف بنجاح' : 'Assignment Submitted Successfully'}</h2>
+              <p className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>{lang === 'AR' ? 'سيتم عرض النتائج بمجرد اعتمادها من قبل الأستاذ.' : 'Results will be shown once approved by the professor.'}</p>
             </div>
           ) : (
             /* Submission Form */
@@ -272,8 +272,8 @@ const StudentAssignmentSubmission: React.FC = () => {
                         <Upload size={40} />
                       </div>
                       <div className="text-center">
-                        <p className="text-sm font-black text-gray-900 uppercase tracking-widest">{file ? file.name : t.fileUpload}</p>
-                        <p className="text-xs text-gray-400 font-bold mt-1">PDF, DOCX, ZIP (Max 10MB)</p>
+                        <p className="text-sm font-black uppercase tracking-widest" style={{ color: 'var(--text-primary)' }}>{file ? file.name : t.fileUpload}</p>
+                        <p className="text-xs font-bold mt-1" style={{ color: 'var(--text-secondary)' }}>PDF, DOCX, ZIP (Max 10MB)</p>
                       </div>
                     </div>
                     <input type="file" className="hidden" onChange={handleFileChange} required />
@@ -289,7 +289,7 @@ const StudentAssignmentSubmission: React.FC = () => {
                         <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-black flex-shrink-0">
                           {idx + 1}
                         </div>
-                        <p className="text-lg font-bold text-gray-900 pt-1">{q.text}</p>
+                        <p className="text-lg font-bold pt-1" style={{ color: 'var(--text-primary)' }}>{q.text}</p>
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pl-14">
                         {q.options?.map((opt, oIdx) => (
@@ -301,11 +301,10 @@ const StudentAssignmentSubmission: React.FC = () => {
                               next[idx] = opt;
                               setMcqAnswers(next);
                             }}
-                            className={`p-4 rounded-2xl border text-left font-bold text-sm transition-all flex items-center justify-between ${
-                              mcqAnswers[idx] === opt 
-                                ? 'bg-purple-50 border-purple-200 text-purple-700 ring-2 ring-purple-100' 
+                            className={`p-4 rounded-2xl border text-left font-bold text-sm transition-all flex items-center justify-between ${mcqAnswers[idx] === opt
+                                ? 'bg-purple-50 border-purple-200 text-purple-700 ring-2 ring-purple-100'
                                 : 'bg-white border-gray-100 hover:border-gray-300 text-gray-600'
-                            }`}
+                              }`}
                           >
                             {opt}
                             {mcqAnswers[idx] === opt && <CheckSquare size={16} />}
@@ -325,7 +324,7 @@ const StudentAssignmentSubmission: React.FC = () => {
                         <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-black flex-shrink-0">
                           {idx + 1}
                         </div>
-                        <p className="text-lg font-bold text-gray-900 pt-1">{q.text}</p>
+                        <p className="text-lg font-bold pt-1" style={{ color: 'var(--text-primary)' }}>{q.text}</p>
                       </div>
                       <textarea
                         required

@@ -215,7 +215,7 @@ const AdminAttendance: React.FC = () => {
           </select>
         </div>
 
-        <div className="flex gap-2 w-full md:w-auto">
+        <div className="flex flex-wrap gap-2 w-full md:w-auto justify-center md:justify-start">
           {selectedCourseId && (
             <div className="flex items-center gap-2 bg-gray-50 px-4 py-3 rounded-2xl border border-gray-100">
               <span className="text-[10px] font-black text-gray-400 uppercase">{lang === 'AR' ? 'المحاضرة' : 'Lecture'}:</span>
@@ -230,7 +230,7 @@ const AdminAttendance: React.FC = () => {
             </div>
           )}
 
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2 justify-center">
             {selectedCourseId && (
               <button onClick={() => exportCourseToExcel(currentCourse!)} className="px-6 py-3 bg-white border border-gray-200 text-gray-600 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-gray-50 transition-all flex items-center gap-2 whitespace-nowrap">
                 <Download size={16} /> {lang === 'AR' ? 'تصدير' : 'Export'}
@@ -277,13 +277,13 @@ const AdminAttendance: React.FC = () => {
             <table className="w-full text-left" dir={lang === 'AR' ? 'rtl' : 'ltr'}>
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-100">
-                  <th className="px-6 py-4 w-10">
+                  <th className={`px-6 py-4 w-12 sticky ${lang === 'AR' ? 'right-0' : 'left-0'} z-20 bg-gray-50`}>
                     <input type="checkbox" checked={selectedStudents.size === enrolledStudents.length} onChange={toggleAllStudents} className="w-4 h-4 rounded border-gray-300" />
                   </th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>{lang === 'AR' ? 'الرقم الجامعي' : 'ID'}</th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>{t.fullName}</th>
+                  <th className={`px-6 py-4 text-[10px] font-black uppercase tracking-widest min-w-[100px] sticky ${lang === 'AR' ? 'right-[48px]' : 'left-[48px]'} z-20 bg-gray-50`} style={{ color: 'var(--text-secondary)' }}>{lang === 'AR' ? 'الرقم الجامعي' : 'ID'}</th>
+                  <th className={`px-6 py-4 text-[10px] font-black uppercase tracking-widest min-w-[180px] sticky ${lang === 'AR' ? 'right-[148px] border-l' : 'left-[148px] border-r'} border-gray-100 z-20 bg-gray-50`} style={{ color: 'var(--text-secondary)' }}>{t.fullName}</th>
                   {lectures.map(l => (
-                    <th key={l} className={`px-2 py-4 text-[10px] font-black text-center min-w-[40px] ${selectedLecture === l ? 'text-blue-600 bg-blue-50/50' : 'text-gray-400'}`}>م{l}</th>
+                    <th key={l} className={`px-2 py-4 text-[10px] font-black text-center min-w-[50px] ${selectedLecture === l ? 'text-blue-600 bg-blue-50/50' : 'text-gray-400'}`}>م{l}</th>
                   ))}
                 </tr>
               </thead>
@@ -293,7 +293,7 @@ const AdminAttendance: React.FC = () => {
                   const isRowSelected = selectedStudents.has(student.id);
                   return (
                     <tr key={student.id} className={`${isRowSelected ? 'bg-blue-50/20' : ''} hover:bg-gray-50/50 transition-colors`}>
-                      <td className="px-6 py-4 text-center">
+                      <td className={`px-6 py-4 text-center sticky ${lang === 'AR' ? 'right-0' : 'left-0'} z-10 ${isRowSelected ? 'bg-blue-50/20' : 'bg-white'}`}>
                         <input
                           type="checkbox"
                           checked={isRowSelected}
@@ -306,8 +306,8 @@ const AdminAttendance: React.FC = () => {
                           className="w-4 h-4 rounded border-gray-300"
                         />
                       </td>
-                      <td className="px-6 py-4 text-xs font-mono font-bold" style={{ color: 'var(--text-secondary)' }}>{student.universityId}</td>
-                      <td className="px-6 py-4 font-bold text-sm whitespace-nowrap" style={{ color: 'var(--text-primary)' }}>{student.fullName}</td>
+                      <td className={`px-6 py-4 text-xs font-mono font-bold sticky ${lang === 'AR' ? 'right-[48px]' : 'left-[48px]'} z-10 ${isRowSelected ? 'bg-blue-50/20' : 'bg-white'}`} style={{ color: 'var(--text-secondary)' }}>{student.universityId}</td>
+                      <td className={`px-6 py-4 font-bold text-sm whitespace-nowrap sticky ${lang === 'AR' ? 'right-[148px] border-l' : 'left-[148px] border-r'} border-gray-50 z-10 ${isRowSelected ? 'bg-blue-50/20' : 'bg-white'}`} style={{ color: 'var(--text-primary)' }}>{student.fullName}</td>
                       {lectures.map((_, i) => (
                         <td key={i} className={`px-2 py-4 text-center ${selectedLecture === (i + 1) ? 'bg-blue-50/10' : ''}`}>
                           <button
