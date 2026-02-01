@@ -5,7 +5,8 @@ export const DEFAULT_SETTINGS: SiteSettings = {
     siteNameAr: 'الجامعة الأمريكية المفتوحة',
     siteNameEn: 'American Open University',
     footerText: '© 2024 All Rights Reserved',
-    announcements: []
+    announcements: [],
+    logo: '/assets/logo.png'
   },
   theme: {
     primary: '#1e3a8a',
