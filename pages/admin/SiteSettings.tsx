@@ -68,7 +68,7 @@ const AdminSiteSettings: React.FC = () => {
   const removeLogo = () => {
     setDraftSettings({
       ...draftSettings,
-      branding: { ...draftSettings.branding, logoBase64: undefined, logo: '/assets/aou-logo.jpg' }
+      branding: { ...draftSettings.branding, logoBase64: undefined, logo: undefined }
     });
   };
 
