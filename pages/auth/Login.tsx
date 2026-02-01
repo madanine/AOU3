@@ -215,10 +215,10 @@ const LoginPage: React.FC = () => {
 
       <footer className="mt-auto py-8 text-center space-y-1 z-10" style={{ color: 'var(--text-secondary)' }}>
         <p className="text-[10px] font-black uppercase tracking-widest">
-          {settings.branding.siteNameEn} {settings.branding.footerText}
+          {settings.branding.footerText}
         </p>
         <p className="text-[10px] font-black uppercase tracking-widest opacity-60">
-          by Abdullah
+          BY ABDULLAH
         </p>
       </footer>
     </div>

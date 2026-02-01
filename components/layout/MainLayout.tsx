@@ -272,11 +272,11 @@ const MainLayout: React.FC = () => {
         {/* Footer */}
         <footer className="mt-auto py-6 px-6 md:px-10 border-t" style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--card-bg)' }}>
           <div className="max-w-6xl mx-auto text-center space-y-1">
-            <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>
-              {settings.branding.siteNameEn} {settings.branding.footerText}
+            <p className="text-[10px] font-black uppercase tracking-widest">
+              {settings.branding.footerText}
             </p>
-            <p className="text-[10px] font-black uppercase tracking-widest opacity-60" style={{ color: 'var(--text-secondary)' }}>
-              by Abdullah
+            <p className="text-[10px] font-black uppercase tracking-widest opacity-60">
+              BY ABDULLAH
             </p>
           </div>
         </footer>
