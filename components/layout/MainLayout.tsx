@@ -269,18 +269,18 @@ const MainLayout: React.FC = () => {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col overflow-y-auto custom-scrollbar h-screen">
+      <main className="flex-1 flex flex-col relative overflow-y-auto w-full h-full max-h-screen">
         <div className="flex-1 p-6 md:p-10">
           <Outlet />
         </div>
 
         {/* Footer */}
-        <footer className="mt-auto py-6 px-6 md:px-10 border-t" style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--card-bg)' }}>
-          <div className="max-w-6xl mx-auto text-center space-y-1">
-            <p className="text-[10px] font-black uppercase tracking-widest">
+        <footer className="py-6 px-6 md:px-10 border-t mt-auto" style={{ borderColor: 'var(--border-color)', backgroundColor: 'transparent' }}>
+          <div className="text-center space-y-1">
+            <p className="text-[10px] font-black uppercase tracking-widest opacity-40">
               {settings.branding.footerText}
             </p>
-            <p className="text-[10px] font-black uppercase tracking-widest opacity-60">
+            <p className="text-[9px] font-black uppercase tracking-widest opacity-20">
               BY ABDULLAH
             </p>
           </div>
