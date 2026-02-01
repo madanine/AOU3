@@ -164,11 +164,30 @@ const App: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center bg-[var(--background)]">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-[var(--primary)] border-t-transparent rounded-full animate-spin"></div>
-          <p className="font-black text-[var(--primary)] animate-pulse">SUPABASE SYNCING...</p>
+      <div className="fixed inset-0 flex items-center justify-center bg-[var(--background)] z-[9999]">
+        <div className="flex flex-col items-center gap-6">
+          {(settings.branding.logo || settings.branding.logoBase64) ? (
+            <img src={settings.branding.logo || settings.branding.logoBase64} alt="Logo" className="h-16 w-auto object-contain animate-pulse" />
+          ) : (
+            <div className="w-16 h-16 bg-[var(--primary)] rounded-3xl flex items-center justify-center text-white font-bold text-3xl shadow-xl animate-pulse">
+              A
+            </div>
+          )}
+          <div className="flex flex-col items-center gap-2">
+            <div className="w-8 h-1 bg-gray-200 rounded-full overflow-hidden">
+              <div className="w-1/2 h-full bg-[var(--primary)] rounded-full animate-[loading_1.5s_infinite_linear]"></div>
+            </div>
+            <p className="text-[9px] font-black uppercase tracking-[0.3em] text-[var(--text-secondary)] animate-pulse mt-2">
+              {lang === 'AR' ? 'جاري التحميل...' : 'Loading Portal...'}
+            </p>
+          </div>
         </div>
+        <style>{`
+          @keyframes loading {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(200%); }
+          }
+        `}</style>
       </div>
     );
   }
