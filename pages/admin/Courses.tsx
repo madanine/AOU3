@@ -25,7 +25,30 @@ const AdminCourses: React.FC = () => {
     isRegistrationEnabled: true
   });
 
-  const courses = allCourses.filter(c => !settings.activeSemesterId || c.semesterId === settings.activeSemesterId);
+  // Show all courses regardless of semester
+  const courses = allCourses;
+
+  const handleDeleteAll = async () => {
+    const confirmMsg = lang === 'AR'
+      ? 'هل أنت متأكد تماماً؟ سيتم حذف جميع المواد من النظام نهائياً!'
+      : 'Are you sure? This will delete ALL courses permanently!';
+
+    if (window.confirm(confirmMsg)) {
+      // Loop through all courses and delete them
+      // In a real app we'd have a bulk delete API, but here we loop
+      setIsLoading(true);
+      try {
+        await Promise.all(courses.map(c => storage.deleteCourse(c.id)));
+        setAllCourses([]);
+      } catch (err) {
+        alert('Error deleting courses');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
+
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleOpenAdd = () => {
     setEditingCourse(null);
@@ -44,8 +67,9 @@ const AdminCourses: React.FC = () => {
 
   const handleDelete = async (id: string) => {
     if (confirm(t.deleteConfirm || (lang === 'AR' ? 'هل أنت متأكد من الحذف؟ لن تتمكن من التراجع.' : 'Are you sure? This cannot be undone.'))) {
-      const updated = await storage.deleteCourse(id);
-      setAllCourses(updated);
+      await storage.deleteCourse(id);
+      // Update local state after deletion
+      setAllCourses(prev => prev.filter(c => c.id !== id));
     }
   };
 
@@ -76,7 +100,19 @@ const AdminCourses: React.FC = () => {
           <p className="font-medium" style={{ color: 'var(--text-secondary)' }}>{t.manageCurriculum}</p>
         </div>
         <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
-          <SemesterControls />
+          {/* Removed SemesterControls for now since we show global courses */}
+
+          {courses.length > 0 && (
+            <button
+              onClick={handleDeleteAll}
+              disabled={isLoading}
+              className="bg-red-50 text-red-500 border border-red-100 px-6 py-3 rounded-2xl font-bold flex items-center gap-2 hover:bg-red-100 transition-all"
+            >
+              <Trash2 size={20} />
+              {lang === 'AR' ? 'حذف الكل' : 'Delete All'}
+            </button>
+          )}
+
           <button
             onClick={handleOpenAdd}
             className="bg-[var(--primary)] text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-blue-900/10 flex items-center gap-2 hover:brightness-110 transition-all"
@@ -87,10 +123,16 @@ const AdminCourses: React.FC = () => {
         </div>
       </div>
 
-      {courses.length === 0 ? (
+      {isLoading && (
+        <div className="text-center py-10">
+          <span className="loading-spinner">...</span>
+        </div>
+      )}
+
+      {courses.length === 0 && !isLoading ? (
         <div className="bg-white p-20 rounded-[3rem] text-center border-2 border-dashed border-gray-100">
           <BookOpen size={48} className="mx-auto text-gray-200 mb-4" />
-          <p className="text-gray-400 font-bold uppercase tracking-widest">{lang === 'AR' ? 'لا توجد مواد لهذا الفصل' : 'No courses for this semester'}</p>
+          <p className="text-gray-400 font-bold uppercase tracking-widest">{lang === 'AR' ? 'لا توجد مواد مضافة' : 'No courses found'}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
