@@ -51,12 +51,11 @@ const AdminStudents: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     const confirmMsg = lang === 'AR' ? 'هل أنت متأكد من حذف هذا الطالب نهائياً؟' : 'Are you sure you want to permanently delete this student?';
     if (confirm(confirmMsg)) {
-      const updated = users.filter(u => u.id !== id);
+      const updated = await storage.deleteUser(id);
       setUsers(updated);
-      storage.setUsers(updated);
     }
   };
 

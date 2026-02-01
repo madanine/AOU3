@@ -43,6 +43,8 @@ export const supabaseService = {
             password: data.password, // Include password
             assignedCourses: data.assigned_courses,
             supervisorPermissions: data.supervisor_permissions,
+            permissions: data.admin_permissions, // New field
+            fullAccess: data.full_access, // New field
             isDisabled: data.is_disabled,
             createdAt: data.created_at
         } as User;
@@ -59,6 +61,8 @@ export const supabaseService = {
             password: p.password, // Include password
             assignedCourses: p.assigned_courses,
             supervisorPermissions: p.supervisor_permissions,
+            permissions: p.admin_permissions, // New field
+            fullAccess: p.full_access, // New field
             isDisabled: p.is_disabled,
             createdAt: p.created_at
         })) as User[];
@@ -66,7 +70,8 @@ export const supabaseService = {
 
     async upsertUser(user: User) {
         // Safe check: and UUID must follow the standard pattern
-        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(user.id);
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(user.id) ||
+            /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(user.id);
 
         const payload: any = {
             email: user.email || `${user.universityId}@aou.edu`,
@@ -78,22 +83,20 @@ export const supabaseService = {
             password: user.password,
             assigned_courses: user.assignedCourses || [],
             supervisor_permissions: user.supervisorPermissions || null,
+            admin_permissions: user.permissions || null, // Map permissions for admins
+            full_access: user.fullAccess === undefined ? true : user.fullAccess,
             is_disabled: user.isDisabled || false
         };
 
-        // Only include ID if it's a valid UUID to avoid DB cast errors
-        if (isUUID) {
-            payload.id = user.id;
-        }
+        if (isUUID) payload.id = user.id;
 
-        const { error } = await supabase.from('profiles').upsert(payload, {
-            onConflict: 'university_id'
-        });
+        const { error } = await supabase.from('profiles').upsert(payload, { onConflict: 'university_id' });
+        if (error) throw error;
+    },
 
-        if (error) {
-            console.error('Supabase Upsert Error:', error);
-            throw error;
-        }
+    async deleteUser(userId: string) {
+        const { error } = await supabase.from('profiles').delete().eq('id', userId);
+        if (error) throw error;
     },
 
     // Courses
@@ -124,11 +127,13 @@ export const supabaseService = {
         };
         if (isUUID) payload.id = course.id;
 
-        const { error } = await supabase.from('courses').upsert(payload);
-        if (error) {
-            console.error('Course Upsert Error:', error);
-            // Don't throw to prevent white screen, just log
-        }
+        const { error } = await supabase.from('courses').upsert(payload, { onConflict: 'code' });
+        if (error) console.error('Course Upsert Error:', error);
+    },
+
+    async deleteCourse(courseId: string) {
+        const { error } = await supabase.from('courses').delete().eq('id', courseId);
+        if (error) throw error;
     },
 
     // Enrollments
@@ -154,15 +159,13 @@ export const supabaseService = {
         };
         if (isUUID) payload.id = enrollment.id;
 
-        // Ensure studentId and courseId are UUIDs or find them
-        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(payload.student_id) ||
-            !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(payload.course_id)) {
-            console.warn('Skipping enrollment sync due to non-UUID student/course ID');
-            return;
-        }
-
         const { error } = await supabase.from('enrollments').upsert(payload);
         if (error) console.error('Enrollment Upsert Error:', error);
+    },
+
+    async deleteEnrollment(id: string) {
+        const { error } = await supabase.from('enrollments').delete().eq('id', id);
+        if (error) throw error;
     },
 
     // Site Settings
@@ -189,6 +192,11 @@ export const supabaseService = {
         if (error) throw error;
     },
 
+    async deleteSemester(id: string) {
+        const { error } = await supabase.from('semesters').delete().eq('id', id);
+        if (error) throw error;
+    },
+
     // Assignments
     async getAssignments() {
         const { data, error } = await supabase.from('assignments').select('*');
@@ -201,6 +209,11 @@ export const supabaseService = {
         if (error) throw error;
     },
 
+    async deleteAssignment(id: string) {
+        const { error } = await supabase.from('assignments').delete().eq('id', id);
+        if (error) throw error;
+    },
+
     // Submissions
     async getSubmissions() {
         const { data, error } = await supabase.from('submissions').select('*');
@@ -210,6 +223,11 @@ export const supabaseService = {
 
     async upsertSubmission(submission: Submission) {
         const { error } = await supabase.from('submissions').upsert(submission);
+        if (error) throw error;
+    },
+
+    async deleteSubmission(id: string) {
+        const { error } = await supabase.from('submissions').delete().eq('id', id);
         if (error) throw error;
     }
 };

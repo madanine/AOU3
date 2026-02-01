@@ -57,11 +57,10 @@ const AdminSupervisors: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (!deleteId) return;
-    const next = users.filter(u => u.id !== deleteId);
-    setUsers(next);
-    storage.setUsers(next);
+    const updated = await storage.deleteUser(deleteId);
+    setUsers(updated);
     setDeleteId(null);
     setShowToast(true);
     setTimeout(() => setShowToast(false), 3000);

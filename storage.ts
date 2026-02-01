@@ -63,7 +63,6 @@ export const storage = {
   },
   saveUser: async (user: User) => {
     let users = storage.getUsers();
-    // Safety: ensure this user has a valid UUID before saving
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(user.id)) {
       user.id = crypto.randomUUID();
     }
@@ -77,6 +76,13 @@ export const storage = {
     await supabaseService.upsertUser(user).catch(() => { });
     return users;
   },
+  deleteUser: async (userId: string) => {
+    let users = storage.getUsers();
+    users = users.filter(u => u.id !== userId);
+    localStorage.setItem(KEYS.USERS, JSON.stringify(users));
+    await supabaseService.deleteUser(userId).catch(() => { });
+    return users;
+  },
 
   getCourses: (): Course[] => JSON.parse(localStorage.getItem(KEYS.COURSES) || '[]'),
   setCourses: (courses: Course[], sync = true) => {
@@ -85,11 +91,50 @@ export const storage = {
       courses.forEach(c => supabaseService.upsertCourse(c).catch(() => { }));
     }
   },
+  saveCourse: async (course: Course) => {
+    let courses = storage.getCourses();
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(course.id)) {
+      course.id = crypto.randomUUID();
+    }
+    const index = courses.findIndex(c => c.code === course.code);
+    if (index > -1) {
+      courses[index] = course;
+    } else {
+      courses.push(course);
+    }
+    localStorage.setItem(KEYS.COURSES, JSON.stringify(courses));
+    await supabaseService.upsertCourse(course).catch(() => { });
+    return courses;
+  },
+  deleteCourse: async (courseId: string) => {
+    let courses = storage.getCourses();
+    courses = courses.filter(c => c.id !== courseId);
+    localStorage.setItem(KEYS.COURSES, JSON.stringify(courses));
+    await supabaseService.deleteCourse(courseId).catch(() => { });
+    return courses;
+  },
 
   getEnrollments: (): Enrollment[] => JSON.parse(localStorage.getItem(KEYS.ENROLLMENTS) || '[]'),
   setEnrollments: (enrollments: Enrollment[]) => {
     localStorage.setItem(KEYS.ENROLLMENTS, JSON.stringify(enrollments));
     enrollments.forEach(e => supabaseService.upsertEnrollment(e).catch(() => { }));
+  },
+  saveEnrollment: async (enrollment: Enrollment) => {
+    let enrollments = storage.getEnrollments();
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(enrollment.id)) {
+      enrollment.id = crypto.randomUUID();
+    }
+    enrollments.push(enrollment);
+    localStorage.setItem(KEYS.ENROLLMENTS, JSON.stringify(enrollments));
+    await supabaseService.upsertEnrollment(enrollment).catch(() => { });
+    return enrollments;
+  },
+  deleteEnrollment: async (id: string) => {
+    let enrollments = storage.getEnrollments();
+    enrollments = enrollments.filter(e => e.id !== id);
+    localStorage.setItem(KEYS.ENROLLMENTS, JSON.stringify(enrollments));
+    await supabaseService.deleteEnrollment(id).catch(() => { });
+    return enrollments;
   },
 
   getSettings: (): SiteSettings => {
@@ -97,7 +142,6 @@ export const storage = {
     if (!stored) return DEFAULT_SETTINGS;
     try {
       const parsed = JSON.parse(stored);
-      // Ensure critical fields exist
       if (!parsed.theme || !parsed.branding) return DEFAULT_SETTINGS;
       return parsed;
     } catch (e) {
@@ -127,12 +171,69 @@ export const storage = {
     localStorage.setItem(KEYS.SEMESTERS, JSON.stringify(semesters));
     semesters.forEach(s => supabaseService.upsertSemester(s).catch(() => { }));
   },
+  saveSemester: async (semester: Semester) => {
+    let semesters = storage.getSemesters();
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(semester.id)) {
+      semester.id = crypto.randomUUID();
+    }
+    const index = semesters.findIndex(s => s.id === semester.id);
+    if (index > -1) semesters[index] = semester;
+    else semesters.push(semester);
+    localStorage.setItem(KEYS.SEMESTERS, JSON.stringify(semesters));
+    await supabaseService.upsertSemester(semester).catch(() => { });
+    return semesters;
+  },
+  deleteSemester: async (id: string) => {
+    let semesters = storage.getSemesters();
+    semesters = semesters.filter(s => s.id !== id);
+    localStorage.setItem(KEYS.SEMESTERS, JSON.stringify(semesters));
+    await supabaseService.deleteSemester(id).catch(() => { });
+    return semesters;
+  },
 
   getAssignments: (): Assignment[] => JSON.parse(localStorage.getItem(KEYS.ASSIGNMENTS) || '[]'),
   setAssignments: (assignments: Assignment[]) => localStorage.setItem(KEYS.ASSIGNMENTS, JSON.stringify(assignments)),
+  saveAssignment: async (assignment: Assignment) => {
+    let assignments = storage.getAssignments();
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(assignment.id)) {
+      assignment.id = crypto.randomUUID();
+    }
+    const index = assignments.findIndex(a => a.id === assignment.id);
+    if (index > -1) assignments[index] = assignment;
+    else assignments.push(assignment);
+    localStorage.setItem(KEYS.ASSIGNMENTS, JSON.stringify(assignments));
+    await supabaseService.upsertAssignment(assignment).catch(() => { });
+    return assignments;
+  },
+  deleteAssignment: async (id: string) => {
+    let assignments = storage.getAssignments();
+    assignments = assignments.filter(a => a.id !== id);
+    localStorage.setItem(KEYS.ASSIGNMENTS, JSON.stringify(assignments));
+    await supabaseService.deleteAssignment(id).catch(() => { });
+    return assignments;
+  },
 
   getSubmissions: (): Submission[] => JSON.parse(localStorage.getItem(KEYS.SUBMISSIONS) || '[]'),
   setSubmissions: (submissions: Submission[]) => localStorage.setItem(KEYS.SUBMISSIONS, JSON.stringify(submissions)),
+  saveSubmission: async (submission: Submission) => {
+    let submissions = storage.getSubmissions();
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(submission.id)) {
+      submission.id = crypto.randomUUID();
+    }
+    const index = submissions.findIndex(s => s.id === submission.id);
+    if (index > -1) submissions[index] = submission;
+    else submissions.push(submission);
+    localStorage.setItem(KEYS.SUBMISSIONS, JSON.stringify(submissions));
+    await supabaseService.upsertSubmission(submission).catch(() => { });
+    return submissions;
+  },
+  deleteSubmission: async (id: string) => {
+    let submissions = storage.getSubmissions();
+    submissions = submissions.filter(s => s.id !== id);
+    localStorage.setItem(KEYS.SUBMISSIONS, JSON.stringify(submissions));
+    await supabaseService.deleteSubmission(id).catch(() => { });
+    return submissions;
+  },
 
   seed: () => {
     let semesters = storage.getSemesters();
@@ -146,6 +247,20 @@ export const storage = {
       storage.setSettings(settings);
     }
 
+    const activeSemId = settings.activeSemesterId || '00000000-0000-0000-0000-000000000010';
+
+    const coreCourses: Course[] = [
+      { id: "00000000-0000-0000-0000-000000000101", code: "BUS101", title: "Intl Business Admin", title_ar: "إدارة الأعمال الدولية", credits: 3, doctor: "Dr. Admin", day: "Sunday", time: "10:00 AM", isRegistrationEnabled: true, semesterId: activeSemId },
+      { id: "00000000-0000-0000-0000-000000000102", code: "RSK101", title: "Risk & Insurance", title_ar: "إدارة الخطر والتأمين", credits: 3, doctor: "Dr. Admin", day: "Monday", time: "12:00 PM", isRegistrationEnabled: true, semesterId: activeSemId },
+      { id: "00000000-0000-0000-0000-000000000103", code: "HSE101", title: "Health & Safety", title_ar: "إدارة الصحة والسلامة المهنية", credits: 3, doctor: "Dr. Admin", day: "Tuesday", time: "02:00 PM", isRegistrationEnabled: true, semesterId: activeSemId },
+      { id: "00000000-0000-0000-0000-000000000104", code: "OPR101", title: "Ops & Production", title_ar: "إدارة العمليات والإنتاج", credits: 3, doctor: "Dr. Admin", day: "Wednesday", time: "04:00 PM", isRegistrationEnabled: true, semesterId: activeSemId }
+    ];
+
+    let currentCourses = storage.getCourses();
+    if (currentCourses.length === 0) {
+      storage.setCourses(coreCourses);
+    }
+
     const admin = {
       id: '00000000-0000-0000-0000-000000000001',
       email: 'aouadmin@aou.edu',
@@ -153,6 +268,7 @@ export const storage = {
       fullName: 'AOU Administrator',
       role: 'admin' as const,
       universityId: 'aouadmin',
+      fullAccess: true,
       createdAt: '2026-02-01T00:00:00.000Z'
     };
 

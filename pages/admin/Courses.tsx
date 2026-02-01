@@ -7,7 +7,7 @@ import { Plus, Edit2, Trash2, X, BookOpen, Save, ToggleLeft, ToggleRight, Clock,
 import SemesterControls from '../../components/admin/SemesterControls';
 
 const AdminCourses: React.FC = () => {
-  const { t, translate, settings } = useApp();
+  const { t, translate, settings, lang } = useApp();
   const [allCourses, setAllCourses] = useState<Course[]>(storage.getCourses());
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -42,37 +42,29 @@ const AdminCourses: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm(t.deleteConfirm || 'Are you sure?')) {
-      const updated = allCourses.filter(c => c.id !== id);
+  const handleDelete = async (id: string) => {
+    if (confirm(t.deleteConfirm || (lang === 'AR' ? 'هل أنت متأكد من الحذف؟ لن تتمكن من التراجع.' : 'Are you sure? This cannot be undone.'))) {
+      const updated = await storage.deleteCourse(id);
       setAllCourses(updated);
-      storage.setCourses(updated);
     }
   };
 
-  const toggleCourseRegistration = (course: Course) => {
-    const updated = allCourses.map(c =>
-      c.id === course.id ? { ...c, isRegistrationEnabled: !c.isRegistrationEnabled } : c
-    );
-    setAllCourses(updated);
-    storage.setCourses(updated);
+  const toggleCourseRegistration = async (course: Course) => {
+    const updated = { ...course, isRegistrationEnabled: !course.isRegistrationEnabled };
+    const newList = await storage.saveCourse(updated);
+    setAllCourses(newList);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    let updated;
-    if (editingCourse) {
-      updated = allCourses.map(c => c.id === editingCourse.id ? { ...c, ...formData } : c);
-    } else {
-      const newCourse: Course = {
-        id: Math.random().toString(36).substring(7),
-        ...(formData as Course),
-        semesterId: settings.activeSemesterId
-      };
-      updated = [...allCourses, newCourse];
-    }
+    const courseToSave: Course = {
+      id: editingCourse?.id || crypto.randomUUID(),
+      ...(formData as Course),
+      semesterId: settings.activeSemesterId || '00000000-0000-0000-0000-000000000010'
+    };
+
+    const updated = await storage.saveCourse(courseToSave);
     setAllCourses(updated);
-    storage.setCourses(updated);
     setIsModalOpen(false);
   };
 
@@ -95,48 +87,55 @@ const AdminCourses: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {courses.map(course => (
-          <div key={course.id} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm group hover:shadow-xl transition-all relative overflow-hidden">
-            <div className="flex justify-between items-start mb-4">
-              <span className="bg-blue-50 text-[var(--primary)] text-[10px] font-black px-3 py-1 rounded-lg uppercase tracking-wider">
-                {course.code}
-              </span>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => toggleCourseRegistration(course)}
-                  className={`p-1.5 rounded-lg transition-colors ${course.isRegistrationEnabled ? 'text-emerald-500 bg-emerald-50' : 'text-red-500 bg-red-50'}`}
-                  title={course.isRegistrationEnabled ? t.regEnabled : t.regDisabled}
-                >
-                  {course.isRegistrationEnabled ? <ToggleRight size={20} /> : <ToggleLeft size={20} />}
-                </button>
-                <button onClick={() => handleOpenEdit(course)} className="p-1.5 text-gray-400 hover:text-[var(--primary)]">
-                  <Edit2 size={18} />
-                </button>
-                <button onClick={() => handleDelete(course.id)} className="p-1.5 text-gray-400 hover:text-red-600">
-                  <Trash2 size={18} />
-                </button>
+      {courses.length === 0 ? (
+        <div className="bg-white p-20 rounded-[3rem] text-center border-2 border-dashed border-gray-100">
+          <BookOpen size={48} className="mx-auto text-gray-200 mb-4" />
+          <p className="text-gray-400 font-bold uppercase tracking-widest">{lang === 'AR' ? 'لا توجد مواد لهذا الفصل' : 'No courses for this semester'}</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          {courses.map(course => (
+            <div key={course.id} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm group hover:shadow-xl transition-all relative overflow-hidden">
+              <div className="flex justify-between items-start mb-4">
+                <span className="bg-blue-50 text-[var(--primary)] text-[10px] font-black px-3 py-1 rounded-lg uppercase tracking-wider">
+                  {course.code}
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => toggleCourseRegistration(course)}
+                    className={`p-1.5 rounded-lg transition-colors ${course.isRegistrationEnabled ? 'text-emerald-500 bg-emerald-50' : 'text-red-500 bg-red-50'}`}
+                    title={course.isRegistrationEnabled ? t.regEnabled : t.regDisabled}
+                  >
+                    {course.isRegistrationEnabled ? <ToggleRight size={20} /> : <ToggleLeft size={20} />}
+                  </button>
+                  <button onClick={() => handleOpenEdit(course)} className="p-1.5 text-gray-400 hover:text-[var(--primary)]">
+                    <Edit2 size={18} />
+                  </button>
+                  <button onClick={() => handleDelete(course.id)} className="p-1.5 text-gray-400 hover:text-red-600">
+                    <Trash2 size={18} />
+                  </button>
+                </div>
               </div>
+
+              <h3 className="text-lg font-black mb-2 leading-snug" style={{ color: 'var(--text-primary)' }}>{translate(course, 'title')}</h3>
+
+              <div className="space-y-2 mb-4">
+                <div className="flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                  <DocIcon size={14} className="text-gray-300" />
+                  <span>{translate(course, 'doctor')}</span>
+                </div>
+                <div className="flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                  <Clock size={14} className="text-gray-300" />
+                  <span>{t.days[course.day]} @ {course.time}</span>
+                </div>
+              </div>
+
+              <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-4">{course.credits} {t.credits}</p>
+              <p className="text-xs text-gray-500 line-clamp-2 font-medium">{translate(course, 'description')}</p>
             </div>
-
-            <h3 className="text-lg font-black mb-2 leading-snug" style={{ color: 'var(--text-primary)' }}>{translate(course, 'title')}</h3>
-
-            <div className="space-y-2 mb-4">
-              <div className="flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                <DocIcon size={14} className="text-gray-300" />
-                <span>{translate(course, 'doctor')}</span>
-              </div>
-              <div className="flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                <Clock size={14} className="text-gray-300" />
-                <span>{t.days[course.day]} @ {course.time}</span>
-              </div>
-            </div>
-
-            <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-4">{course.credits} {t.credits}</p>
-            <p className="text-xs text-gray-500 line-clamp-2 font-medium">{translate(course, 'description')}</p>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">

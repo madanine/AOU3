@@ -63,7 +63,6 @@ const AdminManagement: React.FC = () => {
 
   const openEdit = (adm: any) => {
     setEditingId(adm.id);
-    // Defensive copy: ensure permissions and other defaults exist
     setFormData({
       universityId: adm.universityId || '',
       password: adm.password || '',
@@ -88,14 +87,17 @@ const AdminManagement: React.FC = () => {
     setDeleteId(id);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (!deleteId) return;
-    const next = users.filter(a => a.id !== deleteId);
-    setUsersState(next);
-    storage.setUsers(next);
-    setDeleteId(null);
-    setShowToast({ show: true, msg: lang === 'AR' ? 'تم حذف المسؤول' : 'Admin Deleted', type: 'success' });
-    setTimeout(() => setShowToast({ ...showToast, show: false }), 3000);
+    try {
+      const updatedList = await storage.deleteUser(deleteId);
+      setUsersState(updatedList);
+      setDeleteId(null);
+      setShowToast({ show: true, msg: lang === 'AR' ? 'تم حذف المسؤول نهائياً' : 'Admin Deleted Permanently', type: 'success' });
+      setTimeout(() => setShowToast({ ...showToast, show: false }), 3000);
+    } catch (err) {
+      alert(lang === 'AR' ? 'فشل الحذف من السحابة' : 'Failed to delete from cloud');
+    }
   };
 
   const togglePermission = (key: string) => {
@@ -111,33 +113,43 @@ const AdminManagement: React.FC = () => {
     e.preventDefault();
     setIsSaving(true);
     try {
-      let next;
-      const payload = {
-        ...formData,
+      const existingUser = editingId ? users.find(u => u.id === editingId) : null;
+      const userToSave: User = {
+        id: editingId || crypto.randomUUID(),
+        fullName: formData.fullName,
+        universityId: formData.universityId,
+        password: formData.password,
         email: formData.email || `${formData.universityId}@admin.aou.edu`,
-        role: 'admin' as const
+        role: 'admin' as const,
+        fullAccess: formData.fullAccess,
+        permissions: formData.permissions,
+        createdAt: existingUser?.createdAt || new Date().toISOString()
       };
-
-      const userToSave: User = editingId
-        ? { ...users.find(u => u.id === editingId), ...payload } as User
-        : {
-          id: crypto.randomUUID(),
-          ...payload,
-          createdAt: new Date().toISOString()
-        };
 
       const updatedList = await storage.saveUser(userToSave);
       setUsersState(updatedList);
       setIsModalOpen(false);
-      setShowToast({ show: true, msg: lang === 'AR' ? 'تم حفظ التغييرات' : 'Changes Saved', type: 'success' });
+      setShowToast({ show: true, msg: lang === 'AR' ? 'تم حفظ التغييرات ومزامنتها' : 'Changes Saved & Synced', type: 'success' });
       setTimeout(() => setShowToast({ ...showToast, show: false }), 3000);
     } catch (err) {
       console.error('Save failed:', err);
-      alert(lang === 'AR' ? 'فشل حفظ البيانات في السحابة. يرجى مراجعة صلاحيات SQL.' : 'Failed to save to cloud. Please check SQL permissions.');
+      alert(lang === 'AR' ? 'فشل حفظ البيانات في السحابة.' : 'Failed to save to cloud.');
     } finally {
       setIsSaving(false);
     }
   };
+
+  if (currentUser?.universityId !== 'aouadmin') {
+    return (
+      <div className="flex flex-col items-center justify-center h-[60vh] text-center space-y-4">
+        <div className="w-20 h-20 bg-red-50 text-red-500 rounded-3xl flex items-center justify-center animate-bounce">
+          <Lock size={40} />
+        </div>
+        <h2 className="text-2xl font-black uppercase tracking-widest">{lang === 'AR' ? 'غير مصرح لك' : 'UNAUTHORIZED'}</h2>
+        <p className="text-gray-400 font-bold">{lang === 'AR' ? 'هذه الصفحة مخصصة للأدمن الرئيسي فقط' : 'This page is for the primary admin only'}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 relative">
@@ -165,7 +177,7 @@ const AdminManagement: React.FC = () => {
           <div key={adm.id} className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm relative group hover:shadow-xl transition-all">
             <div className="flex justify-between items-start mb-4">
               <div className="w-12 h-12 rounded-2xl bg-slate-50 text-slate-500 flex items-center justify-center font-black text-xl"><Shield size={24} /></div>
-              <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="flex gap-2">
                 <button onClick={() => openEdit(adm)} className="p-2 text-gray-400 hover:text-[var(--primary)] transition-colors"><Edit3 size={18} /></button>
                 <button onClick={() => handleDeleteTrigger(adm.id)} className="p-2 text-gray-400 hover:text-red-500 transition-colors"><Trash2 size={18} /></button>
               </div>
@@ -179,7 +191,7 @@ const AdminManagement: React.FC = () => {
                 <span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-[10px] font-black uppercase">{lang === 'AR' ? 'وصول كامل' : 'Full Access'}</span>
               ) : (
                 <div className="flex flex-wrap gap-1 mt-2">
-                  {Object.entries(adm.permissions || {}).map(([key, val]) => val ? (
+                  {adm.permissions && Object.entries(adm.permissions).map(([key, val]) => val ? (
                     <span key={key} className="px-2 py-0.5 bg-gray-100 text-gray-500 rounded text-[9px] font-bold">
                       {permissionLabels[key]}
                     </span>

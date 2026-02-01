@@ -56,9 +56,9 @@ const MainLayout: React.FC = () => {
 
   const getMenuItems = () => {
     if (user?.role === 'admin') {
-      const isSubAdmin = !!(user as any).permissions;
-      const perms = (user as any).permissions || {};
-      const fullAccess = (user as any).fullAccess !== false;
+      const isPrimaryAdmin = user.universityId === 'aouadmin';
+      const perms = user.permissions || {};
+      const fullAccess = user.fullAccess !== false;
 
       const items = [
         { label: t.dashboard, path: '/admin/dashboard', icon: LayoutDashboard, key: 'dashboard' },
@@ -73,9 +73,14 @@ const MainLayout: React.FC = () => {
         { label: t.settings, path: '/admin/site-settings', icon: Settings, key: 'siteSettings' },
       ];
 
-      const filtered = items.filter(item => fullAccess || perms[item.key] || ['assignments', 'grading'].includes(item.key));
+      // CRITICAL: Sub-admins only see what they are allowed
+      const filtered = items.filter(item => {
+        if (fullAccess || isPrimaryAdmin) return true;
+        return perms[item.key] === true;
+      });
 
-      if (!isSubAdmin) {
+      // ONLY Primary Admin can see Admin Management
+      if (isPrimaryAdmin) {
         filtered.push({ label: lang === 'AR' ? 'إدارة المسؤولين' : 'Admin Management', path: '/admin/admins', icon: Lock, key: 'adminManagement' });
       } else {
         filtered.push({ label: lang === 'AR' ? 'تغيير كلمة المرور' : 'Change Password', path: '/admin/change-password', icon: Key, key: 'changePassword' });
