@@ -147,7 +147,7 @@ const AdminCourses: React.FC = () => {
               </button>
             </div>
             <form onSubmit={handleSubmit} className="p-6 space-y-6">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-[10px] font-black uppercase tracking-widest ml-1" style={{ color: 'var(--text-secondary)' }}>{t.courseCode}</label>
                   <input
@@ -157,73 +157,29 @@ const AdminCourses: React.FC = () => {
                     className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none text-sm font-bold text-gray-900 dark:text-white"
                   />
                 </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{t.credits}</label>
-                  <input
-                    type="number"
-                    required
-                    value={formData.credits}
-                    onChange={(e) => setFormData({ ...formData, credits: parseInt(e.target.value) })}
-                    className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none text-sm font-bold text-gray-900 dark:text-white"
-                  />
-                </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{t.courseTitle} (EN)</label>
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{lang === 'AR' ? 'اسم المادة' : 'Course Name'}</label>
                   <input
                     required
                     value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-white/10 rounded-xl outline-none text-sm font-bold text-gray-900 dark:text-white"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{t.courseTitle} (AR)</label>
-                  <input
-                    required
-                    dir="rtl"
-                    value={formData.title_ar}
-                    onChange={(e) => setFormData({ ...formData, title_ar: e.target.value })}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value, title_ar: e.target.value })}
                     className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-white/10 rounded-xl outline-none text-sm font-bold text-gray-900 dark:text-white"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{t.doctor} (EN)</label>
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{lang === 'AR' ? 'اسم الدكتور' : 'Doctor Name'}</label>
                   <input
                     required
                     value={formData.doctor}
-                    onChange={(e) => setFormData({ ...formData, doctor: e.target.value })}
+                    onChange={(e) => setFormData({ ...formData, doctor: e.target.value, doctor_ar: e.target.value })}
                     className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-white/10 rounded-xl outline-none text-sm font-bold text-gray-900 dark:text-white"
                   />
                 </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{t.doctor} (AR)</label>
-                  <input
-                    required
-                    dir="rtl"
-                    value={formData.doctor_ar}
-                    onChange={(e) => setFormData({ ...formData, doctor_ar: e.target.value })}
-                    className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-white/10 rounded-xl outline-none text-sm font-bold text-gray-900 dark:text-white"
-                  />
-                </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{t.day}</label>
-                  <select
-                    value={formData.day}
-                    onChange={(e) => setFormData({ ...formData, day: e.target.value })}
-                    className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-white/10 rounded-xl outline-none text-sm font-bold text-gray-900 dark:text-white"
-                  >
-                    {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(d => <option key={d} value={d}>{d}</option>)}
-                  </select>
-                </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{t.time}</label>
                   <input
@@ -234,6 +190,21 @@ const AdminCourses: React.FC = () => {
                     placeholder="10:00 - 12:00"
                   />
                 </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{t.day}</label>
+                <select
+                  value={formData.day}
+                  onChange={(e) => setFormData({ ...formData, day: e.target.value })}
+                  className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-white/10 rounded-xl outline-none text-sm font-bold text-gray-900 dark:text-white"
+                >
+                  {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(d => (
+                    <option key={d} value={d}>
+                      {lang === 'AR' ? t.days[d] : d}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="flex gap-3 pt-4">
