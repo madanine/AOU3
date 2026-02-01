@@ -90,11 +90,28 @@ export const supabaseService = {
     async getCourses() {
         const { data, error } = await supabase.from('courses').select('*');
         if (error) throw error;
-        return data as Course[];
+        return (data || []).map(c => ({
+            ...c,
+            isRegistrationEnabled: c.is_registration_enabled,
+            semesterId: c.semester_id,
+            title_ar: c.title_ar || c.title
+        })) as Course[];
     },
 
     async upsertCourse(course: Course) {
-        const { error } = await supabase.from('courses').upsert(course);
+        const { error } = await supabase.from('courses').upsert({
+            id: course.id,
+            code: course.code,
+            title: course.title,
+            title_ar: course.title_ar,
+            credits: course.credits,
+            description: course.description,
+            doctor: course.doctor,
+            day: course.day,
+            time: course.time,
+            is_registration_enabled: course.isRegistrationEnabled,
+            semester_id: course.semesterId
+        });
         if (error) throw error;
     },
 
@@ -102,11 +119,23 @@ export const supabaseService = {
     async getEnrollments() {
         const { data, error } = await supabase.from('enrollments').select('*');
         if (error) throw error;
-        return data as Enrollment[];
+        return (data || []).map(e => ({
+            ...e,
+            studentId: e.student_id,
+            courseId: e.course_id,
+            enrolledAt: e.enrolled_at,
+            semesterId: e.semester_id
+        })) as Enrollment[];
     },
 
     async upsertEnrollment(enrollment: Enrollment) {
-        const { error } = await supabase.from('enrollments').upsert(enrollment);
+        const { error } = await supabase.from('enrollments').upsert({
+            id: enrollment.id,
+            student_id: enrollment.studentId,
+            course_id: enrollment.courseId,
+            enrolled_at: enrollment.enrolledAt,
+            semester_id: enrollment.semesterId
+        });
         if (error) throw error;
     },
 
