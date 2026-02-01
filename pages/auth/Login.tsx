@@ -22,22 +22,46 @@ const LoginPage: React.FC = () => {
 
     try {
       const email = identifier.includes('@') ? identifier : `${identifier}@aou.edu`;
-      const authUser = await supabaseService.signIn(email, password);
-
-      if (authUser) {
-        const profile = await supabaseService.getProfile(authUser.id);
-
-        if (profile.isDisabled) {
-          setError(t.accountDisabledMsg);
-          await supabaseService.signOut();
+      try {
+        const authUser = await supabaseService.signIn(email, password);
+        if (authUser) {
+          const profile = await supabaseService.getProfile(authUser.id);
+          if (profile.isDisabled) {
+            setError(t.accountDisabledMsg);
+            await supabaseService.signOut();
+            return;
+          }
+          setUser(profile);
+          const target = profile.role === 'admin' ? '/admin/dashboard' :
+            profile.role === 'supervisor' ? '/supervisor/attendance' :
+              '/student/registration';
+          navigate(target);
           return;
         }
+      } catch (authErr) {
+        console.log('Supabase Auth failed, trying local fallback...', authErr);
+      }
 
-        setUser(profile);
-        const target = profile.role === 'admin' ? '/admin/dashboard' :
-          profile.role === 'supervisor' ? '/supervisor/attendance' :
+      // --- FALLBACK TO LOCAL/PROFILES TABLE ---
+      const users = storage.getUsers();
+      const foundUser = users.find(u =>
+        (u.email === identifier || u.universityId === identifier || u.email === `${identifier}@aou.edu`) &&
+        u.password === password
+      );
+
+      if (foundUser) {
+        if (foundUser.isDisabled) {
+          setError(t.accountDisabledMsg);
+          return;
+        }
+        setUser(foundUser);
+        storage.setAuthUser(foundUser); // Save session locally
+        const target = foundUser.role === 'admin' ? '/admin/dashboard' :
+          foundUser.role === 'supervisor' ? '/supervisor/attendance' :
             '/student/registration';
         navigate(target);
+      } else {
+        setError(lang === 'AR' ? 'بيانات الاعتماد غير صالحة' : 'Invalid credentials');
       }
     } catch (err: any) {
       console.error('Login error:', err);
