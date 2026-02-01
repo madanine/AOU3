@@ -4,7 +4,7 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   branding: {
     siteNameAr: 'الجامعة الأمريكية المفتوحة',
     siteNameEn: 'American Open University',
-    footerText: '© 2024 All Rights Reserved',
+    footerText: 'AOU 1995 © All Rights Reserved BY ABDULLAH',
     announcements: [],
     logo: '/assets/logo.png'
   },
