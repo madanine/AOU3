@@ -48,15 +48,34 @@ const AdminManagement: React.FC = () => {
   const openAdd = () => {
     setEditingId(null);
     setFormData({
-      universityId: '', password: '', fullName: '', email: '', fullAccess: true,
-      permissions: { dashboard: true, courses: true, attendance: true, supervisors: true, students: true, enrollments: true, exportData: true, siteSettings: true }
+      universityId: '',
+      password: '',
+      fullName: '',
+      email: '',
+      fullAccess: true,
+      permissions: {
+        dashboard: true, courses: true, attendance: true, supervisors: true,
+        students: true, enrollments: true, exportData: true, siteSettings: true
+      }
     });
     setIsModalOpen(true);
   };
 
   const openEdit = (adm: any) => {
     setEditingId(adm.id);
-    setFormData({ ...adm });
+    // Defensive copy: ensure permissions and other defaults exist
+    setFormData({
+      universityId: adm.universityId || '',
+      password: adm.password || '',
+      fullName: adm.fullName || '',
+      email: adm.email || '',
+      fullAccess: adm.fullAccess !== undefined ? adm.fullAccess : true,
+      permissions: {
+        dashboard: true, courses: true, attendance: true, supervisors: true,
+        students: true, enrollments: true, exportData: true, siteSettings: true,
+        ...(adm.permissions || {})
+      }
+    });
     setIsModalOpen(true);
   };
 
@@ -211,10 +230,10 @@ const AdminManagement: React.FC = () => {
                 <div className="space-y-3">
                   <label className="text-[10px] font-black uppercase ml-1" style={{ color: 'var(--text-secondary)' }}>{lang === 'AR' ? 'تحديد الصلاحيات' : 'Set Permissions'}</label>
                   <div className="grid grid-cols-2 gap-3">
-                    {Object.keys(formData.permissions).map(key => (
-                      <button key={key} type="button" onClick={() => togglePermission(key)} className={`flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${(formData.permissions as any)[key] ? 'bg-white border-[var(--primary)] shadow-sm' : 'bg-gray-50 border-transparent opacity-60'}`}>
-                        <div className={`w-5 h-5 rounded-lg border flex items-center justify-center ${(formData.permissions as any)[key] ? 'bg-[var(--primary)] border-[var(--primary)] text-white' : 'bg-white border-gray-300'}`}>
-                          {(formData.permissions as any)[key] && <CheckSquare size={14} />}
+                    {formData.permissions && Object.keys(formData.permissions).map(key => (
+                      <button key={key} type="button" onClick={() => togglePermission(key)} className={`flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${formData.permissions && (formData.permissions as any)[key] ? 'bg-white border-[var(--primary)] shadow-sm' : 'bg-gray-50 border-transparent opacity-60'}`}>
+                        <div className={`w-5 h-5 rounded-lg border flex items-center justify-center ${formData.permissions && (formData.permissions as any)[key] ? 'bg-[var(--primary)] border-[var(--primary)] text-white' : 'bg-white border-gray-300'}`}>
+                          {formData.permissions && (formData.permissions as any)[key] && <CheckSquare size={14} />}
                         </div>
                         <span className="text-[10px] font-black uppercase" style={{ color: 'var(--text-primary)' }}>{permissionLabels[key]}</span>
                       </button>
