@@ -249,94 +249,13 @@ export const storage = {
 
     const activeSemId = settings.activeSemesterId || '00000000-0000-0000-0000-000000000010';
 
-    const allCoursesData = [
-      { code: "BUS101", ar: "إدارة الأعمال الدولية", en: "Intl Business Admin" },
-      { code: "RSK101", ar: "إدارة الخطر والتأمين", en: "Risk & Insurance" },
-      { code: "HSE101", ar: "إدارة الصحة والسلامة المهنية", en: "Health & Safety" },
-      { code: "OPR101", ar: "إدارة العمليات والإنتاج", en: "Ops & Production" },
-      { code: "PR101", ar: "إدارة العلاقات العامة", en: "Public Relations" },
-      { code: "FAC101", ar: "إدارة المنشآت المتخصصة", en: "Facility Mgmt" },
-      { code: "HRM101", ar: "إدارة الموارد البشرية", en: "HR Mgmt" },
-      { code: "SCM101", ar: "إدارة سلسلة الإمداد", en: "Supply Chain Mgmt" },
-      { code: "CRM101", ar: "إدارة النزاعات والأزمات", en: "Conflict & Crisis" },
-      { code: "STR101", ar: "إدارة مشتريات ومخازن", en: "Procurement Mgmt" },
-      { code: "MGT401", ar: "الإدارة الاستراتيجية", en: "Strategic Mgmt" },
-      { code: "LAW101", ar: "البيئة القانونية للأعمال", en: "Legal Env" },
-      { code: "OD101", ar: "التغيير والتطوير التنظيمي", en: "Org Dev" },
-      { code: "ISL101", ar: "الثقافة الإسلامية 1", en: "Islamic Culture 1" },
-      { code: "ISL102", ar: "الثقافة الإسلامية 2", en: "Islamic Culture 2" },
-      { code: "MKT201", ar: "التسويق الإلكتروني", en: "E-Marketing" },
-      { code: "GOV101", ar: "حوكمة الشركات والمنظمات", en: "Corp Governance" },
-      { code: "FEAS101", ar: "دراسة الجدوى وتقييم المشاريع", en: "Feasibility Study" },
-      { code: "ENT101", ar: "ريادة الأعمال والمشاريع الصغيرة", en: "Entrepreneurship" },
-      { code: "OB101", ar: "السلوك التنظيمي", en: "Org Behavior" },
-      { code: "ENG101", ar: "اللغة الإنجليزية 1", en: "English 1" },
-      { code: "ENG102", ar: "اللغة الإنجليزية 2", en: "English 2" },
-      { code: "ARA101", ar: "اللغة العربية 1", en: "Arabic 1" },
-      { code: "ARA102", ar: "اللغة العربية 2", en: "Arabic 2" },
-      { code: "ACC201", ar: "المحاسبة الإدارية", en: "Managerial Acc" },
-      { code: "BNK201", ar: "المصارف الإسلامية المعاصرة", en: "Islamic Banking" },
-      { code: "SKL101", ar: "المهارات الإدارية", en: "Mgmt Skills" },
-      { code: "ACC301", ar: "محاسبة مالية متقدمة", en: "Adv Financial Acc" },
-      { code: "STAT101", ar: "مبادئ الإحصاء", en: "Stats Principles" },
-      { code: "MGT101", ar: "مبادئ إدارة الأعمال", en: "Business Principles" },
-      { code: "ECO101", ar: "مبادئ الاقتصاد الإسلامي", en: "Islamic Eco" },
-      { code: "ECO102", ar: "مبادئ الاقتصاد الكلي", en: "Macro Eco" },
-      { code: "ECO103", ar: "مبادئ اقتصاد جزئي", en: "Micro Eco" },
-      { code: "MKT101", ar: "مبادئ التسويق", en: "Marketing Principles" },
-      { code: "FIN101", ar: "مبادئ التمويل والاستثمار", en: "Finance & Invest" },
-      { code: "ACC101", ar: "مبادئ محاسبة مالية", en: "Financial Acc" },
-      { code: "MIS101", ar: "مبادئ نظم المعلومات الإدارية", en: "MIS Principles" },
-      { code: "FIS101", ar: "نظم المعلومات المالية", en: "FIS" },
-      { code: "MON101", ar: "نقود وبنوك", en: "Money & Banking" },
-      { code: "CS101", ar: "مهارات الحاسب الآلي", en: "Computer Skills" }
-    ];
-
-    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday'];
-    const times = ['08:00 - 10:00', '10:00 - 12:00', '12:00 - 02:00', '02:00 - 04:00', '04:00 - 06:00', '06:00 - 08:00'];
-    const doctors = ['Dr. Mohamed Ahmed', 'Dr. Sarah Ali', 'Dr. Khalid Omar', 'Dr. Fatima Hassan', 'Dr. John Smith', 'Dr. Layla Mahmoud', 'Dr. Omar Farouk'];
-    const doctorsAr = ['د. محمد أحمد', 'د. سارة علي', 'د. خالد عمر', 'د. فاطمة حسن', 'د. جون سميث', 'د. ليلى محمود', 'د. عمر فاروق'];
-
-    let currentCourses = storage.getCourses();
-    let madeChanges = false;
-
-    // Add missing courses OR update semesterId for existing ones
-    allCoursesData.forEach((input, index) => {
-      const existingIndex = currentCourses.findIndex(c => c.code === input.code);
-
-      if (existingIndex === -1) {
-        // Add new
-        const randomDay = days[Math.floor(Math.random() * days.length)];
-        const randomTime = times[Math.floor(Math.random() * times.length)];
-        const randomDocIdx = Math.floor(Math.random() * doctors.length);
-
-        const newCourse: Course = {
-          id: crypto.randomUUID(),
-          code: input.code,
-          title: input.en,
-          title_ar: input.ar,
-          credits: 3,
-          doctor: doctors[randomDocIdx],
-          doctor_ar: doctorsAr[randomDocIdx],
-          day: randomDay,
-          time: randomTime,
-          isRegistrationEnabled: true,
-          semesterId: activeSemId
-        };
-        currentCourses.push(newCourse);
-        madeChanges = true;
-      } else {
-        // Update existing to current semester if different
-        if (currentCourses[existingIndex].semesterId !== activeSemId) {
-          currentCourses[existingIndex].semesterId = activeSemId;
-          madeChanges = true;
-        }
-      }
-    });
-
-    // Save only if we added/modified something
-    if (madeChanges) {
-      storage.setCourses(currentCourses, true);
+    // Purge requests: Remove all courses initially to allow manual entry
+    if (!localStorage.getItem('courses_purged_final_v4')) {
+      console.log('Purging all seeded courses...');
+      const all = storage.getCourses();
+      all.forEach(c => supabaseService.deleteCourse(c.id).catch(() => { }));
+      storage.setCourses([], false); // Clear local
+      localStorage.setItem('courses_purged_final_v4', 'true');
     }
 
     const admin = {

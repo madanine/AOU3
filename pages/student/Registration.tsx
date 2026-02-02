@@ -19,26 +19,21 @@ const Registration: React.FC = () => {
   const activeSemId = settings.activeSemesterId;
 
   useEffect(() => {
-    const existingIds = confirmedEnrollments
-      .filter(e => e.studentId === user?.id && (!activeSemId || e.semesterId === activeSemId))
-      .map(e => e.courseId);
-
-    setPendingSelection(new Set(existingIds));
-    if (existingIds.length === 0) {
-      setIsEditing(true);
+    // Only set pending if empty (start fresh)
+    if (pendingSelection.size > 0 && confirmedEnrollments.length === 0) {
+      setPendingSelection(new Set());
     }
-  }, [confirmedEnrollments, user?.id, activeSemId]);
+  }, [activeSemId]); // Reset on semester change
 
-  useEffect(() => {
-    if (settings.branding.announcements.length > 1) {
-      const interval = setInterval(() => {
-        setActiveSlide(prev => (prev + 1) % settings.branding.announcements.length);
-      }, 5000);
-      return () => clearInterval(interval);
-    }
-  }, [settings.branding.announcements]);
+  // Filter courses: Must match active semester AND NOT be already enrolled
+  const enrolledCourseIds = confirmedEnrollments
+    .filter(e => e.studentId === user?.id && (!activeSemId || e.semesterId === activeSemId))
+    .map(e => e.courseId);
 
-  const semesterCourses = courses.filter(c => !activeSemId || c.semesterId === activeSemId);
+  const semesterCourses = courses.filter(c =>
+    (!activeSemId || c.semesterId === activeSemId) &&
+    !enrolledCourseIds.includes(c.id) // HIDE ENROLLED COURSES
+  );
 
   const filteredCourses = semesterCourses.filter(c =>
     translate(c, 'title').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -63,17 +58,18 @@ const Registration: React.FC = () => {
           return prev;
         }
 
-        // RULE 2: Previous semester check
+        // RULE 2: Previous semester check (Check if taken in ANY OTHER semester)
+        // We removed the current semester ones from the list, so we only check others
         const targetCourse = courses.find(c => c.id === courseId);
-        const alreadyTaken = confirmedEnrollments.some(e =>
+        const alreadyTakenPrev = confirmedEnrollments.some(e =>
           e.studentId === user?.id &&
           e.semesterId !== activeSemId &&
           courses.find(c => c.id === e.courseId)?.code === targetCourse?.code
         );
 
-        if (alreadyTaken) {
+        if (alreadyTakenPrev) {
           setMessage({
-            text: lang === 'AR' ? 'لا يمكن تسجيل هذه المادة لأنها مسجلة في فصل سابق' : 'Course already taken in a previous semester',
+            text: lang === 'AR' ? 'لا يمكن تسجيل هذه المادة لأنها مسجلة في فصل سابق' : 'Course taken in previous semester',
             type: 'error'
           });
           setTimeout(() => setMessage(null), 3000);
@@ -88,27 +84,27 @@ const Registration: React.FC = () => {
 
   const handleConfirm = () => {
     if (isClosed) return;
-    const otherEnrollments = confirmedEnrollments.filter(e =>
-      e.studentId !== user?.id || (activeSemId && e.semesterId !== activeSemId)
-    );
+    // Keep existing enrollments
+    const otherEnrollments = confirmedEnrollments;
 
     const newEnrollments: Enrollment[] = Array.from(pendingSelection as Set<string>).map(courseId => ({
       id: Math.random().toString(36).substring(7),
       studentId: user?.id || '',
       courseId,
       enrolledAt: new Date().toISOString(),
-      semesterId: activeSemId
+      semesterId: activeSemId || '00000000-0000-0000-0000-000000000010' // Fallback if missing
     }));
 
     const final = [...otherEnrollments, ...newEnrollments];
     storage.setEnrollments(final);
-    setConfirmedEnrollments(final);
+    setConfirmedEnrollments(final); // This will trigger re-render and hide the courses
+    setPendingSelection(new Set()); // Clear selection
     setIsEditing(false);
     setMessage({ text: t.changesApplied, type: 'success' });
     setTimeout(() => setMessage(null), 3000);
   };
 
-  const currentSelectionCourses = semesterCourses.filter(c => pendingSelection.has(c.id));
+  const currentSelectionCourses = courses.filter(c => pendingSelection.has(c.id)); // Use global courses to find selected IDs
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500 pb-20">
@@ -204,8 +200,8 @@ const Registration: React.FC = () => {
                   disabled={!canRegister || !isEditing}
                   onClick={() => togglePending(course.id)}
                   className={`w-full py-3 px-4 rounded-xl font-black text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${isSelected
-                      ? 'bg-red-50 text-red-600 hover:bg-red-100'
-                      : 'bg-[var(--primary)] text-white hover:brightness-110 shadow-lg shadow-blue-900/10'
+                    ? 'bg-red-50 text-red-600 hover:bg-red-100'
+                    : 'bg-[var(--primary)] text-white hover:brightness-110 shadow-lg shadow-blue-900/10'
                     } disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed`}
                 >
                   {isSelected ? (

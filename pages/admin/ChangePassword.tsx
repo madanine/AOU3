@@ -2,6 +2,8 @@
 import React, { useState } from 'react';
 import { useApp } from '../../App';
 import { storage } from '../../storage';
+import { supabase } from '../../supabase';
+import { supabaseService } from '../../supabaseService';
 import { Lock, KeyRound, CheckCircle, AlertCircle, Save } from 'lucide-react';
 
 const ChangePassword: React.FC = () => {
@@ -12,10 +14,11 @@ const ChangePassword: React.FC = () => {
     confirmNewPassword: ''
   });
   const [message, setMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Authorization check: Only for sub-admins
-  const isSubAdmin = !!(user as any).permissions;
-  if (!isSubAdmin) {
+  // Authorization check: Only for sub-admins or admins
+  const isAuthorized = user?.role === 'admin';
+  if (!isAuthorized) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center">
         <Lock className="text-gray-200 mb-4" size={64} />
@@ -24,36 +27,44 @@ const ChangePassword: React.FC = () => {
     );
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
 
-    // 1. Validate Current Password
-    if (passwordData.currentPassword !== user?.password) {
-      setMessage({ text: lang === 'AR' ? 'كلمة المرور الحالية غير صحيحة' : 'Incorrect current password', type: 'error' });
-      return;
-    }
-
-    // 2. Validate Matching
+    // 1. Validate Matching
     if (passwordData.newPassword !== passwordData.confirmNewPassword) {
       setMessage({ text: lang === 'AR' ? 'كلمات المرور غير متطابقة' : 'Passwords do not match', type: 'error' });
+      setIsLoading(false);
       return;
     }
 
-    // 3. Update Storage (subAdmins only)
-    const subAdmins = JSON.parse(localStorage.getItem('subAdmins') || '[]');
-    const updatedSubAdmins = subAdmins.map((a: any) =>
-      a.id === user?.id ? { ...a, password: passwordData.newPassword } : a
-    );
-    localStorage.setItem('subAdmins', JSON.stringify(updatedSubAdmins));
+    try {
+      // 2. Update Supabase Auth (Actual Login Password)
+      const { error } = await supabase.auth.updateUser({ password: passwordData.newPassword });
 
-    // 4. Update Memory Session
-    const updatedUser = { ...user!, password: passwordData.newPassword };
-    setUser(updatedUser);
-    storage.setAuthUser(updatedUser);
+      if (error) {
+        // If error is "Password should be different", etc.
+        throw error;
+      }
 
-    setPasswordData({ currentPassword: '', newPassword: '', confirmNewPassword: '' });
-    setMessage({ text: lang === 'AR' ? 'تم تحديث كلمة المرور بنجاح' : 'Password updated successfully', type: 'success' });
-    setTimeout(() => setMessage(null), 3000);
+      // 3. Update Profile Logic (legacy/storage)
+      const updatedUser = { ...user!, password: passwordData.newPassword };
+      // Update in storage (profiles table)
+      await storage.saveUser(updatedUser);
+
+      // Update session
+      setUser(updatedUser);
+      storage.setAuthUser(updatedUser);
+
+      setPasswordData({ currentPassword: '', newPassword: '', confirmNewPassword: '' });
+      setMessage({ text: lang === 'AR' ? 'تم تحديث كلمة المرور بنجاح' : 'Password updated successfully', type: 'success' });
+    } catch (err: any) {
+      console.error('Password update failed:', err);
+      setMessage({ text: err.message || (lang === 'AR' ? 'فشل التحديث' : 'Update failed'), type: 'error' });
+    } finally {
+      setIsLoading(false);
+      setTimeout(() => setMessage(null), 3000);
+    }
   };
 
   return (

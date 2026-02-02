@@ -5,14 +5,21 @@ import { storage } from '../../storage';
 import { BookMarked, Calendar } from 'lucide-react';
 
 const MyCourses: React.FC = () => {
-  const { user, t, translate } = useApp();
-  const enrollments = storage.getEnrollments().filter(e => e.studentId === user?.id);
+  const { user, t, translate, settings } = useApp();
+  // Show enrollments for ACTIVE semester by default, or all if student wants history?
+  // User complaint: "disappears from being a registered course" -> implies they want to see it as "Registered".
+  // So we filter by active semester.
+  const activeSemId = settings.activeSemesterId;
+  const enrollments = storage.getEnrollments().filter(e =>
+    e.studentId === user?.id &&
+    (!activeSemId || e.semesterId === activeSemId)
+  );
   const courses = storage.getCourses();
 
   const myCourses = enrollments.map(e => ({
     ...courses.find(c => c.id === e.courseId)!,
     enrolledAt: e.enrolledAt
-  }));
+  })).filter(c => c.id); // ensure course exists
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-in slide-in-from-bottom-4 duration-500 pb-20">
