@@ -6,13 +6,14 @@ import { storage } from '../../storage';
 import { supabase } from '../../supabase';
 import { supabaseService } from '../../supabaseService';
 import { User, Language } from '../../types';
-import { KeyRound, User as UserIcon, ArrowRight, ShieldAlert, Sun, Moon, LogIn } from 'lucide-react';
+import { KeyRound, User as UserIcon, ArrowRight, ShieldAlert, Sun, Moon, LogIn, Eye, EyeOff } from 'lucide-react';
 
 const LoginPage: React.FC = () => {
   const { setUser, t, lang, setLang, settings, isDarkMode, toggleDarkMode } = useApp();
   const navigate = useNavigate();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -160,13 +161,20 @@ const LoginPage: React.FC = () => {
               <div className="relative group">
                 <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 text-black/50 group-focus-within:text-black transition-colors" size={20} />
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className={inputClasses}
+                  className={inputClasses + " pr-12"}
                   style={{ color: 'var(--text-primary)' }}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-black/40 hover:text-black transition-colors outline-none"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
               </div>
             </div>
 
