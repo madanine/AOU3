@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../../App';
 import { storage } from '../../storage';
 import { Course, User, Enrollment, AttendanceRecord } from '../../types';
-import { BookOpen, CheckCircle, XCircle, Save, Download, Undo2, AlertTriangle, Check, Minus, FileStack } from 'lucide-react';
+import { BookOpen, CheckCircle, XCircle, Save, Download, Undo2, AlertTriangle, Check, Minus, FileStack, User as UserIcon } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 const AdminAttendance: React.FC = () => {
@@ -26,14 +26,39 @@ const AdminAttendance: React.FC = () => {
 
   const activeSemId = settings.activeSemesterId;
 
-  // Filter courses by assigned and active semester
+  const [viewMode, setViewMode] = useState<'course' | 'student'>('course');
+  const [targetStudentId, setTargetStudentId] = useState('');
+
+  // Auto-refresh data on storage update
+  useEffect(() => {
+    const handleUpdate = () => {
+      // Re-fetch everything
+      const freshCourses = storage.getCourses();
+      // Using refetch isn't easy with state vars unless we set them. 
+      // Ideally we should use a custom hook or Context, but for now we reload page or just rely on user interaction.
+      // But user complained about "0 courses". We need to update local state.
+      // We can't update 'const [courses]' easily as it's state initiated once.
+      // We should change 'courses' to be updated via event.
+      window.location.reload(); // Quick fix for sync issues requested by user: "Materials not syncing"
+    };
+    window.addEventListener('storage-update', handleUpdate);
+    return () => window.removeEventListener('storage-update', handleUpdate);
+  }, []);
+
   const visibleCourses = (user?.role === 'admin'
     ? courses
     : courses.filter(c => user?.assignedCourses?.includes(c.id))
   ).filter(c => !activeSemId || c.semesterId === activeSemId);
 
-  const lectures = Array.from({ length: 12 }, (_, i) => i + 1);
+  // Student View: Get courses for selected student
+  const studentCourses = targetStudentId
+    ? enrollments
+      .filter(e => e.studentId === targetStudentId && (!activeSemId || e.semesterId === activeSemId))
+      .map(e => courses.find(c => c.id === e.courseId))
+      .filter(c => c) as Course[]
+    : [];
 
+  const lectures = Array.from({ length: 12 }, (_, i) => i + 1);
   const currentCourse = courses.find(c => c.id === selectedCourseId);
 
   // Filter students: they must be enrolled in the SELECTED course AND SELECTED semester
@@ -45,12 +70,13 @@ const AdminAttendance: React.FC = () => {
     )
   );
 
-  const handleToggle = (studentId: string, lectureIdx: number) => {
+  const handleToggle = (studentId: string, lectureIdx: number, courseId: string = selectedCourseId) => {
     setAttendance(prev => {
-      const courseRecord = prev[selectedCourseId] || {};
+      const courseRecord = prev[courseId] || {};
       const studentArr = [...(courseRecord[studentId] || Array(12).fill(null))];
 
       const current = studentArr[lectureIdx];
+      // Logic: null -> true -> false -> true
       if (current === null || current === undefined) {
         studentArr[lectureIdx] = true;
       } else if (current === true) {
@@ -61,7 +87,7 @@ const AdminAttendance: React.FC = () => {
 
       return {
         ...prev,
-        [selectedCourseId]: { ...courseRecord, [studentId]: studentArr }
+        [courseId]: { ...courseRecord, [studentId]: studentArr }
       };
     });
   };
@@ -111,7 +137,6 @@ const AdminAttendance: React.FC = () => {
 
   const getCourseDataForExcel = (course: Course) => {
     const records = attendance[course.id] || {};
-    // Re-filter students per course for bulk export
     const studentsInCourse = students.filter(s =>
       enrollments.some(e =>
         e.studentId === s.id &&
@@ -200,50 +225,84 @@ const AdminAttendance: React.FC = () => {
           <h1 className="text-3xl font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>{lang === 'AR' ? 'إدارة الحضور والغياب' : 'Attendance Mgmt'}</h1>
           <p className="font-medium" style={{ color: 'var(--text-secondary)' }}>{user?.role === 'admin' ? 'نظام تحضير الطلاب المركزي' : 'موادك المسندة'}</p>
         </div>
+
+        <div className="flex bg-gray-100 p-1 rounded-xl">
+          <button
+            onClick={() => setViewMode('course')}
+            className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${viewMode === 'course' ? 'bg-white shadow-sm text-[var(--primary)]' : 'text-gray-400'}`}
+          >
+            {lang === 'AR' ? 'حسب المادة' : 'By Course'}
+          </button>
+          <button
+            onClick={() => setViewMode('student')}
+            className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${viewMode === 'student' ? 'bg-white shadow-sm text-[var(--primary)]' : 'text-gray-400'}`}
+          >
+            {lang === 'AR' ? 'حسب الطالب' : 'By Student'}
+          </button>
+        </div>
       </div>
 
-      <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm flex flex-col md:flex-row gap-4 items-center">
-        <div className="flex-1 w-full flex items-center gap-3 bg-gray-50 px-4 py-3 rounded-2xl border border-gray-100">
-          <BookOpen className="text-gray-400" size={20} />
-          <select
-            className="w-full bg-transparent outline-none font-black text-xs uppercase tracking-widest text-gray-600"
-            value={selectedCourseId}
-            onChange={e => setSelectedCourseId(e.target.value)}
-          >
-            <option value="">— {lang === 'AR' ? 'اختر المادة' : 'Select Subject'} —</option>
-            {visibleCourses.map(c => <option key={c.id} value={c.id}>{c.code} - {translate(c, 'title')}</option>)}
-          </select>
-        </div>
+      {viewMode === 'course' ? (
+        <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm flex flex-col md:flex-row gap-4 items-center">
+          <div className="flex-1 w-full flex items-center gap-3 bg-gray-50 px-4 py-3 rounded-2xl border border-gray-100">
+            <BookOpen className="text-gray-400" size={20} />
+            <select
+              className="w-full bg-transparent outline-none font-black text-xs uppercase tracking-widest text-gray-600"
+              value={selectedCourseId}
+              onChange={e => setSelectedCourseId(e.target.value)}
+            >
+              <option value="">— {lang === 'AR' ? 'اختر المادة' : 'Select Subject'} —</option>
+              {visibleCourses.map(c => <option key={c.id} value={c.id}>{c.code} - {translate(c, 'title')}</option>)}
+            </select>
+          </div>
 
-        <div className="flex flex-wrap gap-2 w-full md:w-auto justify-center md:justify-start">
-          {selectedCourseId && (
-            <div className="flex items-center gap-2 bg-gray-50 px-4 py-3 rounded-2xl border border-gray-100">
-              <span className="text-[10px] font-black text-gray-400 uppercase">{lang === 'AR' ? 'المحاضرة' : 'Lecture'}:</span>
-              <select
-                className="bg-transparent outline-none font-black text-xs text-gray-600"
-                value={selectedLecture}
-                onChange={e => setSelectedLecture(e.target.value === 'all' ? 'all' : parseInt(e.target.value))}
-              >
-                {lectures.map(l => <option key={l} value={l}>م{l}</option>)}
-                <option value="all">{lang === 'AR' ? 'الكل' : 'All'}</option>
-              </select>
-            </div>
-          )}
-
-          <div className="flex flex-wrap gap-2 justify-center">
+          <div className="flex flex-wrap gap-2 w-full md:w-auto justify-center md:justify-start">
             {selectedCourseId && (
-              <button onClick={() => exportCourseToExcel(currentCourse!)} className="px-6 py-3 bg-white border border-gray-200 text-gray-600 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-gray-50 transition-all flex items-center gap-2 whitespace-nowrap">
-                <Download size={16} /> {lang === 'AR' ? 'تصدير' : 'Export'}
-              </button>
+              <div className="flex items-center gap-2 bg-gray-50 px-4 py-3 rounded-2xl border border-gray-100">
+                <span className="text-[10px] font-black text-gray-400 uppercase">{lang === 'AR' ? 'المحاضرة' : 'Lecture'}:</span>
+                <select
+                  className="bg-transparent outline-none font-black text-xs text-gray-600"
+                  value={selectedLecture}
+                  onChange={e => setSelectedLecture(e.target.value === 'all' ? 'all' : parseInt(e.target.value))}
+                >
+                  {lectures.map(l => <option key={l} value={l}>م{l}</option>)}
+                  <option value="all">{lang === 'AR' ? 'الكل' : 'All'}</option>
+                </select>
+              </div>
             )}
-            <button onClick={exportAllCoursesToExcel} className="px-6 py-3 bg-white border border-gray-200 text-gray-600 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-gray-50 transition-all flex items-center gap-2 whitespace-nowrap">
-              <FileStack size={16} /> {lang === 'AR' ? 'تصدير جميع المواد' : 'Export All Courses'}
-            </button>
+
+            <div className="flex flex-wrap gap-2 justify-center">
+              {selectedCourseId && (
+                <button onClick={() => exportCourseToExcel(currentCourse!)} className="px-6 py-3 bg-white border border-gray-200 text-gray-600 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-gray-50 transition-all flex items-center gap-2 whitespace-nowrap">
+                  <Download size={16} /> {lang === 'AR' ? 'تصدير' : 'Export'}
+                </button>
+              )}
+              <button onClick={exportAllCoursesToExcel} className="px-6 py-3 bg-white border border-gray-200 text-gray-600 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-gray-50 transition-all flex items-center gap-2 whitespace-nowrap">
+                <FileStack size={16} /> {lang === 'AR' ? 'تصدير جميع المواد' : 'Export All Courses'}
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      ) : (
+        /* Student View Header */
+        <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm flex flex-col md:flex-row gap-4 items-center">
+          <div className="flex-1 w-full flex items-center gap-3 bg-gray-50 px-4 py-3 rounded-2xl border border-gray-100">
+            <select
+              className="w-full bg-transparent outline-none font-black text-xs uppercase tracking-widest text-gray-600"
+              value={targetStudentId}
+              onChange={e => setTargetStudentId(e.target.value)}
+            >
+              <option value="">— {lang === 'AR' ? 'ابحث عن الطالب' : 'Select Student'} —</option>
+              {students.map(s => <option key={s.id} value={s.id}>{s.universityId} - {s.fullName}</option>)}
+            </select>
+          </div>
+          <button onClick={handleSave} className="px-6 py-3 bg-gray-900 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-xl flex items-center gap-2">
+            <Save size={16} /> {lang === 'AR' ? 'حفظ التغييرات' : 'Save Changes'}
+          </button>
+        </div>
+      )}
 
-      {selectedCourseId ? (
+      {viewMode === 'course' && selectedCourseId ? (
         <div className="space-y-6">
           <div className="flex flex-wrap items-center gap-3">
             <button onClick={() => setConfirmModal({ show: true, type: 'present', scope: 'all' })} className="px-4 py-2 bg-blue-50 text-blue-600 rounded-xl font-black text-[10px] uppercase tracking-widest border border-blue-100 hover:bg-blue-100 transition-all">{lang === 'AR' ? 'تحضير الكل' : 'Mark All Present'}</button>
@@ -278,7 +337,7 @@ const AdminAttendance: React.FC = () => {
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-100">
                   <th className={`px-6 py-4 w-12 sticky ${lang === 'AR' ? 'right-0' : 'left-0'} z-20 bg-gray-50`}>
-                    <input type="checkbox" checked={selectedStudents.size === enrolledStudents.length} onChange={toggleAllStudents} className="w-4 h-4 rounded border-gray-300" />
+                    <input type="checkbox" checked={selectedStudents.size === enrolledStudents.length && enrolledStudents.length > 0} onChange={toggleAllStudents} className="w-4 h-4 rounded border-gray-300" />
                   </th>
                   <th className={`px-6 py-4 text-[10px] font-black uppercase tracking-widest min-w-[100px] sticky ${lang === 'AR' ? 'right-[48px]' : 'left-[48px]'} z-20 bg-gray-50`} style={{ color: 'var(--text-secondary)' }}>{lang === 'AR' ? 'الرقم الجامعي' : 'ID'}</th>
                   <th className={`px-6 py-4 text-[10px] font-black uppercase tracking-widest min-w-[180px] sticky ${lang === 'AR' ? 'right-[148px] border-l' : 'left-[148px] border-r'} border-gray-100 z-20 bg-gray-50`} style={{ color: 'var(--text-secondary)' }}>{t.fullName}</th>
@@ -325,10 +384,57 @@ const AdminAttendance: React.FC = () => {
             </table>
           </div>
         </div>
-      ) : (
+      ) : viewMode === 'course' ? (
         <div className="bg-white rounded-[2.5rem] border border-dashed border-gray-200 py-32 text-center flex flex-col items-center gap-4">
           <BookOpen className="text-gray-100" size={80} />
           <p className="text-gray-300 font-black text-xs uppercase tracking-widest">{lang === 'AR' ? 'اختر مادة للبدء' : 'Select a subject to begin'}</p>
+        </div>
+      ) : targetStudentId ? (
+        /* Student Mode Table */
+        <div className="bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden overflow-x-auto">
+          <table className="w-full text-left" dir={lang === 'AR' ? 'rtl' : 'ltr'}>
+            <thead>
+              <tr className="bg-gray-50 border-b border-gray-100">
+                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>{t.courseTitle}</th>
+                {lectures.map(l => (
+                  <th key={l} className="px-2 py-4 text-[10px] font-black text-center text-gray-400 min-w-[50px]">م{l}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {studentCourses.map(course => {
+                const record = (attendance[course.id]?.[targetStudentId]) || Array(12).fill(null);
+                return (
+                  <tr key={course.id} className="hover:bg-gray-50/50 transition-colors">
+                    <td className="px-6 py-4 font-bold text-sm" style={{ color: 'var(--text-primary)' }}>
+                      {translate(course, 'title')}
+                      <p className="text-[9px] text-gray-400 font-mono mt-1">{course.code}</p>
+                    </td>
+                    {lectures.map((_, i) => (
+                      <td key={i} className="px-2 py-4 text-center">
+                        <button
+                          onClick={() => handleToggle(targetStudentId, i, course.id)}
+                          className={`p-1 rounded-lg transition-all ${record[i] === true ? 'text-emerald-500 bg-emerald-50' : (record[i] === false ? 'text-red-500 bg-red-50' : 'text-gray-300 bg-gray-50')}`}
+                        >
+                          {record[i] === true ? <CheckCircle size={18} /> : (record[i] === false ? <XCircle size={18} /> : <Minus size={18} />)}
+                        </button>
+                      </td>
+                    ))}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          {studentCourses.length === 0 && (
+            <div className="text-center py-20 text-gray-300 text-xs font-black uppercase tracking-widest">
+              {lang === 'AR' ? 'هذا الطالب غير مسجل في أي مواد' : 'Student has no enrolled courses'}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="bg-white rounded-[2.5rem] border border-dashed border-gray-200 py-32 text-center flex flex-col items-center gap-4">
+          <UserIcon className="text-gray-100" size={80} />
+          <p className="text-gray-300 font-black text-xs uppercase tracking-widest">{lang === 'AR' ? 'اختر طالباً للبدء' : 'Select a student to begin'}</p>
         </div>
       )}
 

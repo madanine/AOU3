@@ -8,9 +8,25 @@ import SemesterControls from '../../components/admin/SemesterControls';
 
 const AdminDashboard: React.FC = () => {
   const { t, settings } = useApp();
-  const students = storage.getUsers().filter(u => u.role === 'student');
-  const allCourses = storage.getCourses();
-  const allEnrollments = storage.getEnrollments();
+  const [data, setData] = React.useState({
+    students: storage.getUsers().filter(u => u.role === 'student'),
+    courses: storage.getCourses(),
+    enrollments: storage.getEnrollments()
+  });
+
+  React.useEffect(() => {
+    const handleUpdate = () => {
+      setData({
+        students: storage.getUsers().filter(u => u.role === 'student'),
+        courses: storage.getCourses(),
+        enrollments: storage.getEnrollments()
+      });
+    };
+    window.addEventListener('storage-update', handleUpdate);
+    return () => window.removeEventListener('storage-update', handleUpdate);
+  }, []);
+
+  const { students, courses: allCourses, enrollments: allEnrollments } = data;
 
   // Scoped Data
   const courses = allCourses.filter(c => !settings.activeSemesterId || c.semesterId === settings.activeSemesterId);

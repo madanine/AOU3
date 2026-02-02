@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../App';
 import { storage } from '../../storage';
-import { Filter, Calendar, BookOpen, User as UserIcon, Download, Plus, X, Save, AlertCircle, Trash2, CheckCircle } from 'lucide-react';
+import { Filter, Calendar, BookOpen, User as UserIcon, Download, Plus, X, Save, AlertCircle, Trash2, CheckCircle, Search } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { Enrollment, User, Course } from '../../types';
 import SemesterControls from '../../components/admin/SemesterControls';
@@ -22,6 +22,15 @@ const AdminEnrollments: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [showToast, setShowToast] = useState(false);
 
+  // Auto-refresh data on storage/settings change
+  React.useEffect(() => {
+    const handleUpdate = () => {
+      setEnrollments(storage.getEnrollments());
+    };
+    window.addEventListener('storage-update', handleUpdate);
+    return () => window.removeEventListener('storage-update', handleUpdate);
+  }, []);
+
   const activeSemId = settings.activeSemesterId || 'sem-default';
 
   const filtered = enrollments.filter(e => {
@@ -31,7 +40,14 @@ const AdminEnrollments: React.FC = () => {
 
     if (filterMode === 'all') return true;
     if (filterMode === 'course') return courseFilter === '' || e.courseId === courseFilter;
-    if (filterMode === 'student') return studentFilter === '' || e.studentId === studentFilter;
+    if (filterMode === 'student') {
+      if (!studentFilter) return true;
+      const student = students.find(s => s.id === e.studentId);
+      if (!student) return false;
+      // Search by name or University ID
+      const term = studentFilter.toLowerCase();
+      return student.fullName.toLowerCase().includes(term) || student.universityId.toLowerCase().includes(term);
+    }
     return true;
   });
 
@@ -141,6 +157,17 @@ const AdminEnrollments: React.FC = () => {
           <button onClick={() => setFilterMode('student')} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${filterMode === 'student' ? 'bg-white text-[var(--primary)] shadow-sm' : 'text-gray-400'}`}>{t.filterByStudent}</button>
         </div>
 
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+          <input
+            type="text"
+            placeholder={lang === 'AR' ? 'بحث باسم الطالب أو الرقم الجامعي...' : 'Search student...'}
+            value={studentFilter}
+            onChange={e => { setStudentFilter(e.target.value); setFilterMode('student'); }}
+            className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-100 rounded-xl outline-none font-bold text-xs"
+          />
+        </div>
+
         {filterMode === 'course' && (
           <select value={courseFilter} onChange={e => setCourseFilter(e.target.value)} className="flex-1 px-4 py-2 bg-gray-50 border border-gray-100 rounded-xl outline-none font-bold text-xs uppercase tracking-widest text-gray-600">
             <option value="">{lang === 'AR' ? 'جميع المواد' : 'All Courses'}</option>
@@ -148,12 +175,7 @@ const AdminEnrollments: React.FC = () => {
           </select>
         )}
 
-        {filterMode === 'student' && (
-          <select value={studentFilter} onChange={e => setStudentFilter(e.target.value)} className="flex-1 px-4 py-2 bg-gray-50 border border-gray-100 rounded-xl outline-none font-bold text-xs uppercase tracking-widest text-gray-600">
-            <option value="">{lang === 'AR' ? 'جميع الطلاب' : 'All Students'}</option>
-            {students.map(s => <option key={s.id} value={s.id}>{s.universityId} - {s.fullName}</option>)}
-          </select>
-        )}
+        {/* Student Dropdown removed in favor of Search Input */}
 
         <button onClick={exportEnrollments} className="ml-auto px-6 py-2 border border-gray-200 text-gray-500 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-gray-50 transition-all flex items-center gap-2">
           <Download size={14} /> {t.exportExcel}

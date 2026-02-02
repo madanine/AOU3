@@ -54,7 +54,8 @@ const AdminCourses: React.FC = () => {
     setEditingCourse(null);
     setFormData({
       code: '', title: '', title_ar: '', credits: 3, description: '', description_ar: '',
-      doctor: '', doctor_ar: '', day: 'Sunday', time: '10:00 - 12:00', isRegistrationEnabled: true
+      doctor: '', doctor_ar: '', day: 'Sunday', time: '10:00 - 12:00', isRegistrationEnabled: true,
+      lectureLink: '', whatsappLink: '', telegramLink: ''
     });
     setIsModalOpen(true);
   };
@@ -154,7 +155,7 @@ const AdminCourses: React.FC = () => {
                 </div>
               </div>
 
-              <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-4">{course.credits} {t.credits}</p>
+              {/* Removed Credits Display as per request */}
               <p className="text-xs text-gray-500 line-clamp-2 font-medium">{translate(course, 'description')}</p>
             </div>
           ))}

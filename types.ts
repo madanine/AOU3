@@ -89,6 +89,9 @@ export interface Course {
   time: string;
   isRegistrationEnabled: boolean;
   semesterId?: string;
+  lectureLink?: string;
+  whatsappLink?: string;
+  telegramLink?: string;
 }
 
 /**

@@ -24,10 +24,22 @@ const LoginPage: React.FC = () => {
 
     try {
       const email = identifier.includes('@') ? identifier : `${identifier}@aou.edu`;
+
+      let authUser = null;
       try {
-        const authUser = await supabaseService.signIn(email, password);
-        if (authUser) {
+        authUser = await supabaseService.signIn(email, password);
+      } catch (e) {
+        // Supabase login failed (wrong pass, network, or user not found in Auth)
+        console.log('Auth failed, trying fallback');
+      }
+
+      // If Auth succeeded, we MUST rely on the remote profile. 
+      // Do NOT fallback to local if Auth verified the identity but profile is missing.
+      if (authUser) {
+        try {
           const profile = await supabaseService.getProfile(authUser.id);
+          if (!profile) throw new Error('Profile missing');
+
           if (profile.isDisabled) {
             setError(t.accountDisabledMsg);
             await supabaseService.signOut();
@@ -39,12 +51,18 @@ const LoginPage: React.FC = () => {
               '/student/registration';
           navigate(target);
           return;
+        } catch (profileErr) {
+          console.error('Profile fetch error:', profileErr);
+          setError(lang === 'AR' ? 'حسابك محذوف أو غير نشط' : 'Account invalid or deleted');
+          await supabaseService.signOut();
+          return; // Stop here
         }
-      } catch (authErr) {
-        console.log('Supabase Auth failed, trying local fallback...', authErr);
       }
 
-      // --- FALLBACK TO LOCAL/PROFILES TABLE ---
+      // --- FALLBACK TO LOCAL/PROFILES TABLE (Only if Auth failed) ---
+      // This runs if Supabase Auth denied access (or offline).
+      // If user is deleted in Auth, we come here. 
+      // If user is deleted in Profile but not Auth, we handled it above.
       let users = storage.getUsers();
       let foundUser = users.find(u =>
         (u.email === identifier || u.universityId === identifier || u.email === `${identifier}@aou.edu`) &&
