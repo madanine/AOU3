@@ -217,11 +217,38 @@ export const supabaseService = {
     async getAssignments() {
         const { data, error } = await supabase.from('assignments').select('*');
         if (error) throw error;
-        return data as Assignment[];
+
+        // Map snake_case to camelCase
+        return (data || []).map((a: any) => ({
+            id: a.id,
+            courseId: a.course_id,
+            semesterId: a.semester_id,
+            title: a.title,
+            subtitle: a.subtitle,
+            type: a.type,
+            deadline: a.deadline,
+            questions: a.questions || [],
+            showResults: a.show_results,
+            createdAt: a.created_at
+        })) as Assignment[];
     },
 
     async upsertAssignment(assignment: Assignment) {
-        const { error } = await supabase.from('assignments').upsert(assignment);
+        // Map camelCase to snake_case for Supabase
+        const payload = {
+            id: assignment.id,
+            course_id: assignment.courseId,
+            semester_id: assignment.semesterId,
+            title: assignment.title,
+            subtitle: assignment.subtitle,
+            type: assignment.type,
+            deadline: assignment.deadline,
+            questions: assignment.questions || [],
+            show_results: assignment.showResults ?? true,
+            created_at: assignment.createdAt
+        };
+
+        const { error } = await supabase.from('assignments').upsert(payload);
         if (error) throw error;
     },
 
