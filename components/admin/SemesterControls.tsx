@@ -257,9 +257,9 @@ const SemesterControls: React.FC = () => {
             </form>
           </div>
         </div>
+      )}
 
-
-{/* Confirm Default Modal */}
+      {/* Confirm Default Modal */}
       {
         isDefaultConfirmOpen && (
           <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in">
