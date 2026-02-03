@@ -87,10 +87,14 @@ const App: React.FC = () => {
           console.error('Failed to fetch profile on init', e);
         }
       }
-
+      // Await full sync first, then seed, then update settings
+      await storage.syncFromSupabase(); // Await full sync first
       storage.seed();
-      // Ensure we have current local settings after seed possibly changed them
-      setSettings(storage.getSettings());
+
+      // Update local state with latest settings from storage (synced from Cloud)
+      const freshSettings = storage.getSettings();
+      setSettings(freshSettings);
+
       setIsLoading(false);
     };
     init();

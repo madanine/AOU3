@@ -34,7 +34,8 @@ export const DEFAULT_SETTINGS: SiteSettings = {
     baseFontSize: '16px'
   },
   registrationStatus: 'open',
-  isDarkMode: false
+  isDarkMode: false,
+  defaultSemesterId: undefined
 };
 
 export const TRANSLATIONS: Record<Language, any> = {

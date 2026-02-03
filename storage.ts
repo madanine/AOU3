@@ -285,11 +285,9 @@ export const storage = {
     let settings = storage.getSettings();
 
     if (semesters.length === 0) {
-      const defaultSem = { id: '00000000-0000-0000-0000-000000000010', name: 'FALL 2024', createdAt: new Date().toISOString() };
-      semesters = [defaultSem];
-      storage.setSemesters(semesters);
-      settings.activeSemesterId = defaultSem.id;
-      storage.setSettings(settings);
+      // Do not create default semester locally if empty. 
+      // Admin must create one, or we fetch from Supabase.
+      // Keeping this empty allows "No Semester" state until admin acts or sync happens.
     }
 
     const activeSemId = settings.activeSemesterId || '00000000-0000-0000-0000-000000000010';
