@@ -96,6 +96,8 @@ const MyCourses: React.FC = () => {
                   </h3>
                   <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest mt-1" style={{ color: 'var(--text-secondary)' }}>
                     <span style={{ color: 'var(--text-primary)' }}>{course.code}</span>
+                    <span>•</span>
+                    <span style={{ color: 'var(--text-secondary)' }}>{translate(course, 'doctor')}</span>
                     {/* Hide credits as per user request */}
                   </div>
                 </div>
