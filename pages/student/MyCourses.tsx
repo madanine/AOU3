@@ -161,7 +161,9 @@ const MyCourses: React.FC = () => {
                   <div key={course.id} className="bg-[var(--card-bg)] p-4 rounded-2xl border border-[var(--border-color)] flex justify-between items-center group">
                     <div>
                       <h4 className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>{translate(course, 'title')}</h4>
-                      <p className="text-[10px] uppercase font-black mt-1" style={{ color: 'var(--text-secondary)' }}>{course.code}</p>
+                      <p className="text-[10px] uppercase font-black mt-1" style={{ color: 'var(--text-secondary)' }}>
+                        {course.code} • {translate(course, 'doctor')}
+                      </p>
                     </div>
                     <span className="px-3 py-1 bg-gray-200 dark:bg-black/20 rounded-lg text-[10px] font-black text-gray-500">
                       {storage.getLanguage() === 'AR' ? 'مكتمل' : 'COMPLETED'}
