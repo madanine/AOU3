@@ -190,7 +190,11 @@ export const supabaseService = {
     async getSemesters() {
         const { data, error } = await supabase.from('semesters').select('*');
         if (error) throw error;
-        return data as Semester[];
+        return (data || []).map(s => ({
+            id: s.id,
+            name: s.name,
+            createdAt: s.created_at
+        })) as Semester[];
     },
 
     async upsertSemester(semester: Semester) {
