@@ -169,15 +169,67 @@ const StudentAssignmentSubmission: React.FC = () => {
                 <div className="flex items-center gap-4">
                   {sub ? (
                     <div className="text-right flex items-center gap-3">
-                      {a.showResults && sub.grade && (
-                        <div className="flex flex-col items-end">
-                          <span className="text-[8px] font-black uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>{t.grade}</span>
-                          <span className="text-sm font-black text-emerald-600">{sub.grade}</span>
-                        </div>
-                      )}
-                      <span className="text-[10px] font-black uppercase text-emerald-600 bg-emerald-50 px-3 py-1 rounded-lg">
-                        {t.submitted}
-                      </span>
+                      {(() => {
+                        const isPastDeadline = new Date() > new Date(a.deadline);
+
+                        // Before deadline: no grades shown
+                        if (!isPastDeadline) {
+                          return (
+                            <span className="text-[10px] font-black uppercase text-emerald-600 bg-emerald-50 px-3 py-1 rounded-lg">
+                              {t.submitted}
+                            </span>
+                          );
+                        }
+
+                        // After deadline
+                        if (isPastDeadline) {
+                          // MCQ: show grade if available
+                          if (a.type === 'mcq' && sub.grade) {
+                            return (
+                              <>
+                                <div className="flex flex-col items-end">
+                                  <span className="text-[8px] font-black uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>{t.grade}</span>
+                                  <span className="text-sm font-black text-emerald-600">{sub.grade}</span>
+                                </div>
+                                <span className="text-[10px] font-black uppercase text-emerald-600 bg-emerald-50 px-3 py-1 rounded-lg">
+                                  {t.submitted}
+                                </span>
+                              </>
+                            );
+                          }
+
+                          // Essay/File: check if manually graded
+                          if ((a.type === 'essay' || a.type === 'file') && sub.grade) {
+                            return (
+                              <>
+                                <div className="flex flex-col items-end">
+                                  <span className="text-[8px] font-black uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>{t.grade}</span>
+                                  <span className="text-sm font-black text-emerald-600">{sub.grade}</span>
+                                </div>
+                                <span className="text-[10px] font-black uppercase text-emerald-600 bg-emerald-50 px-3 py-1 rounded-lg">
+                                  {t.submitted}
+                                </span>
+                              </>
+                            );
+                          }
+
+                          // Essay/File: waiting for manual grading
+                          if ((a.type === 'essay' || a.type === 'file') && !sub.grade) {
+                            return (
+                              <span className="text-[10px] font-black uppercase text-amber-600 bg-amber-50 px-3 py-1 rounded-lg">
+                                {lang === 'AR' ? 'في انتظار التصحيح' : 'Awaiting Grading'}
+                              </span>
+                            );
+                          }
+                        }
+
+                        // Default: just submitted
+                        return (
+                          <span className="text-[10px] font-black uppercase text-emerald-600 bg-emerald-50 px-3 py-1 rounded-lg">
+                            {t.submitted}
+                          </span>
+                        );
+                      })()}
                     </div>
                   ) : (
                     <ChevronRight size={20} className={`text-gray-300 transition-transform group-hover:translate-x-1 ${lang === 'AR' ? 'rotate-180 group-hover:-translate-x-1' : ''}`} />
@@ -209,59 +261,128 @@ const StudentAssignmentSubmission: React.FC = () => {
             </button>
           </div>
 
-          {/* Result View if already submitted and results are enabled */}
-          {getSubmissionForAssignment(selectedAssignment.id) && selectedAssignment.showResults ? (
-            <div className="p-8 space-y-8 animate-in fade-in duration-500">
-              <div className="flex flex-col items-center justify-center p-8 bg-emerald-50 rounded-[2rem] border border-emerald-100 text-center gap-4">
-                <Trophy className="text-emerald-500" size={64} />
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600">{t.grade}</p>
-                  <h2 className="text-4xl font-black text-emerald-700">{getSubmissionForAssignment(selectedAssignment.id)?.grade || '—'}</h2>
+          {/* Result View logic based on deadline and type */}
+          {(() => {
+            const submission = getSubmissionForAssignment(selectedAssignment.id);
+            const isPastDeadline = new Date() > new Date(selectedAssignment.deadline);
+
+            // Not submitted yet -> show form
+            if (!submission) {
+              return null; // will fall through to form below
+            }
+
+            // Submitted but BEFORE deadline -> show success message only
+            if (!isPastDeadline) {
+              return (
+                <div className="p-20 text-center space-y-4">
+                  <CheckCircle2 size={64} className="mx-auto text-emerald-500" />
+                  <h2 className="text-xl font-black" style={{ color: 'var(--text-primary)' }}>
+                    {lang === 'AR' ? 'تم تسليم التكليف بنجاح' : 'Assignment Submitted Successfully'}
+                  </h2>
+                  <p className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
+                    {lang === 'AR'
+                      ? 'سيتم إصدار الدرجات بعد انتهاء الموعد النهائي.'
+                      : 'Grades will be released after the deadline.'}
+                  </p>
                 </div>
-                <p className="text-xs font-bold text-emerald-600/70">{lang === 'AR' ? 'تم تصحيح إجاباتك تلقائياً' : 'Your answers have been auto-graded'}</p>
-              </div>
+              );
+            }
 
-              <div className="space-y-6">
-                {selectedAssignment.questions.map((q, idx) => {
-                  const studentAnswer = getSubmissionForAssignment(selectedAssignment.id)?.answers?.[idx];
-                  const isCorrect = studentAnswer === q.correctAnswer;
+            // AFTER deadline: MCQ with grade -> show full results
+            if (isPastDeadline && selectedAssignment.type === 'mcq' && submission.grade) {
+              return (
+                <div className="p-8 space-y-8 animate-in fade-in duration-500">
+                  <div className="flex flex-col items-center justify-center p-8 bg-emerald-50 rounded-[2rem] border border-emerald-100 text-center gap-4">
+                    <Trophy className="text-emerald-500" size={64} />
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600">{t.grade}</p>
+                      <h2 className="text-4xl font-black text-emerald-700">{submission.grade}</h2>
+                    </div>
+                    <p className="text-xs font-bold text-emerald-600/70">
+                      {lang === 'AR' ? 'تم تصحيح إجاباتك تلقائياً' : 'Your answers have been auto-graded'}
+                    </p>
+                  </div>
 
-                  return (
-                    <div key={q.id} className={`p-6 rounded-3xl border ${isCorrect ? 'bg-emerald-50/30 border-emerald-100' : 'bg-red-50/30 border-red-100'}`}>
-                      <div className="flex gap-4">
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black flex-shrink-0 ${isCorrect ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'}`}>
-                          {idx + 1}
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-lg font-bold text-gray-900">{q.text}</p>
-                          <div className="mt-4 space-y-2">
-                            <div className="flex items-center gap-2">
-                              <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest">{lang === 'AR' ? 'إجابتك' : 'Your Answer'}:</span>
-                              <span className={`text-sm font-black ${isCorrect ? 'text-emerald-600' : 'text-red-600'}`}>{studentAnswer || '—'}</span>
-                              {isCorrect ? <CheckCircle2 size={16} className="text-emerald-500" /> : <XCircle size={16} className="text-red-500" />}
+                  <div className="space-y-6">
+                    {selectedAssignment.questions.map((q, idx) => {
+                      const studentAnswer = submission.answers?.[idx];
+                      const isCorrect = studentAnswer === q.correctAnswer;
+
+                      return (
+                        <div key={q.id} className={`p-6 rounded-3xl border ${isCorrect ? 'bg-emerald-50/30 border-emerald-100' : 'bg-red-50/30 border-red-100'}`}>
+                          <div className="flex gap-4">
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black flex-shrink-0 ${isCorrect ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'}`}>
+                              {idx + 1}
                             </div>
-                            {!isCorrect && (
-                              <div className="flex items-center gap-2">
-                                <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest">{lang === 'AR' ? 'الإجابة الصحيحة' : 'Correct Answer'}:</span>
-                                <span className="text-sm font-black text-emerald-600">{q.correctAnswer}</span>
+                            <div className="flex-1">
+                              <p className="text-lg font-bold text-gray-900">{q.text}</p>
+                              <div className="mt-4 space-y-2">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest">
+                                    {lang === 'AR' ? 'إجابتك' : 'Your Answer'}:
+                                  </span>
+                                  <span className={`text-sm font-black ${isCorrect ? 'text-emerald-600' : 'text-red-600'}`}>
+                                    {studentAnswer || '—'}
+                                  </span>
+                                  {isCorrect ? <CheckCircle2 size={16} className="text-emerald-500" /> : <XCircle size={16} className="text-red-500" />}
+                                </div>
+                                {!isCorrect && (
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest">
+                                      {lang === 'AR' ? 'الإجابة الصحيحة' : 'Correct Answer'}:
+                                    </span>
+                                    <span className="text-sm font-black text-emerald-600">{q.correctAnswer}</span>
+                                  </div>
+                                )}
                               </div>
-                            )}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ) : getSubmissionForAssignment(selectedAssignment.id) ? (
-            /* Submitted but results hidden */
-            <div className="p-20 text-center space-y-4">
-              <CheckCircle2 size={64} className="mx-auto text-emerald-500" />
-              <h2 className="text-xl font-black" style={{ color: 'var(--text-primary)' }}>{lang === 'AR' ? 'تم تسليم التكليف بنجاح' : 'Assignment Submitted Successfully'}</h2>
-              <p className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>{lang === 'AR' ? 'سيتم عرض النتائج بمجرد اعتمادها من قبل الأستاذ.' : 'Results will be shown once approved by the professor.'}</p>
-            </div>
-          ) : (
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            }
+
+            // AFTER deadline: Essay/File with grade -> show grade
+            if (isPastDeadline && (selectedAssignment.type === 'essay' || selectedAssignment.type === 'file') && submission.grade) {
+              return (
+                <div className="p-20 text-center space-y-4">
+                  <Trophy size={64} className="mx-auto text-emerald-500" />
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600">{t.grade}</p>
+                    <h2 className="text-4xl font-black text-emerald-700">{submission.grade}</h2>
+                  </div>
+                  <p className="text-xs font-bold text-gray-400">
+                    {lang === 'AR' ? 'تم التصحيح من قبل الأستاذ' : 'Graded by instructor'}
+                  </p>
+                </div>
+              );
+            }
+
+            // AFTER deadline: Essay/File WITHOUT grade -> waiting
+            if (isPastDeadline && (selectedAssignment.type === 'essay' || selectedAssignment.type === 'file') && !submission.grade) {
+              return (
+                <div className="p-20 text-center space-y-4">
+                  <Clock size={64} className="mx-auto text-amber-500" />
+                  <h2 className="text-xl font-black" style={{ color: 'var(--text-primary)' }}>
+                    {lang === 'AR' ? 'في انتظار تقييم المدرس' : 'Waiting for Instructor Grading'}
+                  </h2>
+                  <p className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
+                    {lang === 'AR'
+                      ? 'سيتم عرض الدرجة بمجرد اعتمادها من قبل الأستاذ.'
+                      : 'Your grade will be shown once the instructor completes grading.'}
+                  </p>
+                </div>
+              );
+            }
+
+            // Default fallback (shouldn't reach here normally)
+            return null;
+          })()}
+
+          {!getSubmissionForAssignment(selectedAssignment.id) ? (
             /* Submission Form */
             <form onSubmit={handleSubmit} className="p-8 space-y-8">
               {selectedAssignment.type === 'file' && (
@@ -302,8 +423,8 @@ const StudentAssignmentSubmission: React.FC = () => {
                               setMcqAnswers(next);
                             }}
                             className={`p-4 rounded-2xl border text-left font-bold text-sm transition-all flex items-center justify-between ${mcqAnswers[idx] === opt
-                                ? 'bg-purple-50 border-purple-200 text-purple-700 ring-2 ring-purple-100'
-                                : 'bg-white border-gray-100 hover:border-gray-300 text-gray-600'
+                              ? 'bg-purple-50 border-purple-200 text-purple-700 ring-2 ring-purple-100'
+                              : 'bg-white border-gray-100 hover:border-gray-300 text-gray-600'
                               }`}
                           >
                             {opt}
@@ -358,7 +479,7 @@ const StudentAssignmentSubmission: React.FC = () => {
                 </button>
               </div>
             </form>
-          )}
+          ) : null}
         </div>
       )}
     </div>
