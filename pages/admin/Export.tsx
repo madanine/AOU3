@@ -8,7 +8,8 @@ import * as XLSX from 'xlsx';
 import SemesterControls from '../../components/admin/SemesterControls';
 
 const AdminExport: React.FC = () => {
-  const { t, settings, lang } = useApp();
+  const { t, settings, lang, user } = useApp();
+  const isMasterAdmin = user?.universityId === 'aouadmin';
   const [allEnrollments, setAllEnrollments] = useState(storage.getEnrollments());
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -41,10 +42,18 @@ const AdminExport: React.FC = () => {
         );
         const c = courses.find(cou => cou.id === e.courseId || cou.code === e.courseId);
 
-        return {
+        const baseData: any = {
           [t.universityId]: s?.universityId || e.studentId,
           [t.fullName]: s?.fullName || (lang === 'AR' ? 'طالب غير مسجل' : 'Unknown Student'),
-          [t.password]: s?.password || '—',
+        };
+
+        // Only master admin can see passwords
+        if (isMasterAdmin) {
+          baseData[t.password] = s?.password || '—';
+        }
+
+        return {
+          ...baseData,
           [t.email]: s?.email || '—',
           [t.phone]: s?.phone || '—',
           [t.major]: s?.major ? (t.majorList[s.major] || s.major) : '—',
