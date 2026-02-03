@@ -6,9 +6,12 @@ import { User, Course } from '../../types';
 import { Plus, X, Save, Edit3, Trash2, Key, CheckCircle, AlertTriangle, ClipboardList, GraduationCap as GradIcon } from 'lucide-react';
 
 const AdminSupervisors: React.FC = () => {
-  const { t, lang, translate } = useApp();
+  const { t, lang, translate, settings } = useApp();
   const [users, setUsers] = useState<User[]>(storage.getUsers());
-  const [courses] = useState<Course[]>(storage.getCourses());
+
+  const activeSemId = settings.activeSemesterId;
+  const allCourses = storage.getCourses();
+  const [courses] = useState<Course[]>(allCourses.filter(c => c.semesterId === activeSemId));
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);

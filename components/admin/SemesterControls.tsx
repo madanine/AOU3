@@ -6,7 +6,7 @@ import { Star, Calendar, ChevronDown, Plus, X, Save, CheckCircle, Edit2, Copy, A
 import { Semester, Course } from '../../types';
 
 const SemesterControls: React.FC = () => {
-  const { settings, updateSettings, lang, t } = useApp();
+  const { settings, updateSettings, lang, t, user } = useApp();
   const [semesters, setSemesters] = useState<Semester[]>(storage.getSemesters());
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -24,6 +24,7 @@ const SemesterControls: React.FC = () => {
 
   const activeSemester = semesters.find(s => s.id === settings.activeSemesterId);
   const isDefault = settings.defaultSemesterId === settings.activeSemesterId;
+  const isSupervisor = user?.role === 'supervisor';
 
   const triggerToast = (msg: string) => {
     setShowToast({ show: true, msg });
@@ -115,6 +116,18 @@ const SemesterControls: React.FC = () => {
     // Switch to target to see results
     updateSettings({ ...settings, activeSemesterId: copyTargetId });
   };
+
+  // Supervisors get read-only semester display
+  if (isSupervisor) {
+    return (
+      <div className="flex items-center gap-2 bg-white p-2 rounded-2xl border border-gray-100 shadow-sm">
+        <Calendar size={14} className="text-gray-400 ml-2" />
+        <span className="font-black text-[10px] uppercase tracking-wider text-gray-700 px-2">
+          {activeSemester?.name || (lang === 'AR' ? 'لا يوجد فصل نشط' : 'No Active Semester')}
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-center gap-2 bg-white p-1 rounded-2xl border border-gray-100 shadow-sm">
