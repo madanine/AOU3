@@ -54,7 +54,7 @@ const SemesterControls: React.FC = () => {
     }
 
     const newSem: Semester = {
-      id: 'sem-' + Math.random().toString(36).substring(7),
+      id: crypto.randomUUID(),
       name: newSemesterName.trim(),
       createdAt: new Date().toISOString()
     };

@@ -110,7 +110,7 @@ export const storage = {
   setCourses: (courses: Course[], sync = true) => {
     localStorage.setItem(KEYS.COURSES, JSON.stringify(courses));
     if (sync) {
-      courses.forEach(c => supabaseService.upsertCourse(c).catch(() => { }));
+      courses.forEach(c => supabaseService.upsertCourse(c).catch(err => console.error('Sync Course Error:', err)));
     }
   },
   saveCourse: async (course: Course) => {
@@ -125,7 +125,7 @@ export const storage = {
       courses.push(course);
     }
     localStorage.setItem(KEYS.COURSES, JSON.stringify(courses));
-    await supabaseService.upsertCourse(course).catch(() => { });
+    await supabaseService.upsertCourse(course).catch(err => console.error('Save Course Error:', err));
     return courses;
   },
   deleteCourse: async (courseId: string) => {
@@ -214,7 +214,7 @@ export const storage = {
   getSemesters: (): Semester[] => JSON.parse(localStorage.getItem(KEYS.SEMESTERS) || '[]'),
   setSemesters: (semesters: Semester[]) => {
     localStorage.setItem(KEYS.SEMESTERS, JSON.stringify(semesters));
-    semesters.forEach(s => supabaseService.upsertSemester(s).catch(() => { }));
+    semesters.forEach(s => supabaseService.upsertSemester(s).catch(err => console.error('Set Semesters Error:', err)));
   },
   saveSemester: async (semester: Semester) => {
     let semesters = storage.getSemesters();
@@ -225,7 +225,7 @@ export const storage = {
     if (index > -1) semesters[index] = semester;
     else semesters.push(semester);
     localStorage.setItem(KEYS.SEMESTERS, JSON.stringify(semesters));
-    await supabaseService.upsertSemester(semester).catch(() => { });
+    await supabaseService.upsertSemester(semester).catch(err => console.error('Save Semester Error:', err));
     return semesters;
   },
   deleteSemester: async (id: string) => {
