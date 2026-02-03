@@ -128,29 +128,56 @@ const Registration: React.FC = () => {
     });
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (isClosed) return;
 
-    // Remove OLD enrollments for this semester (to be replaced by new selection)
-    const otherEnrollments = confirmedEnrollments.filter(e =>
-      !(e.studentId === user?.id && (!activeSemId || e.semesterId === activeSemId))
-    );
+    try {
+      // Step 1: Delete old enrollments for this semester from Supabase first
+      const oldSemesterEnrollments = confirmedEnrollments.filter(e =>
+        e.studentId === user?.id && (!activeSemId || e.semesterId === activeSemId)
+      );
 
-    const newEnrollments: Enrollment[] = Array.from(pendingSelection as Set<string>).map(courseId => ({
-      id: Math.random().toString(36).substring(7),
-      studentId: user?.id || '',
-      courseId,
-      enrolledAt: new Date().toISOString(),
-      semesterId: activeSemId || '00000000-0000-0000-0000-000000000010' // Fallback if missing
-    }));
+      // Delete each old enrollment from Supabase
+      for (const oldEnroll of oldSemesterEnrollments) {
+        await storage.deleteEnrollment(oldEnroll.id);
+      }
 
-    const final = [...otherEnrollments, ...newEnrollments];
-    storage.setEnrollments(final);
-    setConfirmedEnrollments(final); // This will trigger re-render and hide the courses
-    setPendingSelection(new Set()); // Clear selection
-    setIsEditing(false);
-    setMessage({ text: t.changesApplied, type: 'success' });
-    setTimeout(() => setMessage(null), 3000);
+      // Step 2: Create new enrollments with proper UUIDs
+      const newEnrollments: Enrollment[] = Array.from(pendingSelection as Set<string>).map(courseId => ({
+        id: crypto.randomUUID(),
+        studentId: user?.id || '',
+        courseId,
+        enrolledAt: new Date().toISOString(),
+        semesterId: activeSemId || ''
+      }));
+
+      // Step 3: Save each new enrollment to Supabase
+      for (const enrollment of newEnrollments) {
+        await storage.saveEnrollment(enrollment);
+      }
+
+      // Step 4: Build final list (other semesters + new current semester)
+      const otherEnrollments = confirmedEnrollments.filter(e =>
+        !(e.studentId === user?.id && (!activeSemId || e.semesterId === activeSemId))
+      );
+      const final = [...otherEnrollments, ...newEnrollments];
+
+      // Update local state
+      setConfirmedEnrollments(final);
+      localStorage.setItem('aou_enrollments', JSON.stringify(final));
+      setPendingSelection(new Set());
+      setIsEditing(false);
+
+      setMessage({ text: t.changesApplied, type: 'success' });
+      setTimeout(() => setMessage(null), 3000);
+    } catch (error) {
+      console.error('Registration Error:', error);
+      setMessage({
+        text: lang === 'AR' ? 'فشل حفظ التسجيل. تحقق من الاتصال' : 'Failed to save registration. Check connection',
+        type: 'error'
+      });
+      setTimeout(() => setMessage(null), 5000);
+    }
   };
 
   const currentSelectionCourses = courses.filter(c => pendingSelection.has(c.id)); // Use global courses to find selected IDs

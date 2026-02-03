@@ -140,7 +140,9 @@ export const storage = {
   getEnrollments: (): Enrollment[] => JSON.parse(localStorage.getItem(KEYS.ENROLLMENTS) || '[]'),
   setEnrollments: (enrollments: Enrollment[]) => {
     localStorage.setItem(KEYS.ENROLLMENTS, JSON.stringify(enrollments));
-    enrollments.forEach(e => supabaseService.upsertEnrollment(e).catch(() => { }));
+    enrollments.forEach(e => supabaseService.upsertEnrollment(e).catch(err => {
+      console.error('Failed to save enrollment to Supabase:', err);
+    }));
   },
   saveEnrollment: async (enrollment: Enrollment) => {
     let enrollments = storage.getEnrollments();
