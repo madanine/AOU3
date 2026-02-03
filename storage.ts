@@ -1,6 +1,7 @@
 
 import { User, Course, Enrollment, SiteSettings, Semester, Assignment, Submission, AttendanceRecord, AttendanceRow, Language } from './types';
 import { supabaseService } from './supabaseService';
+import { supabase } from './supabase';
 import { DEFAULT_SETTINGS } from './constants';
 
 const KEYS = {
@@ -328,7 +329,6 @@ export const storage = {
   },
 
   initRealtime: () => {
-    const { supabase } = require('./supabase');
     supabase.channel('public_db_changes')
       .on('postgres_changes', { event: '*', schema: 'public' }, async () => {
         // Simple strategy: refetch all on any change. 
