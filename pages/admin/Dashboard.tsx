@@ -79,7 +79,7 @@ const AdminDashboard: React.FC = () => {
               {t.enrollmentDist}
             </h2>
           </div>
-          <div className="h-[300px] w-full">
+          <div className="h-[300px] w-full min-h-[300px]" style={{ minHeight: '300px' }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
