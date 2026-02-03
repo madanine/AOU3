@@ -22,6 +22,10 @@ const AdminGrading: React.FC = () => {
   const [newGrade, setNewGrade] = useState('');
   const [showToast, setShowToast] = useState(false);
 
+  // Bulk grading states
+  const [selectedSubmissions, setSelectedSubmissions] = useState<Set<string>>(new Set());
+  const [bulkGrade, setBulkGrade] = useState('');
+
   const activeSemId = settings.activeSemesterId || 'sem-default';
 
   useEffect(() => {
@@ -103,6 +107,71 @@ const AdminGrading: React.FC = () => {
     XLSX.writeFile(wb, `${selectedAssignment.title}_Grades.xlsx`);
   };
 
+  // Bulk grading functions
+  const toggleSubmissionSelection = (subId: string) => {
+    const newSet = new Set(selectedSubmissions);
+    if (newSet.has(subId)) {
+      newSet.delete(subId);
+    } else {
+      newSet.add(subId);
+    }
+    setSelectedSubmissions(newSet);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedSubmissions.size === filteredSubmissions.length) {
+      setSelectedSubmissions(new Set());
+    } else {
+      setSelectedSubmissions(new Set(filteredSubmissions.map(s => s.id)));
+    }
+  };
+
+  const applyBulkGrade = () => {
+    if (!bulkGrade || selectedSubmissions.size === 0) return;
+
+    const updated = submissions.map(s =>
+      selectedSubmissions.has(s.id) ? { ...s, grade: bulkGrade } : s
+    );
+    storage.setSubmissions(updated);
+    setSubmissions(updated);
+    setSelectedSubmissions(new Set());
+    setBulkGrade('');
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 3000);
+  };
+
+  const giveFullMarks = () => {
+    if (selectedSubmissions.size === 0) return;
+
+    const updated = submissions.map(s =>
+      selectedSubmissions.has(s.id) ? { ...s, grade: '100/100' } : s
+    );
+    storage.setSubmissions(updated);
+    setSubmissions(updated);
+    setSelectedSubmissions(new Set());
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 3000);
+  };
+
+  // File handling functions
+  const handleViewFile = (fileData?: string) => {
+    if (!fileData) return;
+    const newWindow = window.open();
+    if (newWindow) {
+      newWindow.document.write(`<iframe src="${fileData}" style="width:100%;height:100%;border:none;"></iframe>`);
+    }
+  };
+
+  const handleDownloadFile = (fileData?: string, fileName?: string) => {
+    if (!fileData || !fileName) return;
+    const link = document.createElement('a');
+    link.href = fileData;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-10">
       {showToast && (
@@ -163,6 +232,41 @@ const AdminGrading: React.FC = () => {
 
       {selectedAssignmentId ? (
         <div className="space-y-4">
+          {/* Bulk Grading Controls */}
+          {selectedSubmissions.size > 0 && (
+            <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 flex flex-wrap items-center gap-4">
+              <span className="text-sm font-black text-blue-700">
+                {selectedSubmissions.size} {lang === 'AR' ? 'محدد' : 'selected'}
+              </span>
+              <input
+                type="text"
+                placeholder={lang === 'AR' ? 'أدخل الدرجة (مثال: 95/100)' : 'Enter grade (e.g. 95/100)'}
+                value={bulkGrade}
+                onChange={e => setBulkGrade(e.target.value)}
+                className="px-4 py-2 bg-white border border-blue-200 rounded-xl outline-none font-bold text-sm flex-1 min-w-[200px]"
+              />
+              <button
+                onClick={applyBulkGrade}
+                className="px-4 py-2 bg-blue-600 text-white rounded-xl font-black text-xs uppercase hover:bg-blue-700 transition-all"
+              >
+                {lang === 'AR' ? 'تطبيق على المحدد' : 'Apply to Selected'}
+              </button>
+              <button
+                onClick={giveFullMarks}
+                className="px-4 py-2 bg-emerald-600 text-white rounded-xl font-black text-xs uppercase hover:bg-emerald-700 transition-all flex items-center gap-2"
+              >
+                <Check size={14} />
+                {lang === 'AR' ? 'درجة كاملة للمحدد' : 'Full Marks'}
+              </button>
+              <button
+                onClick={() => setSelectedSubmissions(new Set())}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-xl font-black text-xs uppercase hover:bg-gray-300 transition-all"
+              >
+                {lang === 'AR' ? 'إلغاء التحديد' : 'Clear'}
+              </button>
+            </div>
+          )}
+
           <div className="flex flex-wrap items-center justify-between px-2 gap-4">
             <div className="flex items-center gap-4">
               <h2 className="text-sm font-black text-gray-400 uppercase tracking-widest">
@@ -187,6 +291,14 @@ const AdminGrading: React.FC = () => {
             <table className="w-full text-left">
               <thead>
                 <tr className="bg-gray-50/50 border-b border-gray-100">
+                  <th className="px-6 py-4">
+                    <input
+                      type="checkbox"
+                      checked={selectedSubmissions.size === filteredSubmissions.length && filteredSubmissions.length > 0}
+                      onChange={toggleSelectAll}
+                      className="w-4 h-4 rounded border-gray-300 cursor-pointer"
+                    />
+                  </th>
                   <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>{t.fullName}</th>
                   <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>{lang === 'AR' ? 'التوقيت' : 'Time'}</th>
                   <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-center" style={{ color: 'var(--text-secondary)' }}>{t.grade}</th>
@@ -198,6 +310,14 @@ const AdminGrading: React.FC = () => {
                   const student = students.find(s => s.id === sub.studentId);
                   return (
                     <tr key={sub.id} className="hover:bg-blue-50/20 transition-colors group">
+                      <td className="px-6 py-4">
+                        <input
+                          type="checkbox"
+                          checked={selectedSubmissions.has(sub.id)}
+                          onChange={() => toggleSubmissionSelection(sub.id)}
+                          className="w-4 h-4 rounded border-gray-300 cursor-pointer"
+                        />
+                      </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-xl bg-gray-100 text-gray-400 flex items-center justify-center"><UserIcon size={18} /></div>
@@ -264,11 +384,22 @@ const AdminGrading: React.FC = () => {
                   <div className="p-6 bg-blue-50/50 border border-blue-100 rounded-3xl flex items-center justify-between">
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-blue-500 shadow-sm"><FileText size={24} /></div>
-                      <p className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>{gradingModal.fileName}</p>
+                      <p className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>{gradingModal.fileName || (lang === 'AR' ? 'ملف مرفق' : 'Attached File')}</p>
                     </div>
-                    <a href={gradingModal.fileBase64} download={gradingModal.fileName} className="px-6 py-2 bg-white border border-blue-200 text-blue-600 font-black rounded-xl text-[10px] uppercase tracking-widest hover:bg-blue-50 transition-all flex items-center gap-2">
-                      <Download size={14} /> {lang === 'AR' ? 'تحميل' : 'Download'}
-                    </a>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleViewFile(gradingModal.fileBase64 || gradingModal.fileUrl)}
+                        className="px-6 py-2 bg-white border border-blue-200 text-blue-600 font-black rounded-xl text-[10px] uppercase tracking-widest hover:bg-blue-50 transition-all flex items-center gap-2"
+                      >
+                        <Eye size={14} /> {lang === 'AR' ? 'عرض' : 'View'}
+                      </button>
+                      <button
+                        onClick={() => handleDownloadFile(gradingModal.fileBase64 || gradingModal.fileUrl, gradingModal.fileName)}
+                        className="px-6 py-2 bg-blue-600 text-white font-black rounded-xl text-[10px] uppercase tracking-widest hover:bg-blue-700 transition-all flex items-center gap-2"
+                      >
+                        <Download size={14} /> {lang === 'AR' ? 'تحميل' : 'Download'}
+                      </button>
+                    </div>
                   </div>
                 )}
 

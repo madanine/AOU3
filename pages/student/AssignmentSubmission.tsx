@@ -361,7 +361,7 @@ const StudentAssignmentSubmission: React.FC = () => {
                     <h2 className="text-4xl font-black text-emerald-700">{submission.grade}</h2>
                   </div>
                   <p className="text-xs font-bold text-gray-400">
-                    {lang === 'AR' ? 'تم التصحيح من قبل الأستاذ' : 'Graded by instructor'}
+                    {lang === 'AR' ? 'تم رصد الدرجة من قبل الدكتور' : 'Graded by instructor'}
                   </p>
                 </div>
               );
