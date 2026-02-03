@@ -3,11 +3,11 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useApp } from '../../App';
 import { supabaseService } from '../../supabaseService';
-import { User, Major } from '../../types';
-import { User as UserIcon, Mail, KeyRound, Phone, ArrowRight, ShieldCheck, Loader2 } from 'lucide-react';
+import { User, Major, Language } from '../../types';
+import { User as UserIcon, Mail, KeyRound, Phone, ArrowRight, ShieldCheck, Loader2, Eye, EyeOff, Sun, Moon } from 'lucide-react';
 
 const SignupPage: React.FC = () => {
-  const { setUser, t, lang, settings } = useApp();
+  const { setUser, t, lang, settings, setLang, isDarkMode, toggleDarkMode } = useApp();
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
@@ -22,6 +22,8 @@ const SignupPage: React.FC = () => {
 
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -169,12 +171,19 @@ const SignupPage: React.FC = () => {
                 <div className="relative group">
                   <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 text-black/50" size={16} />
                   <input
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     required
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className={inputClasses}
+                    className={inputClasses + " pr-10"}
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className={`absolute top-1/2 -translate-y-1/2 text-black/40 hover:text-black transition-colors outline-none ${lang === 'AR' ? 'left-3' : 'right-3'}`}
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
                 </div>
               </div>
 
@@ -185,12 +194,19 @@ const SignupPage: React.FC = () => {
                 <div className="relative group">
                   <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 text-black/50" size={16} />
                   <input
-                    type="password"
+                    type={showConfirmPassword ? "text" : "password"}
                     required
                     value={formData.confirmPassword}
                     onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                    className={inputClasses}
+                    className={inputClasses + " pr-10"}
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className={`absolute top-1/2 -translate-y-1/2 text-black/40 hover:text-black transition-colors outline-none ${lang === 'AR' ? 'left-3' : 'right-3'}`}
+                  >
+                    {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
                 </div>
               </div>
 
@@ -238,15 +254,39 @@ const SignupPage: React.FC = () => {
               </Link>
             </div>
           </form>
+
+          <div className="p-6 flex justify-center items-center gap-6 border-t" style={{ borderColor: 'var(--border-color)' }}>
+            <button
+              onClick={toggleDarkMode}
+              className="p-2 rounded-lg transition-colors hover:bg-black/5"
+              title="Toggle Dark Mode"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
+
+            <div className="w-px h-6 bg-[var(--border-color)]"></div>
+
+            {(['RU', 'FR', 'EN', 'AR'] as Language[]).map(l => (
+              <button
+                key={l}
+                onClick={() => setLang(l)}
+                className={`text-[10px] font-black tracking-widest transition-all px-2 py-1 rounded-md hover:bg-black/5`}
+                style={{ color: lang === l ? 'var(--text-primary)' : 'var(--text-secondary)' }}
+              >
+                {l}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
       <footer className="mt-auto py-8 text-center space-y-1 z-10" style={{ color: 'var(--text-secondary)' }}>
         <p className="text-[10px] font-black uppercase tracking-widest">
-          {settings.branding.siteNameEn} {settings.branding.footerText}
+          {settings.branding.footerText}
         </p>
         <p className="text-[10px] font-black uppercase tracking-widest opacity-60">
-          by Abdullah
+          BY ABDULLAH
         </p>
       </footer>
     </div>
