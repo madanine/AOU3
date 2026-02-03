@@ -12,7 +12,9 @@ const Registration: React.FC = () => {
   const [pendingSelection, setPendingSelection] = useState<Set<string>>(new Set());
   const [searchTerm, setSearchTerm] = useState('');
   const [message, setMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
+  // Determine initial edit state based on pending/confirmed
+  const hasConfirmedForSemester = storage.getEnrollments().some(e => e.studentId === user?.id && (!settings.activeSemesterId || e.semesterId === settings.activeSemesterId));
+  const [isEditing, setIsEditing] = useState(!hasConfirmedForSemester);
   const [activeSlide, setActiveSlide] = useState(0);
 
   const isClosed = settings.registrationStatus === 'closed';
@@ -33,6 +35,17 @@ const Registration: React.FC = () => {
       setPendingSelection(new Set());
     }
   }, [activeSemId]); // Reset on semester change
+
+  useEffect(() => {
+    // If no confirmed enrollments for this semester, enable editing by default
+    const hasConfirmed = confirmedEnrollments.some(e =>
+      e.studentId === user?.id &&
+      (!activeSemId || e.semesterId === activeSemId)
+    );
+    if (!hasConfirmed) {
+      setIsEditing(true);
+    }
+  }, [activeSemId, confirmedEnrollments.length, user?.id]);
 
   // Filter courses: Must match active semester AND NOT be already enrolled
   const enrolledCourseIds = confirmedEnrollments
