@@ -29,6 +29,7 @@ const AdminAttendance: React.FC = () => {
   const [viewMode, setViewMode] = useState<'course' | 'student'>('course');
   const [targetStudentId, setTargetStudentId] = useState('');
   const [studentSearchTerm, setStudentSearchTerm] = useState('');
+  const [showStudentDropdown, setShowStudentDropdown] = useState(false);
 
   // Auto-refresh data on storage update
   useEffect(() => {
@@ -285,42 +286,100 @@ const AdminAttendance: React.FC = () => {
           </div>
         </div>
       ) : (
-        /* Student View Header */
+        /* Student View Header - Autocomplete */
         <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm space-y-4">
-          {/* Search Field */}
+          {/* Autocomplete Search Field */}
           <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 z-10" size={18} />
             <input
               type="text"
               placeholder={lang === 'AR' ? 'ابحث عن الطالب بالاسم أو الرقم الجامعي...' : 'Search student by name or ID...'}
               value={studentSearchTerm}
-              onChange={e => setStudentSearchTerm(e.target.value)}
+              onChange={e => {
+                setStudentSearchTerm(e.target.value);
+                setShowStudentDropdown(e.target.value.length > 0);
+              }}
+              onFocus={() => {
+                if (studentSearchTerm.length > 0) setShowStudentDropdown(true);
+              }}
+              onBlur={() => {
+                // Delay to allow clicking on dropdown items
+                setTimeout(() => setShowStudentDropdown(false), 200);
+              }}
               className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl outline-none font-bold text-sm"
             />
-          </div>
 
-          {/* Filtered Student Dropdown */}
-          <div className="flex flex-col md:flex-row gap-4 items-center">
-            <div className="flex-1 w-full flex items-center gap-3 bg-gray-50 px-4 py-3 rounded-2xl border border-gray-100">
-              <UserIcon className="text-gray-400" size={20} />
-              <select
-                className="w-full bg-transparent outline-none font-black text-xs uppercase tracking-widest text-gray-600"
-                value={targetStudentId}
-                onChange={e => setTargetStudentId(e.target.value)}
-              >
-                <option value="">— {lang === 'AR' ? 'اختر الطالب' : 'Select Student'} —</option>
+            {/* Autocomplete Dropdown */}
+            {showStudentDropdown && studentSearchTerm && (
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-2xl shadow-xl max-h-96 overflow-y-auto z-50">
                 {students
                   .filter(s => {
-                    if (!studentSearchTerm) return true;
                     const search = studentSearchTerm.toLowerCase();
                     return (
                       s.fullName.toLowerCase().includes(search) ||
                       s.universityId.toLowerCase().includes(search)
                     );
                   })
-                  .map(s => <option key={s.id} value={s.id}>{s.universityId} - {s.fullName}</option>)}
-              </select>
-            </div>
+                  .map(s => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        setTargetStudentId(s.id);
+                        setStudentSearchTerm(`${s.universityId} - ${s.fullName}`);
+                        setShowStudentDropdown(false);
+                      }}
+                      className="w-full px-4 py-3 text-left hover:bg-blue-50 transition-colors flex items-center gap-3 border-b border-gray-50 last:border-0"
+                    >
+                      <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-gray-500 text-xs font-black">
+                        {s.fullName.charAt(0)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-sm text-gray-900 truncate">{s.fullName}</p>
+                        <p className="text-xs text-gray-500 font-mono">{s.universityId}</p>
+                      </div>
+                    </button>
+                  ))}
+                {students.filter(s => {
+                  const search = studentSearchTerm.toLowerCase();
+                  return (
+                    s.fullName.toLowerCase().includes(search) ||
+                    s.universityId.toLowerCase().includes(search)
+                  );
+                }).length === 0 && (
+                    <div className="px-4 py-8 text-center text-gray-400 text-sm">
+                      {lang === 'AR' ? 'لا توجد نتائج' : 'No results found'}
+                    </div>
+                  )}
+              </div>
+            )}
+          </div>
+
+          {/* Selected Student Display + Save Button */}
+          <div className="flex flex-col md:flex-row gap-4 items-center">
+            {targetStudentId && (
+              <div className="flex-1 w-full flex items-center gap-3 bg-blue-50 px-4 py-3 rounded-2xl border border-blue-100">
+                <UserIcon className="text-blue-500" size={20} />
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-sm text-blue-900">
+                    {students.find(s => s.id === targetStudentId)?.fullName}
+                  </p>
+                  <p className="text-xs text-blue-600 font-mono">
+                    {students.find(s => s.id === targetStudentId)?.universityId}
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setTargetStudentId('');
+                    setStudentSearchTerm('');
+                  }}
+                  className="text-blue-400 hover:text-blue-600 transition-colors"
+                >
+                  <XCircle size={20} />
+                </button>
+              </div>
+            )}
             <button onClick={handleSave} className="px-6 py-3 bg-gray-900 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-xl flex items-center gap-2">
               <Save size={16} /> {lang === 'AR' ? 'حفظ التغييرات' : 'Save Changes'}
             </button>
