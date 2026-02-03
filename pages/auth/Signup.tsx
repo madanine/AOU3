@@ -169,13 +169,12 @@ const SignupPage: React.FC = () => {
               <div className="space-y-1">
                 <label className="text-[10px] font-black uppercase tracking-widest ml-1 block" style={{ color: 'var(--text-secondary)' }}>{t.password}</label>
                 <div className="relative group">
-                  <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 text-black/50" size={16} />
                   <input
                     type={showPassword ? "text" : "password"}
                     required
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className={inputClasses + " pr-10"}
+                    className={inputClasses}
                   />
                   <button
                     type="button"
@@ -192,13 +191,12 @@ const SignupPage: React.FC = () => {
                   {lang === 'AR' ? 'تأكيد كلمة المرور' : 'Confirm Password'}
                 </label>
                 <div className="relative group">
-                  <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 text-black/50" size={16} />
                   <input
                     type={showConfirmPassword ? "text" : "password"}
                     required
                     value={formData.confirmPassword}
                     onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                    className={inputClasses + " pr-10"}
+                    className={inputClasses}
                   />
                   <button
                     type="button"

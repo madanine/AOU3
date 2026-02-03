@@ -177,13 +177,12 @@ const LoginPage: React.FC = () => {
             <div className="space-y-1">
               <label className="text-[10px] font-black uppercase ml-1 block" style={{ color: 'var(--text-secondary)' }}>{t.password}</label>
               <div className="relative group">
-                <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 text-black/50 group-focus-within:text-black transition-colors" size={20} />
                 <input
                   type={showPassword ? "text" : "password"}
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className={inputClasses + " pr-12"}
+                  className={inputClasses}
                   style={{ color: 'var(--text-primary)' }}
                 />
                 <button
