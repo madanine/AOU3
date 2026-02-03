@@ -48,8 +48,17 @@ const Registration: React.FC = () => {
   }, [activeSemId, confirmedEnrollments.length, user?.id]);
 
   // Filter courses: Must match active semester AND NOT be already enrolled
+  // If editing, we DON'T filter out the current semester courses, so they show up in the list (as selected)
   const enrolledCourseIds = confirmedEnrollments
-    .filter(e => e.studentId === user?.id && (!activeSemId || e.semesterId === activeSemId))
+    .filter(e => {
+      const matchesUser = e.studentId === user?.id;
+      const isCurrentSemester = (!activeSemId || e.semesterId === activeSemId);
+
+      // If editing, ignore current semester enrollments so they are available in the list
+      if (isEditing && isCurrentSemester) return false;
+
+      return matchesUser && isCurrentSemester;
+    })
     .map(e => e.courseId);
 
   const semesterCourses = courses.filter(c =>
@@ -61,6 +70,21 @@ const Registration: React.FC = () => {
     translate(c, 'title').toLowerCase().includes(searchTerm.toLowerCase()) ||
     c.code.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const startEditing = () => {
+    // 1. Find all currently registered courses for this semester
+    const currentSemesterEnrollments = confirmedEnrollments.filter(e =>
+      e.studentId === user?.id &&
+      (!activeSemId || e.semesterId === activeSemId)
+    );
+
+    // 2. Add them to pending selection so they appear checked
+    const currentIds = new Set(currentSemesterEnrollments.map(e => e.courseId));
+    setPendingSelection(currentIds);
+
+    // 3. Enable edit mode
+    setIsEditing(true);
+  };
 
   const togglePending = (courseId: string) => {
     if (isClosed && !isEditing) return;
@@ -106,8 +130,11 @@ const Registration: React.FC = () => {
 
   const handleConfirm = () => {
     if (isClosed) return;
-    // Keep existing enrollments
-    const otherEnrollments = confirmedEnrollments;
+
+    // Remove OLD enrollments for this semester (to be replaced by new selection)
+    const otherEnrollments = confirmedEnrollments.filter(e =>
+      !(e.studentId === user?.id && (!activeSemId || e.semesterId === activeSemId))
+    );
 
     const newEnrollments: Enrollment[] = Array.from(pendingSelection as Set<string>).map(courseId => ({
       id: Math.random().toString(36).substring(7),
@@ -272,7 +299,7 @@ const Registration: React.FC = () => {
           <div className="pt-6 border-t border-gray-100 flex flex-col md:flex-row gap-4 items-center justify-center">
             {!isEditing && !isClosed ? (
               <button
-                onClick={() => setIsEditing(true)}
+                onClick={startEditing}
                 className="w-full md:w-auto px-10 py-4 bg-white border-2 border-[var(--primary)] text-[var(--primary)] font-black rounded-2xl text-xs uppercase tracking-widest hover:bg-blue-50 transition-all flex items-center justify-center gap-2"
               >
                 <Edit3 size={18} />
