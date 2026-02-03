@@ -1,5 +1,5 @@
 
-import { User, Course, Enrollment, SiteSettings, Semester, Assignment, Submission, AttendanceRecord, AttendanceRow } from './types';
+import { User, Course, Enrollment, SiteSettings, Semester, Assignment, Submission, AttendanceRecord, AttendanceRow, Language } from './types';
 import { supabaseService } from './supabaseService';
 import { DEFAULT_SETTINGS } from './constants';
 
@@ -179,8 +179,8 @@ export const storage = {
   setAuthUser: (user: User | null) => localStorage.setItem(KEYS.AUTH_USER, JSON.stringify(user)),
   clearAuth: () => localStorage.removeItem(KEYS.AUTH_USER),
 
-  getLanguage: (): 'AR' | 'EN' => (localStorage.getItem(KEYS.LANGUAGE) as 'AR' | 'EN') || 'AR',
-  setLanguage: (lang: 'AR' | 'EN') => {
+  getLanguage: (): Language => (localStorage.getItem(KEYS.LANGUAGE) as Language) || 'AR',
+  setLanguage: (lang: Language) => {
     localStorage.setItem(KEYS.LANGUAGE, lang);
     document.documentElement.lang = lang.toLowerCase();
   },
