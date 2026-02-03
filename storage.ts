@@ -240,7 +240,13 @@ export const storage = {
   },
 
   getAssignments: (): Assignment[] => JSON.parse(localStorage.getItem(KEYS.ASSIGNMENTS) || '[]'),
-  setAssignments: (assignments: Assignment[]) => localStorage.setItem(KEYS.ASSIGNMENTS, JSON.stringify(assignments)),
+  setAssignments: (assignments: Assignment[]) => {
+    localStorage.setItem(KEYS.ASSIGNMENTS, JSON.stringify(assignments));
+    // Sync each assignment to Supabase
+    assignments.forEach(a => supabaseService.upsertAssignment(a).catch(err => {
+      console.error('Failed to save assignment to Supabase:', err);
+    }));
+  },
   saveAssignment: async (assignment: Assignment) => {
     let assignments = storage.getAssignments();
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(assignment.id)) {
@@ -250,7 +256,9 @@ export const storage = {
     if (index > -1) assignments[index] = assignment;
     else assignments.push(assignment);
     localStorage.setItem(KEYS.ASSIGNMENTS, JSON.stringify(assignments));
-    await supabaseService.upsertAssignment(assignment).catch(() => { });
+    await supabaseService.upsertAssignment(assignment).catch(err => {
+      console.error('Failed to save assignment to Supabase:', err);
+    });
     return assignments;
   },
   deleteAssignment: async (id: string) => {

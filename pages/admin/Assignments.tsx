@@ -57,15 +57,20 @@ const AdminAssignments: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     const confirmMsg = lang === 'AR' ? 'هل أنت متأكد من حذف هذا التكليف؟' : 'Are you sure you want to delete this assignment?';
     if (window.confirm(confirmMsg)) {
-      const next = assignments.filter(a => a.id !== id);
-      setAssignments(next);
-      storage.setAssignments(next);
+      try {
+        await storage.deleteAssignment(id);
+        const next = assignments.filter(a => a.id !== id);
+        setAssignments(next);
 
-      const subs = storage.getSubmissions();
-      storage.setSubmissions(subs.filter(s => s.assignmentId !== id));
+        const subs = storage.getSubmissions();
+        storage.setSubmissions(subs.filter(s => s.assignmentId !== id));
+      } catch (error) {
+        console.error('Failed to delete assignment:', error);
+        alert(lang === 'AR' ? 'فشل حذف التكليف' : 'Failed to delete assignment');
+      }
     }
   };
 
@@ -86,29 +91,48 @@ const AdminAssignments: React.FC = () => {
     setFormData({ ...formData, questions: qs });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedCourseId) return;
 
-    let next;
-    const finalDeadline = new Date(formData.deadline || '').toISOString();
+    try {
+      const finalDeadline = new Date(formData.deadline || '').toISOString();
 
-    if (editingId) {
-      next = assignments.map(a => a.id === editingId ? { ...a, ...formData, deadline: finalDeadline } as Assignment : a);
-    } else {
-      const newAssignment: Assignment = {
-        id: Math.random().toString(36).substring(7),
-        courseId: selectedCourseId,
-        semesterId: activeSemId,
-        createdAt: new Date().toISOString(),
-        ...(formData as Assignment),
-        deadline: finalDeadline
-      };
-      next = [...assignments, newAssignment];
+      if (editingId) {
+        // Update existing
+        const updated: Assignment = {
+          ...assignments.find(a => a.id === editingId)!,
+          ...formData,
+          deadline: finalDeadline
+        } as Assignment;
+
+        await storage.saveAssignment(updated);
+        const next = assignments.map(a => a.id === editingId ? updated : a);
+        setAssignments(next);
+      } else {
+        // Create new with proper UUID
+        const newAssignment: Assignment = {
+          id: crypto.randomUUID(),
+          courseId: selectedCourseId,
+          semesterId: activeSemId,
+          createdAt: new Date().toISOString(),
+          title: formData.title || '',
+          subtitle: formData.subtitle || '',
+          type: formData.type || 'file',
+          questions: formData.questions || [],
+          showResults: formData.showResults ?? true,
+          deadline: finalDeadline
+        };
+
+        await storage.saveAssignment(newAssignment);
+        setAssignments([...assignments, newAssignment]);
+      }
+
+      setIsModalOpen(false);
+    } catch (error) {
+      console.error('Failed to save assignment:', error);
+      alert(lang === 'AR' ? 'فشل حفظ التكليف' : 'Failed to save assignment');
     }
-    setAssignments(next);
-    storage.setAssignments(next);
-    setIsModalOpen(false);
   };
 
   return (
