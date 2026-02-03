@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../../App';
 import { storage } from '../../storage';
 import { Course, User, Enrollment, AttendanceRecord } from '../../types';
-import { BookOpen, CheckCircle, XCircle, Save, Download, Undo2, AlertTriangle, Check, Minus, FileStack, User as UserIcon } from 'lucide-react';
+import { BookOpen, CheckCircle, XCircle, Save, Download, Undo2, AlertTriangle, Check, Minus, FileStack, User as UserIcon, Search } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 const AdminAttendance: React.FC = () => {
@@ -28,6 +28,7 @@ const AdminAttendance: React.FC = () => {
 
   const [viewMode, setViewMode] = useState<'course' | 'student'>('course');
   const [targetStudentId, setTargetStudentId] = useState('');
+  const [studentSearchTerm, setStudentSearchTerm] = useState('');
 
   // Auto-refresh data on storage update
   useEffect(() => {
@@ -285,20 +286,45 @@ const AdminAttendance: React.FC = () => {
         </div>
       ) : (
         /* Student View Header */
-        <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm flex flex-col md:flex-row gap-4 items-center">
-          <div className="flex-1 w-full flex items-center gap-3 bg-gray-50 px-4 py-3 rounded-2xl border border-gray-100">
-            <select
-              className="w-full bg-transparent outline-none font-black text-xs uppercase tracking-widest text-gray-600"
-              value={targetStudentId}
-              onChange={e => setTargetStudentId(e.target.value)}
-            >
-              <option value="">— {lang === 'AR' ? 'ابحث عن الطالب' : 'Select Student'} —</option>
-              {students.map(s => <option key={s.id} value={s.id}>{s.universityId} - {s.fullName}</option>)}
-            </select>
+        <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm space-y-4">
+          {/* Search Field */}
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+            <input
+              type="text"
+              placeholder={lang === 'AR' ? 'ابحث عن الطالب بالاسم أو الرقم الجامعي...' : 'Search student by name or ID...'}
+              value={studentSearchTerm}
+              onChange={e => setStudentSearchTerm(e.target.value)}
+              className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl outline-none font-bold text-sm"
+            />
           </div>
-          <button onClick={handleSave} className="px-6 py-3 bg-gray-900 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-xl flex items-center gap-2">
-            <Save size={16} /> {lang === 'AR' ? 'حفظ التغييرات' : 'Save Changes'}
-          </button>
+
+          {/* Filtered Student Dropdown */}
+          <div className="flex flex-col md:flex-row gap-4 items-center">
+            <div className="flex-1 w-full flex items-center gap-3 bg-gray-50 px-4 py-3 rounded-2xl border border-gray-100">
+              <UserIcon className="text-gray-400" size={20} />
+              <select
+                className="w-full bg-transparent outline-none font-black text-xs uppercase tracking-widest text-gray-600"
+                value={targetStudentId}
+                onChange={e => setTargetStudentId(e.target.value)}
+              >
+                <option value="">— {lang === 'AR' ? 'اختر الطالب' : 'Select Student'} —</option>
+                {students
+                  .filter(s => {
+                    if (!studentSearchTerm) return true;
+                    const search = studentSearchTerm.toLowerCase();
+                    return (
+                      s.fullName.toLowerCase().includes(search) ||
+                      s.universityId.toLowerCase().includes(search)
+                    );
+                  })
+                  .map(s => <option key={s.id} value={s.id}>{s.universityId} - {s.fullName}</option>)}
+              </select>
+            </div>
+            <button onClick={handleSave} className="px-6 py-3 bg-gray-900 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-xl flex items-center gap-2">
+              <Save size={16} /> {lang === 'AR' ? 'حفظ التغييرات' : 'Save Changes'}
+            </button>
+          </div>
         </div>
       )}
 
