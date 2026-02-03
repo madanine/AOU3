@@ -6,11 +6,15 @@ import { Download, Calendar, Printer, Loader2 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 
 const StudentTimetable: React.FC = () => {
-  const { user, t, translate, lang, isDarkMode } = useApp();
+  const { user, t, translate, lang, isDarkMode, settings } = useApp();
   const timetableRef = useRef<HTMLDivElement>(null);
   const [isExporting, setIsExporting] = useState(false);
 
-  const enrollments = storage.getEnrollments().filter(e => e.studentId === user?.id);
+  const activeSemId = settings.activeSemesterId;
+  const enrollments = storage.getEnrollments().filter(e =>
+    e.studentId === user?.id &&
+    (!activeSemId || e.semesterId === activeSemId)
+  );
   const allCourses = storage.getCourses();
   const myCourses = enrollments.map(e => allCourses.find(c => c.id === e.courseId)!).filter(Boolean);
 
