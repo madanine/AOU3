@@ -77,45 +77,51 @@ const StudentAssignmentSubmission: React.FC = () => {
     return `${score}/${assignment.questions.length}`;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedAssignment || !user) return;
 
     setIsSubmitting(true);
 
-    let calculatedGrade: string | undefined = undefined;
-    if (selectedAssignment.type === 'mcq') {
-      calculatedGrade = calculateMCQGrade(selectedAssignment, mcqAnswers);
-    }
+    try {
+      let calculatedGrade: string | undefined = undefined;
+      if (selectedAssignment.type === 'mcq') {
+        calculatedGrade = calculateMCQGrade(selectedAssignment, mcqAnswers);
+      }
 
-    const submission: Submission = {
-      id: Math.random().toString(36).substring(7),
-      assignmentId: selectedAssignment.id,
-      studentId: user.id,
-      courseId: courseId!,
-      submittedAt: new Date().toISOString(),
-      answers: selectedAssignment.type === 'mcq' ? mcqAnswers : (selectedAssignment.type === 'essay' ? essayAnswers : undefined),
-      fileBase64: selectedAssignment.type === 'file' ? file?.data : undefined,
-      fileName: selectedAssignment.type === 'file' ? file?.name : undefined,
-      grade: calculatedGrade
-    };
+      const submission: Submission = {
+        id: crypto.randomUUID(),
+        assignmentId: selectedAssignment.id,
+        studentId: user.id,
+        courseId: courseId!,
+        submittedAt: new Date().toISOString(),
+        answers: selectedAssignment.type === 'mcq' ? mcqAnswers : (selectedAssignment.type === 'essay' ? essayAnswers : undefined),
+        fileBase64: selectedAssignment.type === 'file' ? file?.data : undefined,
+        fileName: selectedAssignment.type === 'file' ? file?.name : undefined,
+        grade: calculatedGrade
+      };
 
-    const allSubmissions = storage.getSubmissions();
-    storage.setSubmissions([...allSubmissions, submission]);
+      // Save to Supabase
+      await storage.saveSubmission(submission);
 
-    setTimeout(() => {
-      refreshSubmissions();
-      setIsSubmitting(false);
-      setSuccess(true);
       setTimeout(() => {
-        setSuccess(false);
-        // If it was an MCQ and results are shown, we stay on the detail view to show the result
-        // Otherwise we go back to the list
-        if (selectedAssignment.type !== 'mcq' || !selectedAssignment.showResults) {
-          setSelectedAssignment(null);
-        }
-      }, 2000);
-    }, 800);
+        refreshSubmissions();
+        setIsSubmitting(false);
+        setSuccess(true);
+        setTimeout(() => {
+          setSuccess(false);
+          // If it was an MCQ and results are shown, we stay on the detail view to show the result
+          // Otherwise we go back to the list
+          if (selectedAssignment.type !== 'mcq' || !selectedAssignment.showResults) {
+            setSelectedAssignment(null);
+          }
+        }, 2000);
+      }, 800);
+    } catch (error) {
+      console.error('Failed to submit assignment:', error);
+      setIsSubmitting(false);
+      alert(lang === 'AR' ? 'فشل إرسال التكليف' : 'Failed to submit assignment');
+    }
   };
 
   const getSubmissionForAssignment = (assignmentId: string) => {

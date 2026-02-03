@@ -270,7 +270,13 @@ export const storage = {
   },
 
   getSubmissions: (): Submission[] => JSON.parse(localStorage.getItem(KEYS.SUBMISSIONS) || '[]'),
-  setSubmissions: (submissions: Submission[]) => localStorage.setItem(KEYS.SUBMISSIONS, JSON.stringify(submissions)),
+  setSubmissions: (submissions: Submission[]) => {
+    localStorage.setItem(KEYS.SUBMISSIONS, JSON.stringify(submissions));
+    // Sync each submission to Supabase
+    submissions.forEach(s => supabaseService.upsertSubmission(s).catch(err => {
+      console.error('Failed to save submission to Supabase:', err);
+    }));
+  },
   saveSubmission: async (submission: Submission) => {
     let submissions = storage.getSubmissions();
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(submission.id)) {
@@ -280,7 +286,9 @@ export const storage = {
     if (index > -1) submissions[index] = submission;
     else submissions.push(submission);
     localStorage.setItem(KEYS.SUBMISSIONS, JSON.stringify(submissions));
-    await supabaseService.upsertSubmission(submission).catch(() => { });
+    await supabaseService.upsertSubmission(submission).catch(err => {
+      console.error('Failed to save submission to Supabase:', err);
+    });
     return submissions;
   },
   deleteSubmission: async (id: string) => {

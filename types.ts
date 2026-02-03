@@ -133,6 +133,7 @@ export interface Submission {
   submittedAt: string;
   answers?: string[];
   fileBase64?: string;
+  fileUrl?: string;
   fileName?: string;
   grade?: string;
 }
