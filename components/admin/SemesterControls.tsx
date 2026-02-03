@@ -11,7 +11,7 @@ const SemesterControls: React.FC = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isCopyModalOpen, setIsCopyModalOpen] = useState(false);
-  const [isDefaultConfirmOpen, setIsDefaultConfirmOpen] = useState(false);
+  const [isDefaultConfirmOpen, setIsDefaultConfirmOpen] = useState<boolean>(false);
 
   const [newSemesterName, setNewSemesterName] = useState('');
   const [editSemesterId, setEditSemesterId] = useState('');
