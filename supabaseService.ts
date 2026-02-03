@@ -194,7 +194,13 @@ export const supabaseService = {
     },
 
     async upsertSemester(semester: Semester) {
-        const { error } = await supabase.from('semesters').upsert(semester);
+        const payload = {
+            id: semester.id,
+            name: semester.name,
+            created_at: semester.createdAt,
+            is_active: false // default, managed by logic
+        };
+        const { error } = await supabase.from('semesters').upsert(payload);
         if (error) throw error;
     },
 
