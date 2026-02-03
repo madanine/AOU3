@@ -13,7 +13,7 @@ export interface User {
   phone?: string;
   major?: Major | string;
   createdAt: string;
-  assignedCourses?: string[]; // IDs of courses for supervisors
+  assignedCourses?: string[];
   supervisorPermissions?: {
     attendance: boolean;
     assignments: boolean;
@@ -32,7 +32,7 @@ export interface User {
     grading?: boolean;
   };
   fullAccess?: boolean;
-  isDisabled?: boolean; // خاصية لتعطيل الحساب
+  isDisabled?: boolean;
 }
 
 export interface ThemeSettings {
@@ -51,12 +51,12 @@ export interface SiteSettings {
     siteNameAr: string;
     siteNameEn: string;
     logoBase64?: string;
-    logo?: string; // Path to logo file
+    logo?: string;
     footerText: string;
-    announcements: string[]; // base64 images
+    announcements: string[];
   };
   theme: ThemeSettings;
-  darkTheme: ThemeSettings; // ألوان الوضع الليلي القابلة للتخصيص
+  darkTheme: ThemeSettings;
   fonts: {
     arabicFont: string;
     latinFont: string;
@@ -70,11 +70,6 @@ export interface SiteSettings {
 
 export type Language = 'AR' | 'EN' | 'FR' | 'RU';
 
-// Added missing types below
-
-/**
- * Represents a course in the system.
- */
 export interface Course {
   id: string;
   code: string;
@@ -94,9 +89,6 @@ export interface Course {
   telegramLink?: string;
 }
 
-/**
- * Represents a student enrollment in a course.
- */
 export interface Enrollment {
   id: string;
   studentId: string;
@@ -105,9 +97,6 @@ export interface Enrollment {
   semesterId?: string;
 }
 
-/**
- * Represents an academic semester.
- */
 export interface Semester {
   id: string;
   name: string;
@@ -116,9 +105,6 @@ export interface Semester {
 
 export type AssignmentType = 'file' | 'mcq' | 'essay';
 
-/**
- * Represents a question in an assignment or quiz.
- */
 export interface Question {
   id: string;
   text: string;
@@ -126,9 +112,6 @@ export interface Question {
   correctAnswer?: string;
 }
 
-/**
- * Represents an assignment or test created for a course.
- */
 export interface Assignment {
   id: string;
   courseId: string;
@@ -142,9 +125,6 @@ export interface Assignment {
   createdAt: string;
 }
 
-/**
- * Represents a student's submission for an assignment.
- */
 export interface Submission {
   id: string;
   assignmentId: string;
@@ -157,7 +137,14 @@ export interface Submission {
   grade?: string;
 }
 
-/**
- * Mapping of course ID to (student ID to attendance array).
- */
+// Normalized Attendance Row (DB Compatible)
+export interface AttendanceRow {
+  id?: string;
+  courseId: string;
+  studentId: string;
+  lectureIndex: number;
+  status: boolean | null; // true=present, false=absent, null/undefined=not_taken
+}
+
+// Deprecated: UI Map Structure (We will convert to/from this)
 export type AttendanceRecord = Record<string, Record<string, (boolean | null)[]>>;

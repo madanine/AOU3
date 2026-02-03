@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useApp } from '../../App';
 import { storage } from '../../storage';
 import { Course } from '../../types';
-import { Plus, Edit2, Trash2, X, BookOpen, Save, ToggleLeft, ToggleRight, Clock, User as DocIcon } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, BookOpen, Save, ToggleLeft, ToggleRight, Clock, User as DocIcon, Link, MessageCircle, Video } from 'lucide-react';
 import SemesterControls from '../../components/admin/SemesterControls';
 
 const AdminCourses: React.FC = () => {
@@ -25,8 +25,8 @@ const AdminCourses: React.FC = () => {
     isRegistrationEnabled: true
   });
 
-  // Show all courses regardless of semester
-  const courses = allCourses;
+  // Show courses only for active semester
+  const courses = allCourses.filter(c => c.semesterId === settings.activeSemesterId);
 
   const handleDeleteAll = async () => {
     const confirmMsg = lang === 'AR'
@@ -230,6 +230,49 @@ const AdminCourses: React.FC = () => {
                     </option>
                   ))}
                 </select>
+              </div>
+
+              <div className="space-y-4 pt-4 border-t border-gray-100">
+                <h3 className="text-xs font-black uppercase tracking-widest text-gray-400">{lang === 'AR' ? 'روابط التواصل' : 'Communication Links'}</h3>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase tracking-widest ml-1 flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
+                    <MessageCircle size={14} className="text-green-500" />
+                    {lang === 'AR' ? 'رابط مجموعة الواتس اب' : 'WhatsApp Group Link'}
+                  </label>
+                  <input
+                    value={formData.whatsappLink || ''}
+                    onChange={(e) => setFormData({ ...formData, whatsappLink: e.target.value })}
+                    className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-white/10 rounded-xl outline-none text-sm font-bold text-gray-900 dark:text-white"
+                    placeholder="https://chat.whatsapp.com/..."
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase tracking-widest ml-1 flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
+                    <MessageCircle size={14} className="text-blue-400" />
+                    {lang === 'AR' ? 'رابط مجموعة التيليجرام' : 'Telegram Group Link'}
+                  </label>
+                  <input
+                    value={formData.telegramLink || ''}
+                    onChange={(e) => setFormData({ ...formData, telegramLink: e.target.value })}
+                    className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-white/10 rounded-xl outline-none text-sm font-bold text-gray-900 dark:text-white"
+                    placeholder="https://t.me/..."
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase tracking-widest ml-1 flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
+                    <Video size={14} className="text-red-500" />
+                    {lang === 'AR' ? 'رابط المحاضرة (Zoom/Meet)' : 'Lecture Link (Zoom/Meet)'}
+                  </label>
+                  <input
+                    value={formData.lectureLink || ''}
+                    onChange={(e) => setFormData({ ...formData, lectureLink: e.target.value })}
+                    className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-white/10 rounded-xl outline-none text-sm font-bold text-gray-900 dark:text-white"
+                    placeholder="https://zoom.us/..."
+                  />
+                </div>
               </div>
 
               <div className="flex gap-3 pt-4">

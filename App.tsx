@@ -95,6 +95,13 @@ const App: React.FC = () => {
     };
     init();
 
+    // Initialize Realtime
+    try {
+      storage.initRealtime();
+    } catch (e) {
+      console.error('Realtime init failed', e);
+    }
+
     // 2. Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session) {

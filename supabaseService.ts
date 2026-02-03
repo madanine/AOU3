@@ -1,6 +1,6 @@
 
 import { supabase } from './supabase';
-import { User, Course, Enrollment, SiteSettings, AttendanceRecord, Semester, Assignment, Submission } from './types';
+import { User, Course, Enrollment, SiteSettings, AttendanceRow, Semester, Assignment, Submission } from './types';
 
 export const supabaseService = {
     // Auth
@@ -107,7 +107,10 @@ export const supabaseService = {
             ...c,
             isRegistrationEnabled: c.is_registration_enabled,
             semesterId: c.semester_id,
-            title_ar: c.title_ar || c.title
+            title_ar: c.title_ar || c.title,
+            whatsappLink: c.whatsapp_link,
+            telegramLink: c.telegram_link,
+            lectureLink: c.lecture_link
         })) as Course[];
     },
 
@@ -123,6 +126,9 @@ export const supabaseService = {
             day: course.day,
             time: course.time,
             is_registration_enabled: course.isRegistrationEnabled,
+            whatsapp_link: course.whatsappLink,
+            telegram_link: course.telegramLink,
+            lecture_link: course.lectureLink,
             semester_id: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(course.semesterId || '') ? course.semesterId : null
         };
         if (isUUID) payload.id = course.id;
@@ -229,5 +235,33 @@ export const supabaseService = {
     async deleteSubmission(id: string) {
         const { error } = await supabase.from('submissions').delete().eq('id', id);
         if (error) throw error;
+    },
+
+    // Attendance
+    async getAttendance() {
+        const { data, error } = await supabase.from('attendance').select('*');
+        if (error) throw error;
+        return (data || []).map(a => ({
+            id: a.id,
+            studentId: a.student_id,
+            courseId: a.course_id,
+            lectureIndex: a.lecture_index,
+            status: a.status
+        })) as AttendanceRow[];
+    },
+
+    async upsertAttendance(record: AttendanceRow) {
+        const payload = {
+            course_id: record.courseId,
+            student_id: record.studentId,
+            lecture_index: record.lectureIndex,
+            status: record.status
+        };
+
+        // Note: we don't pass ID for upsert on unique constraint unless we know it.
+        // We rely on unique(course_id, student_id, lecture_index).
+
+        const { error } = await supabase.from('attendance').upsert(payload, { onConflict: 'course_id,student_id,lecture_index' });
+        if (error) console.error('Attendance Upsert Error:', error);
     }
 };

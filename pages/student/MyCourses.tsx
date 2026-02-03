@@ -2,24 +2,35 @@
 import React from 'react';
 import { useApp } from '../../App';
 import { storage } from '../../storage';
-import { BookMarked, Calendar } from 'lucide-react';
+import { BookMarked, Calendar, MessageCircle, Video, ExternalLink } from 'lucide-react';
 
 const MyCourses: React.FC = () => {
   const { user, t, translate, settings } = useApp();
   // Show enrollments for ACTIVE semester by default, or all if student wants history?
   // User complaint: "disappears from being a registered course" -> implies they want to see it as "Registered".
   // So we filter by active semester.
-  const activeSemId = settings.activeSemesterId;
-  const enrollments = storage.getEnrollments().filter(e =>
-    e.studentId === user?.id &&
-    (!activeSemId || e.semesterId === activeSemId)
-  );
-  const courses = storage.getCourses();
+  const [myCourses, setMyCourses] = React.useState<any[]>([]);
 
-  const myCourses = enrollments.map(e => ({
-    ...courses.find(c => c.id === e.courseId)!,
-    enrolledAt: e.enrolledAt
-  })).filter(c => c.id); // ensure course exists
+  React.useEffect(() => {
+    const loadCourses = () => {
+      const activeSemId = settings.activeSemesterId;
+      const enrollments = storage.getEnrollments().filter(e =>
+        e.studentId === user?.id &&
+        (!activeSemId || e.semesterId === activeSemId)
+      );
+      const allCourses = storage.getCourses();
+
+      const mapped = enrollments.map(e => ({
+        ...allCourses.find(c => c.id === e.courseId)!,
+        enrolledAt: e.enrolledAt
+      })).filter(c => c.id);
+
+      setMyCourses(mapped);
+    };
+
+    loadCourses();
+    return storage.subscribe(loadCourses);
+  }, [settings.activeSemesterId, user?.id]);
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-in slide-in-from-bottom-4 duration-500 pb-20">
@@ -49,10 +60,32 @@ const MyCourses: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex items-center px-6 py-3 bg-black/10 rounded-2xl border border-black/10">
-              <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--text-primary)' }}>
-                <Calendar size={14} className="text-black/40" />
-                <span>{new Date(course.enrolledAt).toLocaleDateString()}</span>
+            <div className="flex flex-col md:flex-row items-center gap-3">
+              {(course.whatsappLink || course.telegramLink || course.lectureLink) && (
+                <div className="flex items-center gap-2">
+                  {course.whatsappLink && (
+                    <a href={course.whatsappLink} target="_blank" rel="noopener noreferrer" className="p-2 bg-green-100 text-green-600 rounded-xl hover:bg-green-200 transition-colors" title="WhatsApp Group">
+                      <MessageCircle size={18} />
+                    </a>
+                  )}
+                  {course.telegramLink && (
+                    <a href={course.telegramLink} target="_blank" rel="noopener noreferrer" className="p-2 bg-blue-100 text-blue-500 rounded-xl hover:bg-blue-200 transition-colors" title="Telegram Group">
+                      <MessageCircle size={18} />
+                    </a>
+                  )}
+                  {course.lectureLink && (
+                    <a href={course.lectureLink} target="_blank" rel="noopener noreferrer" className="p-2 bg-red-100 text-red-500 rounded-xl hover:bg-red-200 transition-colors" title="Join Lecture">
+                      <Video size={18} />
+                    </a>
+                  )}
+                </div>
+              )}
+
+              <div className="flex items-center px-6 py-3 bg-black/10 rounded-2xl border border-black/10 transition-all">
+                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--text-primary)' }}>
+                  <Calendar size={14} className="text-black/40" />
+                  <span>{new Date(course.enrolledAt).toLocaleDateString()}</span>
+                </div>
               </div>
             </div>
           </div>

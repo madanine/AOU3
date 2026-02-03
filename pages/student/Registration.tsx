@@ -19,6 +19,15 @@ const Registration: React.FC = () => {
   const activeSemId = settings.activeSemesterId;
 
   useEffect(() => {
+    // Subscribe to Realtime Updates
+    const unsub = storage.subscribe(() => {
+      setCourses(storage.getCourses());
+      setConfirmedEnrollments(storage.getEnrollments());
+    });
+    return unsub;
+  }, []);
+
+  useEffect(() => {
     // Only set pending if empty (start fresh)
     if (pendingSelection.size > 0 && confirmedEnrollments.length === 0) {
       setPendingSelection(new Set());

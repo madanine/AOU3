@@ -1,5 +1,5 @@
 
-import { User, Course, Enrollment, SiteSettings, Semester, Assignment, Submission, AttendanceRecord } from './types';
+import { User, Course, Enrollment, SiteSettings, Semester, Assignment, Submission, AttendanceRecord, AttendanceRow } from './types';
 import { supabaseService } from './supabaseService';
 import { DEFAULT_SETTINGS } from './constants';
 
@@ -13,21 +13,29 @@ const KEYS = {
   ATTENDANCE: 'aou_attendance',
   SEMESTERS: 'aou_semesters',
   ASSIGNMENTS: 'aou_assignments',
+
   SUBMISSIONS: 'aou_submissions'
 };
+
+type Listener = () => void;
+const listeners: Listener[] = [];
+const notify = () => listeners.forEach(l => l());
+
 
 export const storage = {
   // Sync logic
   async syncFromSupabase() {
     try {
-      const [users, courses, enrollments, settings, semesters, assignments, submissions] = await Promise.all([
+      const [users, courses, enrollments, settings, semesters, assignments, submissions, attendance] = await Promise.all([
         supabaseService.getUsers(),
         supabaseService.getCourses(),
         supabaseService.getEnrollments(),
         supabaseService.getSettings(),
         supabaseService.getSemesters(),
         supabaseService.getAssignments(),
-        supabaseService.getSubmissions()
+
+        supabaseService.getSubmissions(),
+        supabaseService.getAttendance()
       ]);
 
       if (users && users.length > 0) {
@@ -47,6 +55,20 @@ export const storage = {
       if (assignments && assignments.length > 0) localStorage.setItem(KEYS.ASSIGNMENTS, JSON.stringify(assignments));
       if (submissions && submissions.length > 0) localStorage.setItem(KEYS.SUBMISSIONS, JSON.stringify(submissions));
 
+      if (attendance && attendance.length > 0) {
+        // Convert Row[] to Map
+        const map: AttendanceRecord = {};
+        attendance.forEach((r: AttendanceRow) => {
+          if (!map[r.courseId]) map[r.courseId] = {};
+          if (!map[r.courseId][r.studentId]) map[r.courseId][r.studentId] = Array(12).fill(null);
+          if (r.lectureIndex >= 0 && r.lectureIndex < 12) {
+            map[r.courseId][r.studentId][r.lectureIndex] = r.status;
+          }
+        });
+        localStorage.setItem(KEYS.ATTENDANCE, JSON.stringify(map));
+      }
+
+      notify();
       return settings || storage.getSettings();
     } catch (err) {
       console.warn('Silent sync failure:', err);
@@ -163,8 +185,31 @@ export const storage = {
     document.documentElement.lang = lang.toLowerCase();
   },
 
-  getAttendance: (): AttendanceRecord[] => JSON.parse(localStorage.getItem(KEYS.ATTENDANCE) || '[]'),
-  setAttendance: (records: AttendanceRecord[]) => localStorage.setItem(KEYS.ATTENDANCE, JSON.stringify(records)),
+  getAttendance: (): AttendanceRecord => JSON.parse(localStorage.getItem(KEYS.ATTENDANCE) || '{}'),
+
+  setAttendance: (recordMap: AttendanceRecord) => {
+    localStorage.setItem(KEYS.ATTENDANCE, JSON.stringify(recordMap));
+    notify();
+
+    // Convert Map to Rows for Supabase
+    const rows: { courseId: string; studentId: string; lectureIndex: number; status: boolean; }[] = [];
+    Object.entries(recordMap).forEach(([cId, students]) => {
+      Object.entries(students).forEach(([sId, attendanceArr]) => {
+        attendanceArr.forEach((status, idx) => {
+          if (status !== null) {
+            rows.push({ courseId: cId, studentId: sId, lectureIndex: idx, status });
+          }
+        });
+      });
+    });
+
+    // Bulk upsert would be better but we only have single upsert in service
+    // Ideally we should add bulk upsert to service
+    rows.forEach(r => supabaseService.upsertAttendance(r).catch(() => { }));
+  },
+
+  // Note: syncFromSupabase handles the reverse conversion (Row -> Map)
+
 
   getSemesters: (): Semester[] => JSON.parse(localStorage.getItem(KEYS.SEMESTERS) || '[]'),
   setSemesters: (semesters: Semester[]) => {
@@ -274,5 +319,27 @@ export const storage = {
       users.push(admin);
       storage.setUsers(users);
     }
+  },
+
+  subscribe: (listener: Listener) => {
+    listeners.push(listener);
+    return () => {
+      const idx = listeners.indexOf(listener);
+      if (idx > -1) listeners.splice(idx, 1);
+    }
+  },
+
+  initRealtime: () => {
+    const { supabase } = require('./supabase');
+    supabase.channel('public_db_changes')
+      .on('postgres_changes', { event: '*', schema: 'public' }, async () => {
+        // Simple strategy: refetch all on any change. 
+        // Can be optimized to fetch only changed table.
+        // For now, full sync ensures consistency.
+        console.log('Realtime change detected, syncing...');
+        await storage.syncFromSupabase();
+        notify();
+      })
+      .subscribe();
   }
 };

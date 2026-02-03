@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../App';
 import { storage } from '../../storage';
-import { Star, Calendar, ChevronDown, Plus, X, Save, CheckCircle, Edit2, Copy, ArrowRight } from 'lucide-react';
+import { Star, Calendar, ChevronDown, Plus, X, Save, CheckCircle, Edit2, Copy, ArrowRight, AlertTriangle } from 'lucide-react';
 import { Semester, Course } from '../../types';
 
 const SemesterControls: React.FC = () => {
@@ -11,15 +11,16 @@ const SemesterControls: React.FC = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isCopyModalOpen, setIsCopyModalOpen] = useState(false);
-  
+  const [isDefaultConfirmOpen, setIsDefaultConfirmOpen] = useState(false);
+
   const [newSemesterName, setNewSemesterName] = useState('');
   const [editSemesterId, setEditSemesterId] = useState('');
   const [editSemesterName, setEditSemesterName] = useState('');
-  
+
   const [copySourceId, setCopySourceId] = useState(settings.activeSemesterId || '');
   const [copyTargetId, setCopyTargetId] = useState('');
-  
-  const [showToast, setShowToast] = useState<{show: boolean, msg: string}>({show: false, msg: ''});
+
+  const [showToast, setShowToast] = useState<{ show: boolean, msg: string }>({ show: false, msg: '' });
 
   const activeSemester = semesters.find(s => s.id === settings.activeSemesterId);
   const isDefault = settings.defaultSemesterId === settings.activeSemesterId;
@@ -30,8 +31,13 @@ const SemesterControls: React.FC = () => {
   };
 
   const handleSetDefault = () => {
-    if (!settings.activeSemesterId) return;
+    if (!settings.activeSemesterId || isDefault) return;
+    setIsDefaultConfirmOpen(true);
+  };
+
+  const confirmSetDefault = () => {
     updateSettings({ ...settings, defaultSemesterId: settings.activeSemesterId });
+    setIsDefaultConfirmOpen(false);
     triggerToast(lang === 'AR' ? 'تم تعيين الفصل الافتراضي' : 'Default Semester Set');
   };
 
@@ -78,7 +84,7 @@ const SemesterControls: React.FC = () => {
     const allCourses = storage.getCourses();
     const sourceCourses = allCourses.filter(c => c.semesterId === copySourceId);
     const targetCourses = allCourses.filter(c => c.semesterId === copyTargetId);
-    
+
     let copiedCount = 0;
     let skippedCount = 0;
     const newCourses: Course[] = [];
@@ -102,10 +108,10 @@ const SemesterControls: React.FC = () => {
     }
 
     setIsCopyModalOpen(false);
-    triggerToast(lang === 'AR' 
-      ? `تم نسخ ${copiedCount} مادة (تخطي ${skippedCount} مكررة)` 
+    triggerToast(lang === 'AR'
+      ? `تم نسخ ${copiedCount} مادة (تخطي ${skippedCount} مكررة)`
       : `Copied ${copiedCount} courses (${skippedCount} skipped)`);
-    
+
     // Switch to target to see results
     updateSettings({ ...settings, activeSemesterId: copyTargetId });
   };
@@ -121,7 +127,7 @@ const SemesterControls: React.FC = () => {
         </div>
       )}
 
-      <button 
+      <button
         onClick={handleSetDefault}
         className={`p-2.5 rounded-xl transition-all ${isDefault ? 'bg-amber-50 text-amber-500 border border-amber-100 shadow-inner' : 'text-gray-300 hover:text-gray-400'}`}
         title={lang === 'AR' ? 'تعيين كافتراضي' : 'Set as default'}
@@ -131,7 +137,7 @@ const SemesterControls: React.FC = () => {
 
       <div className="relative flex items-center gap-1 px-3 py-1 bg-gray-50 border border-gray-100 rounded-xl">
         <Calendar size={14} className="text-gray-400" />
-        <select 
+        <select
           value={settings.activeSemesterId || ''}
           onChange={handleSelectSemester}
           className="bg-transparent outline-none font-black text-[10px] uppercase tracking-wider text-gray-700 appearance-none pr-6 cursor-pointer py-1"
@@ -144,9 +150,9 @@ const SemesterControls: React.FC = () => {
       </div>
 
       <div className="flex gap-1">
-        <button 
+        <button
           onClick={() => {
-            if(!activeSemester) return;
+            if (!activeSemester) return;
             setEditSemesterId(activeSemester.id);
             setEditSemesterName(activeSemester.name);
             setIsEditModalOpen(true);
@@ -156,7 +162,7 @@ const SemesterControls: React.FC = () => {
         >
           <Edit2 size={16} />
         </button>
-        <button 
+        <button
           onClick={() => {
             setCopySourceId(settings.activeSemesterId || '');
             setIsCopyModalOpen(true);
@@ -166,7 +172,7 @@ const SemesterControls: React.FC = () => {
         >
           <Copy size={16} />
         </button>
-        <button 
+        <button
           onClick={() => setIsAddModalOpen(true)}
           className="p-2 bg-[var(--primary)] text-white rounded-xl shadow-sm hover:brightness-110 transition-all"
           title={lang === 'AR' ? 'إضافة فصل' : 'Add Semester'}
@@ -251,8 +257,29 @@ const SemesterControls: React.FC = () => {
             </form>
           </div>
         </div>
-      )}
-    </div>
+
+
+{/* Confirm Default Modal */}
+      {
+        isDefaultConfirmOpen && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in">
+            <div className="bg-white w-full max-w-sm rounded-[2rem] shadow-2xl overflow-hidden p-8 text-center space-y-6">
+              <div className="w-16 h-16 bg-amber-50 text-amber-500 rounded-2xl mx-auto flex items-center justify-center"><AlertTriangle size={32} /></div>
+              <div>
+                <h3 className="text-lg font-black" style={{ color: 'var(--text-primary)' }}>{lang === 'AR' ? 'تأكيد الفصل الافتراضي' : 'Confirm Default Semester'}</h3>
+                <p className="text-sm mt-2 font-medium" style={{ color: 'var(--text-secondary)' }}>
+                  {lang === 'AR' ? 'هل أنت متأكد من تعيين هذا الفصل كفصل افتراضي للنظام؟' : 'Are you sure you want to set this as the default semester?'}
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <button onClick={() => setIsDefaultConfirmOpen(false)} className="flex-1 py-3 bg-gray-50 text-gray-400 font-black rounded-xl uppercase text-[10px] tracking-widest">{t.cancel}</button>
+                <button onClick={confirmSetDefault} className="flex-1 py-3 bg-[var(--primary)] text-white font-black rounded-xl uppercase text-[10px] tracking-widest shadow-lg">{lang === 'AR' ? 'نعم، تأكيد' : 'Yes, Confirm'}</button>
+              </div>
+            </div>
+          </div>
+        )
+      }
+    </div >
   );
 };
 
