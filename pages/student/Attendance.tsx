@@ -5,12 +5,15 @@ import { storage } from '../../storage';
 import { BookMarked, ChevronRight, X, Check, Minus } from 'lucide-react';
 
 const Attendance: React.FC = () => {
-  const { user, t, translate, lang } = useApp();
+  const { user, t, translate, lang, settings } = useApp();
   const [selectedCourse, setSelectedCourse] = useState<string | null>(null);
 
   const enrollments = storage.getEnrollments().filter(e => e.studentId === user?.id);
   const courses = storage.getCourses();
   const attendance = storage.getAttendance();
+  const semesters = storage.getSemesters();
+
+  const activeSemId = settings.activeSemesterId;
 
   const myAttendance = enrollments.map(e => {
     const course = courses.find(c => c.id === e.courseId)!;
@@ -30,8 +33,30 @@ const Attendance: React.FC = () => {
       absentCount,
       unrecordedCount,
       percentage,
-      records
+      records,
+      semesterId: e.semesterId
     };
+  });
+
+  // Group by semester
+  const currentSemesterAttendance = myAttendance.filter(a => a.semesterId === activeSemId);
+  const previousSemestersAttendance = myAttendance.filter(a => a.semesterId !== activeSemId);
+
+  // Group previous semesters
+  const semesterGroups = previousSemestersAttendance.reduce((acc, item) => {
+    const semId = item.semesterId || 'unknown';
+    if (!acc[semId]) acc[semId] = [];
+    acc[semId].push(item);
+    return acc;
+  }, {} as Record<string, typeof myAttendance>);
+
+  // Sort semesters by created_at desc
+  const sortedPreviousSemesters = Object.keys(semesterGroups).sort((a, b) => {
+    const semA = semesters.find(s => s.id === a);
+    const semB = semesters.find(s => s.id === b);
+    const dateA = semA?.createdAt ? new Date(semA.createdAt).getTime() : 0;
+    const dateB = semB?.createdAt ? new Date(semB.createdAt).getTime() : 0;
+    return dateB - dateA;
   });
 
   const activeCourse = myAttendance.find(a => a.course.id === selectedCourse);
@@ -47,44 +72,111 @@ const Attendance: React.FC = () => {
         </p>
       </div>
 
-      <div className="space-y-4">
-        {myAttendance.map(({ course, presentCount, absentCount, unrecordedCount, percentage }) => (
-          <div key={course.id} className="bg-[var(--card-bg)] rounded-[2rem] p-6 border border-[var(--border-color)] shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all hover:shadow-xl group">
-            <div className="flex items-center gap-5">
-              <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center text-black shadow-inner">
-                <BookMarked size={28} />
-              </div>
-              <div>
-                <h3 className="font-black text-lg leading-tight" style={{ color: 'var(--text-primary)' }}>
-                  {translate(course, 'title')}
-                </h3>
-                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest mt-1" style={{ color: 'var(--text-secondary)' }}>
-                  <span className="font-bold" style={{ color: 'var(--text-primary)' }}>{course.code}</span>
-                  <span>•</span>
-                  <span className="text-emerald-600 font-bold">{presentCount} {lang === 'AR' ? 'حاضر' : 'Present'}</span>
-                  <span>•</span>
-                  <span className="text-red-600 font-bold">{absentCount} {lang === 'AR' ? 'غائب' : 'Absent'}</span>
-                  <span>•</span>
-                  <span className="text-gray-400 font-bold">— {unrecordedCount} {lang === 'AR' ? 'لم تُرصد' : 'Unrecorded'}</span>
+      <div className="space-y-8">
+        {/* Current Semester */}
+        {currentSemesterAttendance.length > 0 && (
+          <div className="space-y-4">
+            <h2 className="text-sm font-black uppercase tracking-widest px-2" style={{ color: 'var(--text-secondary)' }}>
+              {lang === 'AR' ? 'الحضور - الفصل الحالي' : 'Current Semester Attendance'}
+              {activeSemId && ` — ${semesters.find(s => s.id === activeSemId)?.name || ''}`}
+            </h2>
+            {currentSemesterAttendance.map(({ course, presentCount, absentCount, unrecordedCount, percentage }) => (
+              <div key={course.id} className="bg-[var(--card-bg)] rounded-[2rem] p-6 border border-[var(--border-color)] shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all hover:shadow-xl group">
+                <div className="flex items-center gap-5">
+                  <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center text-black shadow-inner">
+                    <BookMarked size={28} />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-lg leading-tight" style={{ color: 'var(--text-primary)' }}>
+                      {translate(course, 'title')}
+                    </h3>
+                    <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest mt-1" style={{ color: 'var(--text-secondary)' }}>
+                      <span className="font-bold" style={{ color: 'var(--text-primary)' }}>{course.code}</span>
+                      <span>•</span>
+                      <span className="text-emerald-600 font-bold">{presentCount} {lang === 'AR' ? 'حاضر' : 'Present'}</span>
+                      <span>•</span>
+                      <span className="text-red-600 font-bold">{absentCount} {lang === 'AR' ? 'غائب' : 'Absent'}</span>
+                      <span>•</span>
+                      <span className="text-gray-400 font-bold">— {unrecordedCount} {lang === 'AR' ? 'لم تُرصد' : 'Unrecorded'}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-6">
+                  <div className="text-right">
+                    <p className="text-2xl font-black leading-none" style={{ color: 'var(--text-primary)' }}>{percentage}%</p>
+                    <p className="text-[8px] font-black uppercase tracking-widest mt-1 opacity-50">Attendance</p>
+                  </div>
+                  <button
+                    onClick={() => setSelectedCourse(course.id)}
+                    className="p-3 bg-black/5 rounded-2xl border border-black/5 hover:bg-black/10 transition-all flex items-center gap-2"
+                  >
+                    <span className="text-[10px] font-black uppercase tracking-widest">{lang === 'AR' ? 'التفاصيل' : 'Details'}</span>
+                    <ChevronRight size={16} className={lang === 'AR' ? 'rotate-180' : ''} />
+                  </button>
                 </div>
               </div>
-            </div>
-
-            <div className="flex items-center gap-6">
-              <div className="text-right">
-                <p className="text-2xl font-black leading-none" style={{ color: 'var(--text-primary)' }}>{percentage}%</p>
-                <p className="text-[8px] font-black uppercase tracking-widest mt-1 opacity-50">Attendance</p>
-              </div>
-              <button
-                onClick={() => setSelectedCourse(course.id)}
-                className="p-3 bg-black/5 rounded-2xl border border-black/5 hover:bg-black/10 transition-all flex items-center gap-2"
-              >
-                <span className="text-[10px] font-black uppercase tracking-widest">{lang === 'AR' ? 'التفاصيل' : 'Details'}</span>
-                <ChevronRight size={16} className={lang === 'AR' ? 'rotate-180' : ''} />
-              </button>
-            </div>
+            ))}
           </div>
-        ))}
+        )}
+
+        {/* Previous Semesters */}
+        {sortedPreviousSemesters.length > 0 && (
+          <div className="space-y-6">
+            <h2 className="text-sm font-black uppercase tracking-widest px-2" style={{ color: 'var(--text-secondary)' }}>
+              {lang === 'AR' ? 'الفصول السابقة' : 'Previous Semesters'}
+            </h2>
+            {sortedPreviousSemesters.map(semId => {
+              const semester = semesters.find(s => s.id === semId);
+              const semesterAttendance = semesterGroups[semId];
+
+              return (
+                <div key={semId} className="space-y-4">
+                  <h3 className="text-xs font-black uppercase tracking-widest px-2 opacity-60" style={{ color: 'var(--text-secondary)' }}>
+                    {semester?.name || semId}
+                  </h3>
+                  {semesterAttendance.map(({ course, presentCount, absentCount, unrecordedCount, percentage }) => (
+                    <div key={course.id} className="bg-[var(--card-bg)] rounded-[2rem] p-6 border border-[var(--border-color)] shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all hover:shadow-xl group opacity-80">
+                      <div className="flex items-center gap-5">
+                        <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center text-black shadow-inner">
+                          <BookMarked size={28} />
+                        </div>
+                        <div>
+                          <h3 className="font-black text-lg leading-tight" style={{ color: 'var(--text-primary)' }}>
+                            {translate(course, 'title')}
+                          </h3>
+                          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest mt-1" style={{ color: 'var(--text-secondary)' }}>
+                            <span className="font-bold" style={{ color: 'var(--text-primary)' }}>{course.code}</span>
+                            <span>•</span>
+                            <span className="text-emerald-600 font-bold">{presentCount} {lang === 'AR' ? 'حاضر' : 'Present'}</span>
+                            <span>•</span>
+                            <span className="text-red-600 font-bold">{absentCount} {lang === 'AR' ? 'غائب' : 'Absent'}</span>
+                            <span>•</span>
+                            <span className="text-gray-400 font-bold">— {unrecordedCount} {lang === 'AR' ? 'لم تُرصد' : 'Unrecorded'}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-6">
+                        <div className="text-right">
+                          <p className="text-2xl font-black leading-none" style={{ color: 'var(--text-primary)' }}>{percentage}%</p>
+                          <p className="text-[8px] font-black uppercase tracking-widest mt-1 opacity-50">Attendance</p>
+                        </div>
+                        <button
+                          onClick={() => setSelectedCourse(course.id)}
+                          className="p-3 bg-black/5 rounded-2xl border border-black/5 hover:bg-black/10 transition-all flex items-center gap-2"
+                        >
+                          <span className="text-[10px] font-black uppercase tracking-widest">{lang === 'AR' ? 'التفاصيل' : 'Details'}</span>
+                          <ChevronRight size={16} className={lang === 'AR' ? 'rotate-180' : ''} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })}
+          </div>
+        )}
 
         {myAttendance.length === 0 && (
           <div className="text-center py-24 bg-[var(--card-bg)] rounded-[2.5rem] border border-dashed border-black/20">
@@ -114,8 +206,8 @@ const Attendance: React.FC = () => {
                 return (
                   <div key={i} className="flex flex-col items-center gap-1.5">
                     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border transition-all ${status === true ? 'bg-emerald-50 border-emerald-100 text-emerald-600' :
-                        status === false ? 'bg-red-50 border-red-100 text-red-600' :
-                          'bg-gray-50 border-gray-100 text-gray-300'
+                      status === false ? 'bg-red-50 border-red-100 text-red-600' :
+                        'bg-gray-50 border-gray-100 text-gray-300'
                       }`}>
                       {status === true ? <Check size={20} strokeWidth={3} /> :
                         status === false ? <X size={20} strokeWidth={3} /> :
