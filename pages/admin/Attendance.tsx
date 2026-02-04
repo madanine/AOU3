@@ -2,8 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../App';
 import { storage } from '../../storage';
-import { Course, User, Enrollment, AttendanceRecord } from '../../types';
-import { BookOpen, CheckCircle, XCircle, Save, Download, Undo2, AlertTriangle, Check, Minus, FileStack, User as UserIcon, Search } from 'lucide-react';
+import { Course, User, Enrollment, AttendanceRecord, ParticipationRecord } from '../../types';
+import { BookOpen, CheckCircle, XCircle, Save, Download, Undo2, AlertTriangle, Check, Minus, FileStack, User as UserIcon, Search, Star } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 const AdminAttendance: React.FC = () => {
@@ -13,9 +13,11 @@ const AdminAttendance: React.FC = () => {
   const [enrollments] = useState<Enrollment[]>(storage.getEnrollments());
   const [selectedCourseId, setSelectedCourseId] = useState<string>('');
   const [attendance, setAttendance] = useState<AttendanceRecord>(storage.getAttendance());
+  const [participation, setParticipation] = useState<ParticipationRecord>(storage.getParticipation());
   const [selectedStudents, setSelectedStudents] = useState<Set<string>>(new Set());
   const [selectedLecture, setSelectedLecture] = useState<number | 'all'>(1);
   const [undoStack, setUndoStack] = useState<AttendanceRecord | null>(null);
+  const [participationUndoStack, setParticipationUndoStack] = useState<ParticipationRecord | null>(null);
   const [showToast, setShowToast] = useState(false);
 
   const [confirmModal, setConfirmModal] = useState<{
@@ -224,7 +226,7 @@ const AdminAttendance: React.FC = () => {
 
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>{lang === 'AR' ? 'إدارة الحضور والغياب' : 'Attendance Mgmt'}</h1>
+          <h1 className="text-3xl font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>{lang === 'AR' ? 'التحضير والمشاركة' : 'Attendance & Participation'}</h1>
           <p className="font-medium" style={{ color: 'var(--text-secondary)' }}>{user?.role === 'admin' ? 'نظام تحضير الطلاب المركزي' : 'موادك المسندة'}</p>
         </div>
 
@@ -241,6 +243,28 @@ const AdminAttendance: React.FC = () => {
           >
             {lang === 'AR' ? 'حسب الطالب' : 'By Student'}
           </button>
+        </div>
+      </div>
+
+      {/* Legend */}
+      <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-100 rounded-2xl p-4">
+        <div className="flex flex-wrap items-center justify-center gap-6 text-xs font-bold">
+          <div className="flex items-center gap-2">
+            <CheckCircle size={16} className="text-emerald-500" />
+            <span style={{ color: 'var(--text-secondary)' }}>{lang === 'AR' ? 'حاضر' : 'Present'}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <XCircle size={16} className="text-red-500" />
+            <span style={{ color: 'var(--text-secondary)' }}>{lang === 'AR' ? 'غائب' : 'Absent'}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Star size={16} className="text-amber-500 fill-amber-500" />
+            <span style={{ color: 'var(--text-secondary)' }}>{lang === 'AR' ? 'شارك' : 'Participated'}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Minus size={16} className="text-gray-300" />
+            <span style={{ color: 'var(--text-secondary)' }}>{lang === 'AR' ? 'لم يُسجل' : 'Not Recorded'}</span>
+          </div>
         </div>
       </div>
 
