@@ -49,6 +49,15 @@ const AdminAttendance: React.FC = () => {
     return () => window.removeEventListener('storage-update', handleUpdate);
   }, []);
 
+  // Auto-save attendance and participation
+  useEffect(() => {
+    storage.setAttendance(attendance);
+  }, [attendance]);
+
+  useEffect(() => {
+    storage.setParticipation(participation);
+  }, [participation]);
+
   const visibleCourses = (user?.role === 'admin'
     ? courses
     : courses.filter(c => user?.assignedCourses?.includes(c.id))
@@ -87,6 +96,26 @@ const AdminAttendance: React.FC = () => {
         studentArr[lectureIdx] = false;
       } else {
         studentArr[lectureIdx] = true;
+      }
+
+      return {
+        ...prev,
+        [courseId]: { ...courseRecord, [studentId]: studentArr }
+      };
+    });
+  };
+
+  const handleParticipationToggle = (studentId: string, lectureIdx: number, courseId: string = selectedCourseId) => {
+    setParticipation(prev => {
+      const courseRecord = prev[courseId] || {};
+      const studentArr = [...(courseRecord[studentId] || Array(12).fill(null))];
+
+      const current = studentArr[lectureIdx];
+      // Logic: null -> true -> null (toggle participated)
+      if (current === null || current === undefined || current === false) {
+        studentArr[lectureIdx] = true;
+      } else {
+        studentArr[lectureIdx] = null;
       }
 
       return {
@@ -476,16 +505,31 @@ const AdminAttendance: React.FC = () => {
                       </td>
                       <td className={`px-6 py-4 text-xs font-mono font-bold ${isRowSelected ? 'bg-blue-50/20' : 'bg-white'}`} style={{ color: 'var(--text-secondary)' }}>{student.universityId}</td>
                       <td className={`px-6 py-4 font-bold text-sm whitespace-nowrap sticky ${lang === 'AR' ? 'right-0 border-l' : 'left-0 border-r'} border-gray-50 z-10 ${isRowSelected ? 'bg-blue-50/20' : 'bg-white'}`} style={{ color: 'var(--text-primary)' }}>{student.fullName}</td>
-                      {lectures.map((_, i) => (
-                        <td key={i} className={`px-2 py-4 text-center ${selectedLecture === (i + 1) ? 'bg-blue-50/10' : ''}`}>
-                          <button
-                            onClick={() => handleToggle(student.id, i)}
-                            className={`p-1 rounded-lg transition-all ${record[i] === true ? 'text-emerald-500 bg-emerald-50' : (record[i] === false ? 'text-red-500 bg-red-50' : 'text-gray-300 bg-gray-50')}`}
-                          >
-                            {record[i] === true ? <CheckCircle size={18} /> : (record[i] === false ? <XCircle size={18} /> : <Minus size={18} />)}
-                          </button>
-                        </td>
-                      ))}
+                      {lectures.map((_, i) => {
+                        const participationRecord = (participation[selectedCourseId]?.[student.id]) || Array(12).fill(null);
+                        return (
+                          <td key={i} className={`px-2 py-4 text-center ${selectedLecture === (i + 1) ? 'bg-blue-50/10' : ''}`}>
+                            <div className="flex items-center justify-center gap-1">
+                              {/* Attendance Icon */}
+                              <button
+                                onClick={() => handleToggle(student.id, i)}
+                                className={`p-1 rounded-lg transition-all ${record[i] === true ? 'text-emerald-500 bg-emerald-50' : (record[i] === false ? 'text-red-500 bg-red-50' : 'text-gray-300 bg-gray-50')}`}
+                                title={record[i] === true ? 'Present' : (record[i] === false ? 'Absent' : 'Not Recorded')}
+                              >
+                                {record[i] === true ? <CheckCircle size={16} /> : (record[i] === false ? <XCircle size={16} /> : <Minus size={16} />)}
+                              </button>
+                              {/* Participation Icon */}
+                              <button
+                                onClick={() => handleParticipationToggle(student.id, i)}
+                                className={`p-1 rounded-lg transition-all ${participationRecord[i] === true ? 'text-amber-500 bg-amber-50' : 'text-gray-300 bg-gray-50'}`}
+                                title={participationRecord[i] === true ? 'Participated' : 'Not Participated'}
+                              >
+                                {participationRecord[i] === true ? <Star size={14} className="fill-amber-500" /> : <Minus size={14} />}
+                              </button>
+                            </div>
+                          </td>
+                        );
+                      })}
                     </tr>
                   );
                 })}
