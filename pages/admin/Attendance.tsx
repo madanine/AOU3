@@ -22,8 +22,9 @@ const AdminAttendance: React.FC = () => {
 
   const [confirmModal, setConfirmModal] = useState<{
     show: boolean;
-    type: 'present' | 'absent';
+    type: 'present' | 'absent' | 'participated' | 'not_participated';
     scope: 'selected' | 'all';
+    category?: 'attendance' | 'participation';
   } | null>(null);
 
   const activeSemId = settings.activeSemesterId;
@@ -147,10 +148,39 @@ const AdminAttendance: React.FC = () => {
     setConfirmModal(null);
   };
 
+  const applyParticipationBulk = (type: 'participated' | 'not_participated', scope: 'selected' | 'all') => {
+    setParticipationUndoStack(JSON.parse(JSON.stringify(participation)));
+    setParticipation(prev => {
+      const courseRecord = { ...(prev[selectedCourseId] || {}) };
+      const targets = scope === 'all' ? enrolledStudents : enrolledStudents.filter(s => selectedStudents.has(s.id));
+
+      targets.forEach(s => {
+        const studentArr = [...(courseRecord[s.id] || Array(12).fill(null))];
+        const val = type === 'participated' ? true : null;
+        if (selectedLecture === 'all') {
+          for (let i = 0; i < 12; i++) studentArr[i] = val;
+        } else {
+          studentArr[(selectedLecture as number) - 1] = val;
+        }
+        courseRecord[s.id] = studentArr;
+      });
+
+      return { ...prev, [selectedCourseId]: courseRecord };
+    });
+    setConfirmModal(null);
+  };
+
   const undoLast = () => {
     if (undoStack) {
       setAttendance(undoStack);
       setUndoStack(null);
+    }
+  };
+
+  const undoParticipation = () => {
+    if (participationUndoStack) {
+      setParticipation(participationUndoStack);
+      setParticipationUndoStack(null);
     }
   };
 
@@ -235,6 +265,89 @@ const AdminAttendance: React.FC = () => {
 
     if (addedSheets > 0) {
       XLSX.writeFile(wb, `attendance-all-courses-${semesterName}.xlsx`);
+    } else {
+      alert(lang === 'AR' ? 'لا توجد بيانات لتصديرها' : 'No data available to export');
+    }
+  };
+
+  // Participation Export Functions
+  const getParticipationDataForExcel = (course: Course) => {
+    const records = participation[course.id] || {};
+    const studentsInCourse = students.filter(s =>
+      enrollments.some(e =>
+        e.studentId === s.id &&
+        e.courseId === course.id &&
+        (!activeSemId || e.semesterId === activeSemId)
+      )
+    );
+
+    return studentsInCourse.map((s, idx) => {
+      const studentRecord = records[s.id] || Array(12).fill(null);
+
+      // Calculate Grade: 1 point per participation, max 10
+      const participationCount = studentRecord.filter((r: boolean | null) => r === true).length;
+      const grade = Math.min(participationCount, 10);
+
+      const row: any = {
+        'م': idx + 1,
+        'الرقم الجامعي': s.universityId,
+        'اسم الطالب/ة': s.fullName,
+        'التخصص': s.major ? t.majorList[s.major] || s.major : '—'
+      };
+
+      lectures.forEach((l, i) => {
+        const val = studentRecord[i];
+        row[`${l}م`] = val === true ? 'شارك' : '—';
+      });
+
+      row['الدرجة (10)'] = grade;
+
+      return row;
+    });
+  };
+
+  const exportParticipationToExcel = (course: Course) => {
+    const data = getParticipationDataForExcel(course);
+    const semesterName = storage.getSemesters().find(s => s.id === activeSemId)?.name || 'MASTER';
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet([]);
+
+    XLSX.utils.sheet_add_aoa(ws, [
+      [`سجل المشاركة - اسم المادة: ${translate(course, 'title')}`],
+      [`دكتور/ة المادة: ${translate(course, 'doctor')}`],
+      [`الفصل الدراسي: ${semesterName}`],
+      ['']
+    ], { origin: 'A1' });
+
+    XLSX.utils.sheet_add_json(ws, data, { origin: 'A5' });
+    XLSX.utils.book_append_sheet(wb, ws, course.code.substring(0, 31));
+    XLSX.writeFile(wb, `${course.code}_${semesterName}_Participation.xlsx`);
+  };
+
+  const exportAllParticipationToExcel = () => {
+    const wb = XLSX.utils.book_new();
+    const semesterName = storage.getSemesters().find(s => s.id === activeSemId)?.name || 'MASTER';
+    let addedSheets = 0;
+
+    visibleCourses.forEach(course => {
+      const data = getParticipationDataForExcel(course);
+      if (data.length > 0) {
+        const ws = XLSX.utils.json_to_sheet([]);
+        XLSX.utils.sheet_add_aoa(ws, [
+          [`سجل المشاركة - اسم المادة: ${translate(course, 'title')}`],
+          [`دكتور/ة المادة: ${translate(course, 'doctor')}`],
+          [`الفصل الدراسي: ${semesterName}`],
+          ['']
+        ], { origin: 'A1' });
+        XLSX.utils.sheet_add_json(ws, data, { origin: 'A5' });
+        XLSX.utils.book_append_sheet(wb, ws, course.code.substring(0, 31));
+        addedSheets++;
+      }
+    });
+
+    if (addedSheets > 0) {
+      XLSX.writeFile(wb, `participation-all-courses-${semesterName}.xlsx`);
     } else {
       alert(lang === 'AR' ? 'لا توجد بيانات لتصديرها' : 'No data available to export');
     }
@@ -334,6 +447,17 @@ const AdminAttendance: React.FC = () => {
               )}
               <button onClick={exportAllCoursesToExcel} className="px-6 py-3 bg-white border border-gray-200 text-gray-600 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-gray-50 transition-all flex items-center gap-2 whitespace-nowrap">
                 <FileStack size={16} /> {lang === 'AR' ? 'تصدير جميع المواد' : 'Export All Courses'}
+              </button>
+
+              {/* Participation Exports */}
+              <div className="w-px h-8 bg-gray-200 mx-1"></div>
+              {selectedCourseId && (
+                <button onClick={() => exportParticipationToExcel(currentCourse!)} className="px-6 py-3 bg-amber-50 border border-amber-200 text-amber-700 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-amber-100 transition-all flex items-center gap-2 whitespace-nowrap">
+                  <Download size={16} /> {lang === 'AR' ? 'تصدير مشاركة' : 'Export Part.'}
+                </button>
+              )}
+              <button onClick={exportAllParticipationToExcel} className="px-6 py-3 bg-amber-50 border border-amber-200 text-amber-700 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-amber-100 transition-all flex items-center gap-2 whitespace-nowrap">
+                <FileStack size={16} /> {lang === 'AR' ? 'تصدير مشاركة (الكل)' : 'Export Part. (All)'}
               </button>
             </div>
           </div>
@@ -438,81 +562,167 @@ const AdminAttendance: React.FC = () => {
             </button>
           </div>
         </div>
-      )}
+      )
+      }
 
-      {viewMode === 'course' && selectedCourseId ? (
-        <div className="space-y-6">
-          <div className="flex flex-wrap items-center gap-3">
-            <button onClick={() => setConfirmModal({ show: true, type: 'present', scope: 'all' })} className="px-4 py-2 bg-blue-50 text-blue-600 rounded-xl font-black text-[10px] uppercase tracking-widest border border-blue-100 hover:bg-blue-100 transition-all">{lang === 'AR' ? 'تحضير الكل' : 'Mark All Present'}</button>
-            <button onClick={() => setConfirmModal({ show: true, type: 'absent', scope: 'all' })} className="px-4 py-2 bg-red-50 text-red-600 rounded-xl font-black text-[10px] uppercase tracking-widest border border-red-100 hover:bg-red-100 transition-all">{lang === 'AR' ? 'غياب الكل' : 'Mark All Absent'}</button>
-            <div className="w-px h-8 bg-gray-100 mx-1"></div>
-            <button
-              disabled={selectedStudents.size === 0}
-              onClick={() => setConfirmModal({ show: true, type: 'present', scope: 'selected' })}
-              className="px-4 py-2 bg-blue-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest disabled:opacity-30 transition-all shadow-md"
-            >
-              {lang === 'AR' ? 'تحضير المختار' : 'Mark Selected Present'}
-            </button>
-            <button
-              disabled={selectedStudents.size === 0}
-              onClick={() => setConfirmModal({ show: true, type: 'absent', scope: 'selected' })}
-              className="px-4 py-2 bg-red-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest disabled:opacity-30 transition-all shadow-md"
-            >
-              {lang === 'AR' ? 'غياب المختار' : 'Mark Selected Absent'}
-            </button>
-            {undoStack && (
-              <button onClick={undoLast} className="flex items-center gap-2 px-4 py-2 text-amber-600 bg-amber-50 rounded-xl font-black text-[10px] uppercase border border-amber-100">
-                <Undo2 size={14} /> {lang === 'AR' ? 'تراجع' : 'Undo'}
+      {
+        viewMode === 'course' && selectedCourseId ? (
+          <div className="space-y-6">
+            <div className="flex flex-wrap items-center gap-3">
+              <button onClick={() => setConfirmModal({ show: true, type: 'present', scope: 'all' })} className="px-4 py-2 bg-blue-50 text-blue-600 rounded-xl font-black text-[10px] uppercase tracking-widest border border-blue-100 hover:bg-blue-100 transition-all">{lang === 'AR' ? 'تحضير الكل' : 'Mark All Present'}</button>
+              <button onClick={() => setConfirmModal({ show: true, type: 'absent', scope: 'all' })} className="px-4 py-2 bg-red-50 text-red-600 rounded-xl font-black text-[10px] uppercase tracking-widest border border-red-100 hover:bg-red-100 transition-all">{lang === 'AR' ? 'غياب الكل' : 'Mark All Absent'}</button>
+              <div className="w-px h-8 bg-gray-100 mx-1"></div>
+              <button
+                disabled={selectedStudents.size === 0}
+                onClick={() => setConfirmModal({ show: true, type: 'present', scope: 'selected' })}
+                className="px-4 py-2 bg-blue-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest disabled:opacity-30 transition-all shadow-md"
+              >
+                {lang === 'AR' ? 'تحضير المختار' : 'Mark Selected Present'}
               </button>
-            )}
-            <button onClick={handleSave} className="ml-auto px-6 py-2 bg-gray-900 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-xl flex items-center gap-2">
-              <Save size={16} /> {lang === 'AR' ? 'حفظ' : 'Save'}
-            </button>
-          </div>
+              <button
+                disabled={selectedStudents.size === 0}
+                onClick={() => setConfirmModal({ show: true, type: 'absent', scope: 'selected' })}
+                className="px-4 py-2 bg-red-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest disabled:opacity-30 transition-all shadow-md"
+              >
+                {lang === 'AR' ? 'غياب المختار' : 'Mark Selected Absent'}
+              </button>
+              {undoStack && (
+                <button onClick={undoLast} className="flex items-center gap-2 px-4 py-2 text-amber-600 bg-amber-50 rounded-xl font-black text-[10px] uppercase border border-amber-100">
+                  <Undo2 size={14} /> {lang === 'AR' ? 'تراجع حضور' : 'Undo Attendance'}
+                </button>
+              )}
 
+              {/* Participation Section */}
+              <div className="w-px h-8 bg-gray-200 mx-2"></div>
+              <button onClick={() => setConfirmModal({ show: true, type: 'participated', scope: 'all', category: 'participation' })} className="px-4 py-2 bg-amber-50 text-amber-600 rounded-xl font-black text-[10px] uppercase tracking-widest border border-amber-100 hover:bg-amber-100 transition-all">{lang === 'AR' ? 'مشاركة الكل' : 'Mark All Participated'}</button>
+              <button onClick={() => setConfirmModal({ show: true, type: 'not_participated', scope: 'all', category: 'participation' })} className="px-4 py-2 bg-gray-50 text-gray-600 rounded-xl font-black text-[10px] uppercase tracking-widest border border-gray-100 hover:bg-gray-100 transition-all">{lang === 'AR' ? 'إلغاء مشاركة الكل' : 'Clear All Participation'}</button>
+              <div className="w-px h-8 bg-gray-100 mx-1"></div>
+              <button
+                disabled={selectedStudents.size === 0}
+                onClick={() => setConfirmModal({ show: true, type: 'participated', scope: 'selected', category: 'participation' })}
+                className="px-4 py-2 bg-amber-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest disabled:opacity-30 transition-all shadow-md"
+              >
+                {lang === 'AR' ? 'مشاركة المختار' : 'Mark Selected Participated'}
+              </button>
+              <button
+                disabled={selectedStudents.size === 0}
+                onClick={() => setConfirmModal({ show: true, type: 'not_participated', scope: 'selected', category: 'participation' })}
+                className="px-4 py-2 bg-gray-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest disabled:opacity-30 transition-all shadow-md"
+              >
+                {lang === 'AR' ? 'إلغاء مشاركة المختار' : 'Clear Selected Participation'}
+              </button>
+              {participationUndoStack && (
+                <button onClick={undoParticipation} className="flex items-center gap-2 px-4 py-2 text-purple-600 bg-purple-50 rounded-xl font-black text-[10px] uppercase border border-purple-100">
+                  <Undo2 size={14} /> {lang === 'AR' ? 'تراجع مشاركة' : 'Undo Participation'}
+                </button>
+              )}
+
+              <button onClick={handleSave} className="ml-auto px-6 py-2 bg-gray-900 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-xl flex items-center gap-2">
+                <Save size={16} /> {lang === 'AR' ? 'حفظ' : 'Save'}
+              </button>
+            </div>
+
+            <div className="bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden overflow-x-auto">
+              <table className="w-full text-left" dir={lang === 'AR' ? 'rtl' : 'ltr'}>
+                <thead>
+                  <tr className="bg-gray-50 border-b border-gray-100">
+                    <th className="px-6 py-4 w-12">
+                      <input type="checkbox" checked={selectedStudents.size === enrolledStudents.length && enrolledStudents.length > 0} onChange={toggleAllStudents} className="w-4 h-4 rounded border-gray-300" />
+                    </th>
+                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest min-w-[100px]" style={{ color: 'var(--text-secondary)' }}>{lang === 'AR' ? 'الرقم الجامعي' : 'ID'}</th>
+                    <th className={`px-6 py-4 text-[10px] font-black uppercase tracking-widest min-w-[180px] sticky ${lang === 'AR' ? 'right-0 border-l' : 'left-0 border-r'} border-gray-100 z-20 bg-gray-50`} style={{ color: 'var(--text-secondary)' }}>{t.fullName}</th>
+                    {lectures.map(l => (
+                      <th key={l} className={`px-2 py-4 text-[10px] font-black text-center min-w-[50px] ${selectedLecture === l ? 'text-blue-600 bg-blue-50/50' : 'text-gray-400'}`}>م{l}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {enrolledStudents.map(student => {
+                    const record = (attendance[selectedCourseId]?.[student.id]) || Array(12).fill(null);
+                    const isRowSelected = selectedStudents.has(student.id);
+                    return (
+                      <tr key={student.id} className={`${isRowSelected ? 'bg-blue-50/20' : ''} hover:bg-gray-50/50 transition-colors`}>
+                        <td className={`px-6 py-4 text-center ${isRowSelected ? 'bg-blue-50/20' : 'bg-white'}`}>
+                          <input
+                            type="checkbox"
+                            checked={isRowSelected}
+                            onChange={() => {
+                              const next = new Set(selectedStudents);
+                              if (next.has(student.id)) next.delete(student.id);
+                              else next.add(student.id);
+                              setSelectedStudents(next);
+                            }}
+                            className="w-4 h-4 rounded border-gray-300"
+                          />
+                        </td>
+                        <td className={`px-6 py-4 text-xs font-mono font-bold ${isRowSelected ? 'bg-blue-50/20' : 'bg-white'}`} style={{ color: 'var(--text-secondary)' }}>{student.universityId}</td>
+                        <td className={`px-6 py-4 font-bold text-sm whitespace-nowrap sticky ${lang === 'AR' ? 'right-0 border-l' : 'left-0 border-r'} border-gray-50 z-10 ${isRowSelected ? 'bg-blue-50/20' : 'bg-white'}`} style={{ color: 'var(--text-primary)' }}>{student.fullName}</td>
+                        {lectures.map((_, i) => {
+                          const participationRecord = (participation[selectedCourseId]?.[student.id]) || Array(12).fill(null);
+                          return (
+                            <td key={i} className={`px-2 py-4 text-center ${selectedLecture === (i + 1) ? 'bg-blue-50/10' : ''}`}>
+                              <div className="flex items-center justify-center gap-1">
+                                {/* Attendance Icon */}
+                                <button
+                                  onClick={() => handleToggle(student.id, i)}
+                                  className={`p-1 rounded-lg transition-all ${record[i] === true ? 'text-emerald-500 bg-emerald-50' : (record[i] === false ? 'text-red-500 bg-red-50' : 'text-gray-300 bg-gray-50')}`}
+                                  title={record[i] === true ? 'Present' : (record[i] === false ? 'Absent' : 'Not Recorded')}
+                                >
+                                  {record[i] === true ? <CheckCircle size={16} /> : (record[i] === false ? <XCircle size={16} /> : <Minus size={16} />)}
+                                </button>
+                                {/* Participation Icon */}
+                                <button
+                                  onClick={() => handleParticipationToggle(student.id, i)}
+                                  className={`p-1 rounded-lg transition-all ${participationRecord[i] === true ? 'text-amber-500 bg-amber-50' : 'text-gray-300 bg-gray-50'}`}
+                                  title={participationRecord[i] === true ? 'Participated' : 'Not Participated'}
+                                >
+                                  {participationRecord[i] === true ? <Star size={14} className="fill-amber-500" /> : <Minus size={14} />}
+                                </button>
+                              </div>
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : viewMode === 'course' ? (
+          <div className="bg-white rounded-[2.5rem] border border-dashed border-gray-200 py-32 text-center flex flex-col items-center gap-4">
+            <BookOpen className="text-gray-100" size={80} />
+            <p className="text-gray-300 font-black text-xs uppercase tracking-widest">{lang === 'AR' ? 'اختر مادة للبدء' : 'Select a subject to begin'}</p>
+          </div>
+        ) : targetStudentId ? (
+          /* Student Mode Table */
           <div className="bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden overflow-x-auto">
             <table className="w-full text-left" dir={lang === 'AR' ? 'rtl' : 'ltr'}>
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-100">
-                  <th className="px-6 py-4 w-12">
-                    <input type="checkbox" checked={selectedStudents.size === enrolledStudents.length && enrolledStudents.length > 0} onChange={toggleAllStudents} className="w-4 h-4 rounded border-gray-300" />
-                  </th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest min-w-[100px]" style={{ color: 'var(--text-secondary)' }}>{lang === 'AR' ? 'الرقم الجامعي' : 'ID'}</th>
-                  <th className={`px-6 py-4 text-[10px] font-black uppercase tracking-widest min-w-[180px] sticky ${lang === 'AR' ? 'right-0 border-l' : 'left-0 border-r'} border-gray-100 z-20 bg-gray-50`} style={{ color: 'var(--text-secondary)' }}>{t.fullName}</th>
+                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>{t.courseTitle}</th>
                   {lectures.map(l => (
-                    <th key={l} className={`px-2 py-4 text-[10px] font-black text-center min-w-[50px] ${selectedLecture === l ? 'text-blue-600 bg-blue-50/50' : 'text-gray-400'}`}>م{l}</th>
+                    <th key={l} className="px-2 py-4 text-[10px] font-black text-center text-gray-400 min-w-[50px]">م{l}</th>
                   ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {enrolledStudents.map(student => {
-                  const record = (attendance[selectedCourseId]?.[student.id]) || Array(12).fill(null);
-                  const isRowSelected = selectedStudents.has(student.id);
+                {studentCourses.map(course => {
+                  const record = (attendance[course.id]?.[targetStudentId]) || Array(12).fill(null);
                   return (
-                    <tr key={student.id} className={`${isRowSelected ? 'bg-blue-50/20' : ''} hover:bg-gray-50/50 transition-colors`}>
-                      <td className={`px-6 py-4 text-center ${isRowSelected ? 'bg-blue-50/20' : 'bg-white'}`}>
-                        <input
-                          type="checkbox"
-                          checked={isRowSelected}
-                          onChange={() => {
-                            const next = new Set(selectedStudents);
-                            if (next.has(student.id)) next.delete(student.id);
-                            else next.add(student.id);
-                            setSelectedStudents(next);
-                          }}
-                          className="w-4 h-4 rounded border-gray-300"
-                        />
+                    <tr key={course.id} className="hover:bg-gray-50/50 transition-colors">
+                      <td className="px-6 py-4 font-bold text-sm" style={{ color: 'var(--text-primary)' }}>
+                        {translate(course, 'title')}
+                        <p className="text-[9px] text-gray-400 font-mono mt-1">{course.code}</p>
                       </td>
-                      <td className={`px-6 py-4 text-xs font-mono font-bold ${isRowSelected ? 'bg-blue-50/20' : 'bg-white'}`} style={{ color: 'var(--text-secondary)' }}>{student.universityId}</td>
-                      <td className={`px-6 py-4 font-bold text-sm whitespace-nowrap sticky ${lang === 'AR' ? 'right-0 border-l' : 'left-0 border-r'} border-gray-50 z-10 ${isRowSelected ? 'bg-blue-50/20' : 'bg-white'}`} style={{ color: 'var(--text-primary)' }}>{student.fullName}</td>
                       {lectures.map((_, i) => {
-                        const participationRecord = (participation[selectedCourseId]?.[student.id]) || Array(12).fill(null);
+                        const participationRecord = (participation[course.id]?.[targetStudentId]) || Array(12).fill(null);
                         return (
-                          <td key={i} className={`px-2 py-4 text-center ${selectedLecture === (i + 1) ? 'bg-blue-50/10' : ''}`}>
+                          <td key={i} className="px-2 py-4 text-center">
                             <div className="flex items-center justify-center gap-1">
                               {/* Attendance Icon */}
                               <button
-                                onClick={() => handleToggle(student.id, i)}
+                                onClick={() => handleToggle(targetStudentId, i, course.id)}
                                 className={`p-1 rounded-lg transition-all ${record[i] === true ? 'text-emerald-500 bg-emerald-50' : (record[i] === false ? 'text-red-500 bg-red-50' : 'text-gray-300 bg-gray-50')}`}
                                 title={record[i] === true ? 'Present' : (record[i] === false ? 'Absent' : 'Not Recorded')}
                               >
@@ -520,7 +730,7 @@ const AdminAttendance: React.FC = () => {
                               </button>
                               {/* Participation Icon */}
                               <button
-                                onClick={() => handleParticipationToggle(student.id, i)}
+                                onClick={() => handleParticipationToggle(targetStudentId, i, course.id)}
                                 className={`p-1 rounded-lg transition-all ${participationRecord[i] === true ? 'text-amber-500 bg-amber-50' : 'text-gray-300 bg-gray-50'}`}
                                 title={participationRecord[i] === true ? 'Participated' : 'Not Participated'}
                               >
@@ -535,87 +745,61 @@ const AdminAttendance: React.FC = () => {
                 })}
               </tbody>
             </table>
+            {studentCourses.length === 0 && (
+              <div className="text-center py-20 text-gray-300 text-xs font-black uppercase tracking-widest">
+                {lang === 'AR' ? 'هذا الطالب غير مسجل في أي مواد' : 'Student has no enrolled courses'}
+              </div>
+            )}
           </div>
-        </div>
-      ) : viewMode === 'course' ? (
-        <div className="bg-white rounded-[2.5rem] border border-dashed border-gray-200 py-32 text-center flex flex-col items-center gap-4">
-          <BookOpen className="text-gray-100" size={80} />
-          <p className="text-gray-300 font-black text-xs uppercase tracking-widest">{lang === 'AR' ? 'اختر مادة للبدء' : 'Select a subject to begin'}</p>
-        </div>
-      ) : targetStudentId ? (
-        /* Student Mode Table */
-        <div className="bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden overflow-x-auto">
-          <table className="w-full text-left" dir={lang === 'AR' ? 'rtl' : 'ltr'}>
-            <thead>
-              <tr className="bg-gray-50 border-b border-gray-100">
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>{t.courseTitle}</th>
-                {lectures.map(l => (
-                  <th key={l} className="px-2 py-4 text-[10px] font-black text-center text-gray-400 min-w-[50px]">م{l}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {studentCourses.map(course => {
-                const record = (attendance[course.id]?.[targetStudentId]) || Array(12).fill(null);
-                return (
-                  <tr key={course.id} className="hover:bg-gray-50/50 transition-colors">
-                    <td className="px-6 py-4 font-bold text-sm" style={{ color: 'var(--text-primary)' }}>
-                      {translate(course, 'title')}
-                      <p className="text-[9px] text-gray-400 font-mono mt-1">{course.code}</p>
-                    </td>
-                    {lectures.map((_, i) => (
-                      <td key={i} className="px-2 py-4 text-center">
-                        <button
-                          onClick={() => handleToggle(targetStudentId, i, course.id)}
-                          className={`p-1 rounded-lg transition-all ${record[i] === true ? 'text-emerald-500 bg-emerald-50' : (record[i] === false ? 'text-red-500 bg-red-50' : 'text-gray-300 bg-gray-50')}`}
-                        >
-                          {record[i] === true ? <CheckCircle size={18} /> : (record[i] === false ? <XCircle size={18} /> : <Minus size={18} />)}
-                        </button>
-                      </td>
-                    ))}
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-          {studentCourses.length === 0 && (
-            <div className="text-center py-20 text-gray-300 text-xs font-black uppercase tracking-widest">
-              {lang === 'AR' ? 'هذا الطالب غير مسجل في أي مواد' : 'Student has no enrolled courses'}
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="bg-white rounded-[2.5rem] border border-dashed border-gray-200 py-32 text-center flex flex-col items-center gap-4">
-          <UserIcon className="text-gray-100" size={80} />
-          <p className="text-gray-300 font-black text-xs uppercase tracking-widest">{lang === 'AR' ? 'اختر طالباً للبدء' : 'Select a student to begin'}</p>
-        </div>
-      )}
+        ) : (
+          <div className="bg-white rounded-[2.5rem] border border-dashed border-gray-200 py-32 text-center flex flex-col items-center gap-4">
+            <UserIcon className="text-gray-100" size={80} />
+            <p className="text-gray-300 font-black text-xs uppercase tracking-widest">{lang === 'AR' ? 'اختر طالباً للبدء' : 'Select a student to begin'}</p>
+          </div>
+        )
+      }
 
-      {confirmModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl space-y-6 text-center">
-            <div className="w-16 h-16 bg-amber-50 text-amber-500 rounded-2xl mx-auto flex items-center justify-center">
-              <AlertTriangle size={32} />
-            </div>
-            <div>
-              <h3 className="text-lg font-black" style={{ color: 'var(--text-primary)' }}>{lang === 'AR' ? 'تأكيد العملية' : 'Confirm Action'}</h3>
-              <p className="text-sm mt-2 font-medium" style={{ color: 'var(--text-secondary)' }}>
-                {lang === 'AR'
-                  ? `أنت على وشك رصد (${confirmModal.type === 'present' ? 'حضور' : 'غياب'}) لـ (${confirmModal.scope === 'all' ? 'جميع الطلاب' : selectedStudents.size + ' طلاب مختارين'}) في (${selectedLecture === 'all' ? 'جميع المحاضرات' : 'المحاضرة م' + selectedLecture}). هل تريد الاستمرار؟`
-                  : `Set ${confirmModal.type} for ${confirmModal.scope === 'all' ? 'ALL students' : selectedStudents.size + ' selected students'} in ${selectedLecture === 'all' ? 'ALL lectures' : 'Lecture م' + selectedLecture}?`
-                }
-              </p>
-            </div>
-            <div className="flex gap-3">
-              <button onClick={() => setConfirmModal(null)} className="flex-1 py-3 bg-gray-50 text-gray-400 font-black rounded-xl uppercase text-[10px] tracking-widest">{t.cancel}</button>
-              <button onClick={() => applyBulk(confirmModal.type, confirmModal.scope)} className={`flex-1 py-3 text-white font-black rounded-xl uppercase text-[10px] tracking-widest shadow-lg ${confirmModal.type === 'present' ? 'bg-blue-600' : 'bg-red-600'}`}>
-                {lang === 'AR' ? 'تأكيد' : 'Confirm'}
-              </button>
+      {
+        confirmModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+            <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl space-y-6 text-center">
+              <div className="w-16 h-16 bg-amber-50 text-amber-500 rounded-2xl mx-auto flex items-center justify-center">
+                <AlertTriangle size={32} />
+              </div>
+              <div>
+                <h3 className="text-lg font-black" style={{ color: 'var(--text-primary)' }}>{lang === 'AR' ? 'تأكيد العملية' : 'Confirm Action'}</h3>
+                <p className="text-sm mt-2 font-medium" style={{ color: 'var(--text-secondary)' }}>
+                  {confirmModal.category === 'participation'
+                    ? (lang === 'AR'
+                      ? `أنت على وشك رصد (${confirmModal.type === 'participated' ? 'مشاركة' : 'إلغاء مشاركة'}) لـ (${confirmModal.scope === 'all' ? 'جميع الطلاب' : selectedStudents.size + ' طلاب مختارين'}) في (${selectedLecture === 'all' ? 'جميع المحاضرات' : 'المحاضرة م' + selectedLecture}). هل تريد الاستمرار؟`
+                      : `Set ${confirmModal.type} for ${confirmModal.scope === 'all' ? 'ALL students' : selectedStudents.size + ' selected students'} in ${selectedLecture === 'all' ? 'ALL lectures' : 'Lecture م' + selectedLecture}?`)
+                    : (lang === 'AR'
+                      ? `أنت على وشك رصد (${confirmModal.type === 'present' ? 'حضور' : 'غياب'}) لـ (${confirmModal.scope === 'all' ? 'جميع الطلاب' : selectedStudents.size + ' طلاب مختارين'}) في (${selectedLecture === 'all' ? 'جميع المحاضرات' : 'المحاضرة م' + selectedLecture}). هل تريد الاستمرار؟`
+                      : `Set ${confirmModal.type} for ${confirmModal.scope === 'all' ? 'ALL students' : selectedStudents.size + ' selected students'} in ${selectedLecture === 'all' ? 'ALL lectures' : 'Lecture م' + selectedLecture}?`)
+                  }
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <button onClick={() => setConfirmModal(null)} className="flex-1 py-3 bg-gray-50 text-gray-400 font-black rounded-xl uppercase text-[10px] tracking-widest">{t.cancel}</button>
+                <button
+                  onClick={() => {
+                    if (confirmModal.category === 'participation') {
+                      applyParticipationBulk(confirmModal.type as 'participated' | 'not_participated', confirmModal.scope);
+                    } else {
+                      applyBulk(confirmModal.type as 'present' | 'absent', confirmModal.scope);
+                    }
+                  }}
+                  className={`flex-1 py-3 text-white font-black rounded-xl uppercase text-[10px] tracking-widest shadow-lg ${confirmModal.type === 'present' || confirmModal.type === 'participated' ? 'bg-blue-600' : 'bg-red-600'
+                    }`}
+                >
+                  {lang === 'AR' ? 'تأكيد' : 'Confirm'}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        )
+      }
+    </div >
   );
 };
 

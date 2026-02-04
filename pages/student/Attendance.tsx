@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../App';
 import { storage } from '../../storage';
-import { BookMarked, ChevronRight, X, Check, Minus } from 'lucide-react';
+import { BookMarked, ChevronRight, X, Check, Minus, Star } from 'lucide-react';
 
 const Attendance: React.FC = () => {
   const { user, t, translate, lang, settings } = useApp();
@@ -11,6 +11,7 @@ const Attendance: React.FC = () => {
   const enrollments = storage.getEnrollments().filter(e => e.studentId === user?.id);
   const courses = storage.getCourses();
   const attendance = storage.getAttendance();
+  const participation = storage.getParticipation();
   const semesters = storage.getSemesters();
 
   const activeSemId = settings.activeSemesterId;
@@ -29,6 +30,15 @@ const Attendance: React.FC = () => {
     // Grade is ONLY calculated when unrecordedCount === 0 (all 12 sessions marked)
     const attendanceGrade = unrecordedCount === 0 ? Math.max(0, 20 - (absentCount * 2)) : null;
 
+    // Participation Logic
+    const partRecords = (participation[course.id]?.[user?.id || '']) || Array(12).fill(null);
+    // Determine participation count: count all 'true' in the array
+    const participationCount = partRecords.filter((r: boolean | null) => r === true).length;
+    // Cap at 10
+    const participationGrade = Math.min(participationCount, 10);
+
+    const percentage = recordedCount > 0 ? Math.round((presentCount / recordedCount) * 100) : 0;
+
     return {
       course,
       presentCount,
@@ -36,7 +46,10 @@ const Attendance: React.FC = () => {
       unrecordedCount,
       recordedCount,
       attendanceGrade,
+      percentage,
       records,
+      participationGrade,
+      partRecords,
       semesterId: e.semesterId
     };
   });
@@ -83,7 +96,7 @@ const Attendance: React.FC = () => {
               {lang === 'AR' ? 'الحضور - الفصل الحالي' : 'Current Semester Attendance'}
               {activeSemId && ` — ${semesters.find(s => s.id === activeSemId)?.name || ''}`}
             </h2>
-            {currentSemesterAttendance.map(({ course, presentCount, absentCount, unrecordedCount, recordedCount, attendanceGrade }) => (
+            {currentSemesterAttendance.map(({ course, presentCount, absentCount, unrecordedCount, recordedCount, attendanceGrade, participationGrade }) => (
               <div key={course.id} className="bg-[var(--card-bg)] rounded-[2rem] p-6 border border-[var(--border-color)] shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all hover:shadow-xl group">
                 <div className="flex items-center gap-5">
                   <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center text-black shadow-inner">
@@ -106,14 +119,27 @@ const Attendance: React.FC = () => {
                 </div>
 
                 <div className="flex items-center gap-6">
+                  {/* Attendance Grade */}
                   <div className="text-right">
                     <p className="text-2xl font-black leading-none" style={{ color: attendanceGrade === null ? 'var(--text-secondary)' : 'var(--text-primary)' }}>
                       {attendanceGrade !== null ? `${attendanceGrade}/20` : '—/20'}
                     </p>
                     <p className="text-[8px] font-black uppercase tracking-widest mt-1 opacity-50">
-                      {attendanceGrade !== null ? 'Grade' : (lang === 'AR' ? `مسجل ${recordedCount}/12` : `Marked ${recordedCount}/12`)}
+                      {lang === 'AR' ? `الحضور (${attendanceGrade !== null ? 'نهاية' : `مسجل ${recordedCount}/12`})` : `Attendance (${attendanceGrade !== null ? 'Final' : `Marked ${recordedCount}/12`})`}
                     </p>
                   </div>
+
+                  {/* Participation Grade */}
+                  <div className="hidden md:block w-px h-8 bg-gray-200" />
+                  <div className="text-right">
+                    <p className="text-2xl font-black leading-none text-amber-500">
+                      {participationGrade}/10
+                    </p>
+                    <p className="text-[8px] font-black uppercase tracking-widest mt-1 opacity-50">
+                      {lang === 'AR' ? 'المشاركة' : 'Part.'}
+                    </p>
+                  </div>
+
                   <button
                     onClick={() => setSelectedCourse(course.id)}
                     className="p-3 bg-black/5 rounded-2xl border border-black/5 hover:bg-black/10 transition-all flex items-center gap-2"
@@ -142,7 +168,7 @@ const Attendance: React.FC = () => {
                   <h3 className="text-xs font-black uppercase tracking-widest px-2 opacity-60" style={{ color: 'var(--text-secondary)' }}>
                     {semester?.name || semId}
                   </h3>
-                  {semesterAttendance.map(({ course, presentCount, absentCount, unrecordedCount, recordedCount, attendanceGrade }) => (
+                  {semesterAttendance.map(({ course, presentCount, absentCount, unrecordedCount, recordedCount, attendanceGrade, participationGrade }) => (
                     <div key={course.id} className="bg-[var(--card-bg)] rounded-[2rem] p-6 border border-[var(--border-color)] shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all hover:shadow-xl group opacity-80">
                       <div className="flex items-center gap-5">
                         <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center text-black shadow-inner">
@@ -165,14 +191,27 @@ const Attendance: React.FC = () => {
                       </div>
 
                       <div className="flex items-center gap-6">
+                        {/* Attendance Grade */}
                         <div className="text-right">
                           <p className="text-2xl font-black leading-none" style={{ color: attendanceGrade === null ? 'var(--text-secondary)' : 'var(--text-primary)' }}>
                             {attendanceGrade !== null ? `${attendanceGrade}/20` : '—/20'}
                           </p>
                           <p className="text-[8px] font-black uppercase tracking-widest mt-1 opacity-50">
-                            {attendanceGrade !== null ? 'Grade' : (lang === 'AR' ? `مسجل ${recordedCount}/12` : `Marked ${recordedCount}/12`)}
+                            {lang === 'AR' ? `الحضور (${attendanceGrade !== null ? 'نهاية' : `مسجل ${recordedCount}/12`})` : `Attendance (${attendanceGrade !== null ? 'Final' : `Marked ${recordedCount}/12`})`}
                           </p>
                         </div>
+
+                        {/* Participation Grade */}
+                        <div className="hidden md:block w-px h-8 bg-gray-200" />
+                        <div className="text-right">
+                          <p className="text-2xl font-black leading-none text-amber-500">
+                            {participationGrade}/10
+                          </p>
+                          <p className="text-[8px] font-black uppercase tracking-widest mt-1 opacity-50">
+                            {lang === 'AR' ? 'المشاركة' : 'Part.'}
+                          </p>
+                        </div>
+
                         <button
                           onClick={() => setSelectedCourse(course.id)}
                           className="p-3 bg-black/5 rounded-2xl border border-black/5 hover:bg-black/10 transition-all flex items-center gap-2"
@@ -214,8 +253,9 @@ const Attendance: React.FC = () => {
             <div className="grid grid-cols-4 sm:grid-cols-6 gap-3 mb-8">
               {Array.from({ length: 12 }).map((_, i) => {
                 const status = activeCourse.records[i];
+                const participationStatus = activeCourse.partRecords[i];
                 return (
-                  <div key={i} className="flex flex-col items-center gap-1.5">
+                  <div key={i} className="flex flex-col items-center gap-1.5 relative">
                     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border transition-all ${status === true ? 'bg-emerald-50 border-emerald-100 text-emerald-600' :
                       status === false ? 'bg-red-50 border-red-100 text-red-600' :
                         'bg-gray-50 border-gray-100 text-gray-300'
@@ -224,6 +264,14 @@ const Attendance: React.FC = () => {
                         status === false ? <X size={20} strokeWidth={3} /> :
                           <Minus size={20} strokeWidth={3} />}
                     </div>
+
+                    {/* Participation Icon Overlay */}
+                    {participationStatus === true && (
+                      <div className="absolute -top-1 -right-1 w-5 h-5 bg-amber-100 rounded-full border border-amber-200 flex items-center justify-center text-amber-500 shadow-sm">
+                        <Star size={10} className="fill-amber-500" />
+                      </div>
+                    )}
+
                     <span className="text-[9px] font-black uppercase" style={{ color: 'var(--text-secondary)' }}>م{i + 1}</span>
                   </div>
                 );
