@@ -144,7 +144,7 @@ const AdminGrading: React.FC = () => {
     if (selectedSubmissions.size === 0) return;
 
     const updated = submissions.map(s =>
-      selectedSubmissions.has(s.id) ? { ...s, grade: '100/100' } : s
+      selectedSubmissions.has(s.id) ? { ...s, grade: '20/20' } : s
     );
     storage.setSubmissions(updated);
     setSubmissions(updated);

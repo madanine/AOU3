@@ -42,19 +42,25 @@ const StudentTimetable: React.FC = () => {
 
     try {
       const canvas = await html2canvas(el, {
-        scale: 2,
-        backgroundColor: isDarkMode ? '#0f172a' : '#ffffff',
+        scale: 3,
+        backgroundColor: '#ffffff',
         logging: false,
         useCORS: true,
-        width: 1200,
-        windowWidth: 1200
+        allowTaint: true,
+        onclone: (clonedDoc) => {
+          const clonedEl = clonedDoc.querySelector('[data-timetable]');
+          if (clonedEl) {
+            (clonedEl as HTMLElement).style.width = 'auto';
+            (clonedEl as HTMLElement).style.minHeight = 'auto';
+          }
+        }
       });
 
       canvas.toBlob((blob) => {
         if (blob) {
           const url = URL.createObjectURL(blob);
           const link = document.createElement('a');
-          link.download = `جدولي_الدراسي_${user?.universityId}.png`;
+          link.download = `Timetable_${user?.universityId}.png`;
           link.href = url;
           link.click();
           URL.revokeObjectURL(url);
@@ -84,7 +90,7 @@ const StudentTimetable: React.FC = () => {
         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
           <button
             onClick={handlePrint}
-            className="flex-1 md:flex-none px-6 py-3 bg-white dark:bg-slate-800 border border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-300 font-black rounded-2xl hover:bg-gray-50 dark:hover:bg-slate-700 transition-all flex items-center justify-center gap-2 text-xs uppercase tracking-widest"
+            className="flex-1 md:flex-none px-6 py-3 bg-white border border-gray-200 text-gray-600 font-black rounded-2xl hover:bg-gray-50 transition-all flex items-center justify-center gap-2 text-xs uppercase tracking-widest"
           >
             <Printer size={18} />
             {lang === 'AR' ? 'طباعة' : 'Print'}
@@ -103,11 +109,12 @@ const StudentTimetable: React.FC = () => {
       {/* Timetable Container */}
       <div
         ref={timetableRef}
-        className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-gray-100 dark:border-white/5 shadow-lg p-6 md:p-10 transition-colors print:shadow-none print:border-none print:rounded-none"
+        data-timetable
+        className="bg-white rounded-[2.5rem] border border-gray-100 shadow-lg p-6 md:p-10 transition-colors print:shadow-none print:border-none print:rounded-none"
         style={{ minHeight: '800px' }}
       >
         {/* Header */}
-        <div className="text-center mb-8 pb-6 border-b border-gray-200 dark:border-white/10">
+        <div className="text-center mb-8 pb-6 border-b border-gray-200">
           <div className="flex items-center justify-center gap-3 mb-3">
             <Calendar className="text-blue-500" size={32} />
           </div>
@@ -124,17 +131,17 @@ const StudentTimetable: React.FC = () => {
           <div className="overflow-x-auto">
             <table className="w-full border-collapse" dir={lang === 'AR' ? 'rtl' : 'ltr'}>
               <thead>
-                <tr className="border-b-2 border-gray-200 dark:border-white/10">
-                  <th className="px-4 py-4 text-sm font-black uppercase tracking-wider text-center bg-gray-50 dark:bg-slate-800" style={{ color: 'var(--text-secondary)' }}>
+                <tr className="border-b-2 border-gray-200">
+                  <th className="px-4 py-4 text-sm font-black uppercase tracking-wider text-center bg-gray-50" style={{ color: 'var(--text-secondary)' }}>
                     {lang === 'AR' ? 'اليوم' : 'Day'}
                   </th>
-                  <th className="px-4 py-4 text-sm font-black uppercase tracking-wider text-center bg-gray-50 dark:bg-slate-800" style={{ color: 'var(--text-secondary)' }}>
+                  <th className="px-4 py-4 text-sm font-black uppercase tracking-wider text-center bg-gray-50" style={{ color: 'var(--text-secondary)' }}>
                     {lang === 'AR' ? 'رمز المادة' : 'Code'}
                   </th>
-                  <th className="px-4 py-4 text-sm font-black uppercase tracking-wider text-center bg-gray-50 dark:bg-slate-800" style={{ color: 'var(--text-secondary)' }}>
+                  <th className="px-4 py-4 text-sm font-black uppercase tracking-wider text-center bg-gray-50" style={{ color: 'var(--text-secondary)' }}>
                     {lang === 'AR' ? 'المادة' : 'Subject'}
                   </th>
-                  <th className="px-4 py-4 text-sm font-black uppercase tracking-wider text-center bg-gray-50 dark:bg-slate-800" style={{ color: 'var(--text-secondary)' }}>
+                  <th className="px-4 py-4 text-sm font-black uppercase tracking-wider text-center bg-gray-50" style={{ color: 'var(--text-secondary)' }}>
                     {lang === 'AR' ? 'الوقت' : 'Time'}
                   </th>
                 </tr>
@@ -143,7 +150,7 @@ const StudentTimetable: React.FC = () => {
                 {scheduleRows.map((row, index) => (
                   <tr
                     key={index}
-                    className={`border-b border-gray-100 dark:border-white/5 transition-colors hover:bg-gray-50 dark:hover:bg-slate-800/50 ${index % 2 === 0 ? 'bg-white dark:bg-slate-900' : 'bg-gray-50/50 dark:bg-slate-800/30'
+                    className={`border-b border-gray-100 transition-colors hover:bg-gray-50 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'
                       }`}
                   >
                     <td className="px-4 py-5 text-center">
