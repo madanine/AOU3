@@ -23,16 +23,15 @@ const Attendance: React.FC = () => {
     const absentCount = records.filter(r => r === false).length;
     const unrecordedCount = 12 - (presentCount + absentCount);
 
-    const recordedTotal = presentCount + absentCount;
-    // Percentage based on recorded only as per rules
-    const percentage = recordedTotal > 0 ? Math.round((presentCount / recordedTotal) * 100) : 0;
+    // 20-point grading system: Total = 20, each absence = -2 points
+    const attendanceGrade = Math.max(0, 20 - (absentCount * 2));
 
     return {
       course,
       presentCount,
       absentCount,
       unrecordedCount,
-      percentage,
+      attendanceGrade,
       records,
       semesterId: e.semesterId
     };
@@ -80,7 +79,7 @@ const Attendance: React.FC = () => {
               {lang === 'AR' ? 'الحضور - الفصل الحالي' : 'Current Semester Attendance'}
               {activeSemId && ` — ${semesters.find(s => s.id === activeSemId)?.name || ''}`}
             </h2>
-            {currentSemesterAttendance.map(({ course, presentCount, absentCount, unrecordedCount, percentage }) => (
+            {currentSemesterAttendance.map(({ course, presentCount, absentCount, unrecordedCount, attendanceGrade }) => (
               <div key={course.id} className="bg-[var(--card-bg)] rounded-[2rem] p-6 border border-[var(--border-color)] shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all hover:shadow-xl group">
                 <div className="flex items-center gap-5">
                   <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center text-black shadow-inner">
@@ -104,8 +103,8 @@ const Attendance: React.FC = () => {
 
                 <div className="flex items-center gap-6">
                   <div className="text-right">
-                    <p className="text-2xl font-black leading-none" style={{ color: 'var(--text-primary)' }}>{percentage}%</p>
-                    <p className="text-[8px] font-black uppercase tracking-widest mt-1 opacity-50">Attendance</p>
+                    <p className="text-2xl font-black leading-none" style={{ color: 'var(--text-primary)' }}>{attendanceGrade}/20</p>
+                    <p className="text-[8px] font-black uppercase tracking-widest mt-1 opacity-50">Grade</p>
                   </div>
                   <button
                     onClick={() => setSelectedCourse(course.id)}
@@ -135,7 +134,7 @@ const Attendance: React.FC = () => {
                   <h3 className="text-xs font-black uppercase tracking-widest px-2 opacity-60" style={{ color: 'var(--text-secondary)' }}>
                     {semester?.name || semId}
                   </h3>
-                  {semesterAttendance.map(({ course, presentCount, absentCount, unrecordedCount, percentage }) => (
+                  {semesterAttendance.map(({ course, presentCount, absentCount, unrecordedCount, attendanceGrade }) => (
                     <div key={course.id} className="bg-[var(--card-bg)] rounded-[2rem] p-6 border border-[var(--border-color)] shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all hover:shadow-xl group opacity-80">
                       <div className="flex items-center gap-5">
                         <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center text-black shadow-inner">
@@ -159,8 +158,8 @@ const Attendance: React.FC = () => {
 
                       <div className="flex items-center gap-6">
                         <div className="text-right">
-                          <p className="text-2xl font-black leading-none" style={{ color: 'var(--text-primary)' }}>{percentage}%</p>
-                          <p className="text-[8px] font-black uppercase tracking-widest mt-1 opacity-50">Attendance</p>
+                          <p className="text-2xl font-black leading-none" style={{ color: 'var(--text-primary)' }}>{attendanceGrade}/20</p>
+                          <p className="text-[8px] font-black uppercase tracking-widest mt-1 opacity-50">Grade</p>
                         </div>
                         <button
                           onClick={() => setSelectedCourse(course.id)}
