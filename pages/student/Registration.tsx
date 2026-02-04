@@ -239,7 +239,7 @@ const Registration: React.FC = () => {
       )}
 
       <div className="flex flex-col gap-10">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredCourses.map(course => {
             const isSelected = pendingSelection.has(course.id);
             const canRegister = course.isRegistrationEnabled && !isClosed;
@@ -247,45 +247,45 @@ const Registration: React.FC = () => {
             return (
               <div
                 key={course.id}
-                className={`bg-white rounded-3xl p-6 border transition-all hover:shadow-xl ${isSelected ? 'border-[var(--primary)] ring-2 ring-[var(--primary)]/10' : 'border-gray-100 shadow-sm'}`}
+                className={`bg-white rounded-2xl p-4 border transition-all hover:shadow-xl ${isSelected ? 'border-[var(--primary)] ring-2 ring-[var(--primary)]/10' : 'border-gray-100 shadow-sm'}`}
               >
-                <div className="flex justify-between items-start mb-4">
-                  <span className="inline-block px-3 py-1 bg-blue-50 text-[var(--primary)] text-[10px] font-black rounded-lg uppercase tracking-wider">
-                    {course.code}
-                  </span>
-                  {!course.isRegistrationEnabled && (
-                    <span className="text-[10px] font-black text-red-500 bg-red-50 px-2 py-1 rounded-lg uppercase">{t.registrationClosed}</span>
-                  )}
-                </div>
-
-                <h3 className="text-xl font-black mb-2 leading-snug" style={{ color: 'var(--text-primary)' }}>{translate(course, 'title')}</h3>
-                <div className="flex flex-wrap gap-4 mb-4">
-                  <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>
-                    <DocIcon size={14} className="text-[var(--primary)]" />
-                    <span>{translate(course, 'doctor')}</span>
+                <div className="flex flex-col h-full">
+                  <div className="flex justify-between items-start mb-3">
+                    <span className="inline-block px-2 py-1 bg-blue-50 text-[var(--primary)] text-[9px] font-black rounded-lg uppercase tracking-wider">
+                      {course.code}
+                    </span>
+                    {!course.isRegistrationEnabled && (
+                      <span className="text-[8px] font-black text-red-500 bg-red-50 px-2 py-1 rounded-lg uppercase">{t.registrationClosed}</span>
+                    )}
                   </div>
-                  <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>
-                    <Clock size={14} className="text-[var(--primary)]" />
-                    <span>{t.days[course.day as keyof typeof t.days]}, {course.time}</span>
+
+                  <h3 className="text-sm font-black mb-2 leading-snug line-clamp-2" style={{ color: 'var(--text-primary)' }}>{translate(course, 'title')}</h3>
+                  <div className="flex flex-col gap-2 mb-3">
+                    <div className="flex items-center gap-1 text-[8px] font-black uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>
+                      <DocIcon size={12} className="text-[var(--primary)]" />
+                      <span className="truncate">{translate(course, 'doctor')}</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-[8px] font-black uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>
+                      <Clock size={12} className="text-[var(--primary)]" />
+                      <span className="truncate">{t.days[course.day as keyof typeof t.days]}, {course.time}</span>
+                    </div>
                   </div>
+
+                  <button
+                    disabled={!canRegister || !isEditing}
+                    onClick={() => togglePending(course.id)}
+                    className={`w-full py-2.5 px-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center justify-center gap-1.5 mt-auto ${isSelected
+                      ? 'bg-red-50 text-red-600 hover:bg-red-100'
+                      : 'bg-[var(--primary)] text-white hover:brightness-110 shadow-lg shadow-blue-900/10'
+                      } disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed`}
+                  >
+                    {isSelected ? (
+                      <><Trash2 size={14} /> {t.unregister}</>
+                    ) : (
+                      <><Plus size={14} /> {t.register}</>
+                    )}
+                  </button>
                 </div>
-
-                <p className="text-xs font-medium mb-6 line-clamp-2" style={{ color: 'var(--text-secondary)' }}>{translate(course, 'description')}</p>
-
-                <button
-                  disabled={!canRegister || !isEditing}
-                  onClick={() => togglePending(course.id)}
-                  className={`w-full py-3 px-4 rounded-xl font-black text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${isSelected
-                    ? 'bg-red-50 text-red-600 hover:bg-red-100'
-                    : 'bg-[var(--primary)] text-white hover:brightness-110 shadow-lg shadow-blue-900/10'
-                    } disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed`}
-                >
-                  {isSelected ? (
-                    <><Trash2 size={16} /> {t.unregister}</>
-                  ) : (
-                    <><Plus size={16} /> {t.register}</>
-                  )}
-                </button>
               </div>
             );
           })}
