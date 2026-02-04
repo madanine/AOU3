@@ -39,8 +39,9 @@ export const storage = {
         supabaseService.getParticipation()
       ]);
 
-      if (users && users.length > 0) {
+      if (users) {
         const localUsers = storage.getUsers();
+        // Merge strategy for users can stay or be strict. For now, let's keep merge to be safe for current user.
         const merged = [...users];
         localUsers.forEach(lu => {
           if (!merged.find(ru => ru.universityId === lu.universityId)) {
@@ -49,14 +50,14 @@ export const storage = {
         });
         localStorage.setItem(KEYS.USERS, JSON.stringify(merged));
       }
-      if (courses && courses.length > 0) localStorage.setItem(KEYS.COURSES, JSON.stringify(courses));
-      if (enrollments && enrollments.length > 0) localStorage.setItem(KEYS.ENROLLMENTS, JSON.stringify(enrollments));
+      if (courses) localStorage.setItem(KEYS.COURSES, JSON.stringify(courses));
+      if (enrollments) localStorage.setItem(KEYS.ENROLLMENTS, JSON.stringify(enrollments));
       if (settings) localStorage.setItem(KEYS.SETTINGS, JSON.stringify(settings));
-      if (semesters && semesters.length > 0) localStorage.setItem(KEYS.SEMESTERS, JSON.stringify(semesters));
-      if (assignments && assignments.length > 0) localStorage.setItem(KEYS.ASSIGNMENTS, JSON.stringify(assignments));
-      if (submissions && submissions.length > 0) localStorage.setItem(KEYS.SUBMISSIONS, JSON.stringify(submissions));
+      if (semesters) localStorage.setItem(KEYS.SEMESTERS, JSON.stringify(semesters));
+      if (assignments) localStorage.setItem(KEYS.ASSIGNMENTS, JSON.stringify(assignments));
+      if (submissions) localStorage.setItem(KEYS.SUBMISSIONS, JSON.stringify(submissions));
 
-      if (attendance && attendance.length > 0) {
+      if (attendance) {
         // Convert Row[] to Map
         const map: AttendanceRecord = {};
         attendance.forEach((r: AttendanceRow) => {
@@ -69,7 +70,7 @@ export const storage = {
         localStorage.setItem(KEYS.ATTENDANCE, JSON.stringify(map));
       }
 
-      if (participation && participation.length > 0) {
+      if (participation) {
         // Convert Row[] to Map
         const map: ParticipationRecord = {};
         participation.forEach((r: ParticipationRow) => {
@@ -346,14 +347,7 @@ export const storage = {
     const activeSemId = settings.activeSemesterId || '00000000-0000-0000-0000-000000000010';
 
     // Purge requests: Remove all courses initially to allow manual entry
-    if (!localStorage.getItem('courses_purged_final_v4')) {
-      console.log('Purging all seeded courses...');
-      const all = storage.getCourses();
-      all.forEach(c => supabaseService.deleteCourse(c.id).catch(() => { }));
-      storage.setCourses([], false); // Clear local
-      localStorage.setItem('courses_purged_final_v4', 'true');
-    }
-
+    // Seed admin if not exists
     const admin = {
       id: '00000000-0000-0000-0000-000000000001',
       email: 'aouadmin@aou.edu',
