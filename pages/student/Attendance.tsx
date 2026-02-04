@@ -24,10 +24,10 @@ const Attendance: React.FC = () => {
     const recordedCount = presentCount + absentCount; // Total marked sessions
     const unrecordedCount = 12 - recordedCount;
 
-    // 20-point grading system: ONLY calculated from recorded sessions
-    // If no sessions recorded, grade is null (pending)
-    // If sessions recorded: 20 - (absentCount * 2)
-    const attendanceGrade = recordedCount > 0 ? Math.max(0, 20 - (absentCount * 2)) : null;
+    // 20-point grading system: ONLY show final grade when ALL sessions are marked
+    // If ANY sessions are unmarked (unrecordedCount > 0), grade is null (pending)
+    // Grade is ONLY calculated when unrecordedCount === 0 (all 12 sessions marked)
+    const attendanceGrade = unrecordedCount === 0 ? Math.max(0, 20 - (absentCount * 2)) : null;
 
     return {
       course,
