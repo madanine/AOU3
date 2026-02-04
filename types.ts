@@ -149,3 +149,15 @@ export interface AttendanceRow {
 
 // Deprecated: UI Map Structure (We will convert to/from this)
 export type AttendanceRecord = Record<string, Record<string, (boolean | null)[]>>;
+
+// Participation Row (DB Compatible) - mirrors AttendanceRow
+export interface ParticipationRow {
+  id?: string;
+  courseId: string;
+  studentId: string;
+  lectureIndex: number;
+  status: boolean | null; // true=participated, false/null=not_participated
+}
+
+// UI Map Structure for Participation
+export type ParticipationRecord = Record<string, Record<string, (boolean | null)[]>>;

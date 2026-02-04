@@ -1,6 +1,6 @@
 
 import { supabase } from './supabase';
-import { User, Course, Enrollment, SiteSettings, AttendanceRow, Semester, Assignment, Submission } from './types';
+import { User, Course, Enrollment, SiteSettings, AttendanceRow, ParticipationRow, Semester, Assignment, Submission } from './types';
 
 export const supabaseService = {
     // Auth
@@ -326,5 +326,30 @@ export const supabaseService = {
 
         const { error } = await supabase.from('attendance').upsert(payload, { onConflict: 'course_id,student_id,lecture_index' });
         if (error) console.error('Attendance Upsert Error:', error);
+    },
+
+    // Participation (mirrors Attendance structure)
+    async getParticipation() {
+        const { data, error } = await supabase.from('participation').select('*');
+        if (error) throw error;
+        return (data || []).map(p => ({
+            id: p.id,
+            studentId: p.student_id,
+            courseId: p.course_id,
+            lectureIndex: p.lecture_index,
+            status: p.status
+        })) as ParticipationRow[];
+    },
+
+    async upsertParticipation(record: ParticipationRow) {
+        const payload = {
+            course_id: record.courseId,
+            student_id: record.studentId,
+            lecture_index: record.lectureIndex,
+            status: record.status
+        };
+
+        const { error } = await supabase.from('participation').upsert(payload, { onConflict: 'course_id,student_id,lecture_index' });
+        if (error) console.error('Participation Upsert Error:', error);
     }
 };

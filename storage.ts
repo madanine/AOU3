@@ -1,5 +1,5 @@
 
-import { User, Course, Enrollment, SiteSettings, Semester, Assignment, Submission, AttendanceRecord, AttendanceRow, Language } from './types';
+import { User, Course, Enrollment, SiteSettings, Semester, Assignment, Submission, AttendanceRecord, AttendanceRow, ParticipationRecord, ParticipationRow, Language } from './types';
 import { supabaseService } from './supabaseService';
 import { supabase } from './supabase';
 import { DEFAULT_SETTINGS } from './constants';
@@ -12,9 +12,9 @@ const KEYS = {
   AUTH_USER: 'aou_current_user',
   LANGUAGE: 'aou_lang',
   ATTENDANCE: 'aou_attendance',
+  PARTICIPATION: 'aou_participation',
   SEMESTERS: 'aou_semesters',
   ASSIGNMENTS: 'aou_assignments',
-
   SUBMISSIONS: 'aou_submissions'
 };
 
@@ -27,16 +27,16 @@ export const storage = {
   // Sync logic
   async syncFromSupabase() {
     try {
-      const [users, courses, enrollments, settings, semesters, assignments, submissions, attendance] = await Promise.all([
+      const [users, courses, enrollments, settings, semesters, assignments, submissions, attendance, participation] = await Promise.all([
         supabaseService.getUsers(),
         supabaseService.getCourses(),
         supabaseService.getEnrollments(),
         supabaseService.getSettings(),
         supabaseService.getSemesters(),
         supabaseService.getAssignments(),
-
         supabaseService.getSubmissions(),
-        supabaseService.getAttendance()
+        supabaseService.getAttendance(),
+        supabaseService.getParticipation()
       ]);
 
       if (users && users.length > 0) {
@@ -67,6 +67,19 @@ export const storage = {
           }
         });
         localStorage.setItem(KEYS.ATTENDANCE, JSON.stringify(map));
+      }
+
+      if (participation && participation.length > 0) {
+        // Convert Row[] to Map
+        const map: ParticipationRecord = {};
+        participation.forEach((r: ParticipationRow) => {
+          if (!map[r.courseId]) map[r.courseId] = {};
+          if (!map[r.courseId][r.studentId]) map[r.courseId][r.studentId] = Array(12).fill(null);
+          if (r.lectureIndex >= 0 && r.lectureIndex < 12) {
+            map[r.courseId][r.studentId][r.lectureIndex] = r.status;
+          }
+        });
+        localStorage.setItem(KEYS.PARTICIPATION, JSON.stringify(map));
       }
 
       notify();
@@ -213,6 +226,27 @@ export const storage = {
 
   // Note: syncFromSupabase handles the reverse conversion (Row -> Map)
 
+  getParticipation: (): ParticipationRecord => JSON.parse(localStorage.getItem(KEYS.PARTICIPATION) || '{}'),
+
+  setParticipation: (recordMap: ParticipationRecord) => {
+    localStorage.setItem(KEYS.PARTICIPATION, JSON.stringify(recordMap));
+    notify();
+
+    // Convert Map to Rows for Supabase
+    const rows: { courseId: string; studentId: string; lectureIndex: number; status: boolean; }[] = [];
+    Object.entries(recordMap).forEach(([cId, students]) => {
+      Object.entries(students).forEach(([sId, participationArr]) => {
+        participationArr.forEach((status, idx) => {
+          if (status !== null) {
+            rows.push({ courseId: cId, studentId: sId, lectureIndex: idx, status });
+          }
+        });
+      });
+    });
+
+    // Bulk upsert to Supabase
+    rows.forEach(r => supabaseService.upsertParticipation(r).catch(() => { }));
+  },
 
   getSemesters: (): Semester[] => JSON.parse(localStorage.getItem(KEYS.SEMESTERS) || '[]'),
   setSemesters: (semesters: Semester[]) => {
