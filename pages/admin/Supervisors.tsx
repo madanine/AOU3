@@ -147,7 +147,7 @@ const AdminSupervisors: React.FC = () => {
             <div className="mt-4 pt-4 border-t border-gray-50 space-y-2">
               <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">{lang === 'AR' ? 'الصلاحيات' : 'Permissions'}:</p>
               <div className="flex flex-wrap gap-2">
-                {s.supervisorPermissions?.attendance && <span className="px-2 py-1 bg-blue-50 text-blue-600 rounded-lg text-[10px] font-bold">{lang === 'AR' ? 'الحضور' : 'Attendance'}</span>}
+                {s.supervisorPermissions?.attendance && <span className="px-2 py-1 bg-blue-50 text-blue-600 rounded-lg text-[10px] font-bold">{lang === 'AR' ? 'الحضور والمشاركة' : 'Attendance & Participation'}</span>}
                 {s.supervisorPermissions?.assignments && <span className="px-2 py-1 bg-purple-50 text-purple-600 rounded-lg text-[10px] font-bold">{lang === 'AR' ? 'التكاليف' : 'Assignments'}</span>}
                 {s.supervisorPermissions?.grading && <span className="px-2 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-[10px] font-bold">{lang === 'AR' ? 'رصد الدرجات' : 'Grading'}</span>}
               </div>
@@ -209,7 +209,7 @@ const AdminSupervisors: React.FC = () => {
                     className={`p-4 rounded-2xl border transition-all flex flex-col items-center gap-2 ${formData.supervisorPermissions?.attendance ? 'bg-blue-50 border-blue-200' : 'border-gray-100 bg-gray-50'}`}
                   >
                     <CheckCircle size={20} className={formData.supervisorPermissions?.attendance ? 'text-blue-600' : 'text-gray-300'} />
-                    <span className="text-[10px] font-black uppercase">{lang === 'AR' ? 'الحضور' : 'Attendance'}</span>
+                    <span className="text-[10px] font-black uppercase">{lang === 'AR' ? 'الحضور والمشاركة' : 'Attendance & Participation'}</span>
                   </button>
                   <button
                     type="button"
