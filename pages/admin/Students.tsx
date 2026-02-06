@@ -142,7 +142,8 @@ const AdminStudents: React.FC = () => {
             <tr className="border-b" style={{ backgroundColor: isDarkMode ? '#1a1a1a' : '#f8fafc', borderColor: 'var(--border-color)' }}>
               <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>{t.fullName}</th>
               <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>{t.universityId}</th>
-              <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>{t.major}</th>
+              <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>{t.nationality}</th>
+              <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>{t.dateOfBirth}</th>
               <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>{lang === 'AR' ? 'الحالة' : 'Status'}</th>
               <th className="px-6 py-4"></th>
             </tr>
@@ -163,8 +164,13 @@ const AdminStudents: React.FC = () => {
                   <span className="font-mono text-xs font-bold" style={{ color: 'var(--text-secondary)' }}>{student.universityId}</span>
                 </td>
                 <td className="px-6 py-4">
-                  <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>
-                    {student.major ? (t.majorList[student.major] || student.major) : '—'}
+                  <span className="text-[10px] font-bold" style={{ color: 'var(--text-secondary)' }}>
+                    {student.nationality || '—'}
+                  </span>
+                </td>
+                <td className="px-6 py-4">
+                  <span className="text-[10px] font-mono font-bold" style={{ color: 'var(--text-secondary)' }}>
+                    {student.dateOfBirth || '—'}
                   </span>
                 </td>
                 <td className="px-6 py-4">
@@ -284,6 +290,67 @@ const AdminStudents: React.FC = () => {
                       <option key={key} value={key}>{value as string}</option>
                     ))}
                   </select>
+                </div>
+
+                {/* Nationality Field */}
+                <div className="md:col-span-2 space-y-1">
+                  <label className="text-[10px] font-black uppercase tracking-widest ml-1" style={{ color: 'var(--text-secondary)' }}>{t.nationality}</label>
+                  <div className="relative">
+                    <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10" size={16} />
+                    <input
+                      type="text"
+                      required
+                      value={formData.nationality || nationalitySearch}
+                      onChange={(e) => {
+                        setNationalitySearch(e.target.value);
+                        setShowNationalityDropdown(true);
+                        if (COUNTRIES.includes(e.target.value)) {
+                          setFormData({ ...formData, nationality: e.target.value });
+                        }
+                      }}
+                      onFocus={() => setShowNationalityDropdown(true)}
+                      placeholder={t.selectNationality}
+                      autoComplete="off"
+                      className="w-full pl-10 pr-4 py-3 rounded-xl border outline-none font-bold text-sm bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-900 dark:text-white"
+                    />
+                    {showNationalityDropdown && (
+                      <>
+                        <div className="fixed inset-0 z-20" onClick={() => setShowNationalityDropdown(false)} />
+                        <div className="absolute z-30 w-full mt-2 max-h-60 overflow-y-auto bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl shadow-2xl">
+                          {COUNTRIES.filter(c => c.toLowerCase().includes(nationalitySearch.toLowerCase())).map((country) => (
+                            <button
+                              key={country}
+                              type="button"
+                              onClick={() => {
+                                setFormData({ ...formData, nationality: country });
+                                setNationalitySearch(country);
+                                setShowNationalityDropdown(false);
+                              }}
+                              className="w-full text-left px-4 py-3 hover:bg-blue-50 dark:hover:bg-gray-700 text-sm font-bold text-gray-700 dark:text-gray-200 transition-colors border-b border-gray-100 dark:border-gray-700 last:border-0"
+                            >
+                              {country}
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* Date of Birth Field */}
+                <div className="md:col-span-2 space-y-1">
+                  <label className="text-[10px] font-black uppercase tracking-widest ml-1" style={{ color: 'var(--text-secondary)' }}>{t.dateOfBirth}</label>
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10" size={16} />
+                    <input
+                      type="date"
+                      required
+                      value={formData.dateOfBirth}
+                      max={new Date().toISOString().split('T')[0]}
+                      onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
+                      className="w-full pl-10 pr-4 py-3 rounded-xl border outline-none font-bold text-sm bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-900 dark:text-white"
+                    />
+                  </div>
                 </div>
               </div>
 

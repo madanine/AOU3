@@ -2,12 +2,13 @@
 import React, { useState } from 'react';
 import { useApp } from '../../App';
 import { storage } from '../../storage';
-import { User, Smartphone, GraduationCap, Mail, Fingerprint, Save, CheckCircle, Lock, KeyRound, AlertCircle } from 'lucide-react';
+import { User, Smartphone, GraduationCap, Mail, Fingerprint, Save, CheckCircle, Lock, KeyRound, AlertCircle, Globe, Calendar } from 'lucide-react';
 import { Major } from '../../types';
+import { COUNTRIES } from '../../countries';
 
 const Profile: React.FC = () => {
   const { user, setUser, t, lang, settings } = useApp();
-  
+
   // Detect if sub-admin
   const isSubAdmin = !!(user as any).permissions;
 
@@ -16,8 +17,13 @@ const Profile: React.FC = () => {
     phone: user?.phone || '',
     email: user?.email || '',
     major: user?.major as Major | '',
-    universityId: user?.universityId || ''
+    universityId: user?.universityId || '',
+    nationality: user?.nationality || '',
+    dateOfBirth: user?.dateOfBirth || ''
   });
+
+  const [nationalitySearch, setNationalitySearch] = useState(user?.nationality || '');
+  const [showNationalityDropdown, setShowNationalityDropdown] = useState(false);
 
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
@@ -32,7 +38,7 @@ const Profile: React.FC = () => {
     if (isSubAdmin) return; // Sub-admins can't change profile info, only password
 
     const users = storage.getUsers();
-    
+
     if (formData.email !== user?.email && users.find(u => u.email === formData.email && u.id !== user?.id)) {
       setMessage({ text: t.emailExists || 'Email already exists', type: 'error' });
       return;
@@ -40,24 +46,24 @@ const Profile: React.FC = () => {
 
     const updatedUsers = users.map(u => u.id === user?.id ? { ...u, ...formData } : u);
     storage.setUsers(updatedUsers);
-    
+
     const updatedUser = { ...user!, ...formData };
     setUser(updatedUser);
     storage.setAuthUser(updatedUser);
-    
+
     setMessage({ text: t.changesApplied, type: 'success' });
     setTimeout(() => setMessage(null), 3000);
   };
 
   const handleChangePassword = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Security Check: Current password must match
     if (passwordData.currentPassword !== user?.password) {
       setMessage({ text: lang === 'AR' ? 'كلمة المرور الحالية غير صحيحة' : 'Invalid current password', type: 'error' });
       return;
     }
-    
+
     // Security Check: Confirm new password
     if (passwordData.newPassword !== passwordData.confirmNewPassword) {
       setMessage({ text: lang === 'AR' ? 'كلمات المرور غير متطابقة' : 'Passwords do not match', type: 'error' });
@@ -67,11 +73,11 @@ const Profile: React.FC = () => {
     if (isSubAdmin) {
       // Logic for Sub-Admins (Stored in localStorage["subAdmins"])
       const subAdmins = JSON.parse(localStorage.getItem('subAdmins') || '[]');
-      const updatedSubAdmins = subAdmins.map((a: any) => 
+      const updatedSubAdmins = subAdmins.map((a: any) =>
         a.id === user?.id ? { ...a, password: passwordData.newPassword } : a
       );
       localStorage.setItem('subAdmins', JSON.stringify(updatedSubAdmins));
-      
+
       const updatedUser = { ...user!, password: passwordData.newPassword };
       setUser(updatedUser);
       storage.setAuthUser(updatedUser);
@@ -80,7 +86,7 @@ const Profile: React.FC = () => {
       const users = storage.getUsers();
       const updatedUsers = users.map(u => u.id === user?.id ? { ...u, password: passwordData.newPassword } : u);
       storage.setUsers(updatedUsers);
-      
+
       const updatedUser = { ...user!, password: passwordData.newPassword };
       setUser(updatedUser);
       storage.setAuthUser(updatedUser);
@@ -112,7 +118,7 @@ const Profile: React.FC = () => {
           <div className="lg:col-span-2 space-y-8">
             <div className="rounded-[2.5rem] shadow-xl border overflow-hidden" style={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)' }}>
               <div className="h-24 bg-[var(--primary)] opacity-90 relative">
-                 <div className={`absolute -bottom-10 ${lang === 'AR' ? 'right-10' : 'left-10'}`}>
+                <div className={`absolute -bottom-10 ${lang === 'AR' ? 'right-10' : 'left-10'}`}>
                   <div className="w-20 h-20 rounded-2xl bg-white p-1 shadow-lg" style={{ backgroundColor: 'var(--card-bg)' }}>
                     <div className="w-full h-full rounded-xl bg-gray-50 flex items-center justify-center text-[var(--primary)] font-black text-2xl overflow-hidden">
                       {settings.branding.logoBase64 ? (
@@ -134,7 +140,7 @@ const Profile: React.FC = () => {
                       <input
                         required
                         value={formData.universityId}
-                        onChange={(e) => setFormData({...formData, universityId: e.target.value})}
+                        onChange={(e) => setFormData({ ...formData, universityId: e.target.value })}
                         className="w-full pl-10 pr-4 py-3 bg-gray-50/50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none transition-all text-sm font-bold text-gray-700"
                       />
                     </div>
@@ -148,7 +154,7 @@ const Profile: React.FC = () => {
                         required
                         type="email"
                         value={formData.email}
-                        onChange={(e) => setFormData({...formData, email: e.target.value})}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                         className="w-full pl-10 pr-4 py-3 bg-gray-50/50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none transition-all text-sm font-bold text-gray-700"
                       />
                     </div>
@@ -159,7 +165,7 @@ const Profile: React.FC = () => {
                     <input
                       required
                       value={formData.fullName}
-                      onChange={(e) => setFormData({...formData, fullName: e.target.value})}
+                      onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                       className="w-full px-5 py-3 bg-gray-50/50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none transition-all text-sm font-bold text-gray-700"
                     />
                   </div>
@@ -170,7 +176,7 @@ const Profile: React.FC = () => {
                       <Smartphone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" size={16} />
                       <input
                         value={formData.phone}
-                        onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                         className="w-full pl-10 pr-4 py-3 bg-gray-50/50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none transition-all text-sm font-bold text-gray-700"
                       />
                     </div>
@@ -182,16 +188,76 @@ const Profile: React.FC = () => {
                       <select
                         required
                         value={formData.major}
-                        onChange={(e) => setFormData({...formData, major: e.target.value as Major})}
-                        className={`w-full py-3 bg-gray-50/50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none transition-all text-sm font-bold text-gray-700 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23cbd5e1%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C/polyline%3E%3C/svg%3E')] bg-[length:18px] bg-no-repeat ${
-                          lang === 'AR' ? 'bg-[left_1rem_center] pl-10 pr-5' : 'bg-[right_1rem_center] pr-10 pl-5'
-                        }`}
+                        onChange={(e) => setFormData({ ...formData, major: e.target.value as Major })}
+                        className={`w-full py-3 bg-gray-50/50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none transition-all text-sm font-bold text-gray-700 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23cbd5e1%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C/polyline%3E%3C/svg%3E')] bg-[length:18px] bg-no-repeat ${lang === 'AR' ? 'bg-[left_1rem_center] pl-10 pr-5' : 'bg-[right_1rem_center] pr-10 pl-5'
+                          }`}
                       >
                         <option value="">{t.selectMajor}</option>
                         {Object.entries(t.majorList).map(([key, value]) => (
                           <option key={key} value={key}>{value as string}</option>
                         ))}
                       </select>
+                    </div>
+                  </div>
+
+                  {/* Nationality Field */}
+                  <div className="space-y-2 md:col-span-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest ml-1" style={{ color: 'var(--text-secondary)' }}>{t.nationality}</label>
+                    <div className="relative">
+                      <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" size={16} />
+                      <input
+                        type="text"
+                        required
+                        value={formData.nationality || nationalitySearch}
+                        onChange={(e) => {
+                          setNationalitySearch(e.target.value);
+                          setShowNationalityDropdown(true);
+                          if (COUNTRIES.includes(e.target.value)) {
+                            setFormData({ ...formData, nationality: e.target.value });
+                          }
+                        }}
+                        onFocus={() => setShowNationalityDropdown(true)}
+                        placeholder={t.selectNationality}
+                        autoComplete="off"
+                        className="w-full pl-10 pr-4 py-3 bg-gray-50/50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none transition-all text-sm font-bold text-gray-700"
+                      />
+                      {showNationalityDropdown && (
+                        <>
+                          <div className="fixed inset-0 z-20" onClick={() => setShowNationalityDropdown(false)} />
+                          <div className="absolute z-30 w-full mt-2 max-h-60 overflow-y-auto bg-white dark:bg-gray-800 border border-gray-200 rounded-xl shadow-2xl">
+                            {COUNTRIES.filter(c => c.toLowerCase().includes(nationalitySearch.toLowerCase())).map((country) => (
+                              <button
+                                key={country}
+                                type="button"
+                                onClick={() => {
+                                  setFormData({ ...formData, nationality: country });
+                                  setNationalitySearch(country);
+                                  setShowNationalityDropdown(false);
+                                }}
+                                className="w-full text-left px-4 py-3 hover:bg-blue-50 dark:hover:bg-gray-700 text-sm font-bold text-gray-700 dark:text-gray-200 transition-colors border-b border-gray-100 dark:border-gray-700 last:border-0"
+                              >
+                                {country}
+                              </button>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Date of Birth Field */}
+                  <div className="space-y-2 md:col-span-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest ml-1" style={{ color: 'var(--text-secondary)' }}>{t.dateOfBirth}</label>
+                    <div className="relative">
+                      <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" size={16} />
+                      <input
+                        type="date"
+                        required
+                        value={formData.dateOfBirth}
+                        max={new Date().toISOString().split('T')[0]}
+                        onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
+                        className="w-full pl-10 pr-4 py-3 bg-gray-50/50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none transition-all text-sm font-bold text-gray-700"
+                      />
                     </div>
                   </div>
                 </div>
@@ -226,7 +292,7 @@ const Profile: React.FC = () => {
                     type="password"
                     required
                     value={passwordData.currentPassword}
-                    onChange={(e) => setPasswordData({...passwordData, currentPassword: e.target.value})}
+                    onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
                     className="w-full pl-10 pr-4 py-3 bg-gray-50/50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none text-sm font-bold"
                   />
                 </div>
@@ -240,7 +306,7 @@ const Profile: React.FC = () => {
                     type="password"
                     required
                     value={passwordData.newPassword}
-                    onChange={(e) => setPasswordData({...passwordData, newPassword: e.target.value})}
+                    onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
                     className="w-full pl-10 pr-4 py-3 bg-gray-50/50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none text-sm font-bold"
                   />
                 </div>
@@ -254,7 +320,7 @@ const Profile: React.FC = () => {
                     type="password"
                     required
                     value={passwordData.confirmNewPassword}
-                    onChange={(e) => setPasswordData({...passwordData, confirmNewPassword: e.target.value})}
+                    onChange={(e) => setPasswordData({ ...passwordData, confirmNewPassword: e.target.value })}
                     className="w-full pl-10 pr-4 py-3 bg-gray-50/50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none text-sm font-bold"
                   />
                 </div>
