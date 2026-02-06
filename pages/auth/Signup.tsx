@@ -1,10 +1,12 @@
 
+
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useApp } from '../../App';
 import { supabaseService } from '../../supabaseService';
 import { User, Major, Language } from '../../types';
-import { User as UserIcon, Mail, KeyRound, Phone, ArrowRight, ShieldCheck, Loader2, Eye, EyeOff, Sun, Moon } from 'lucide-react';
+import { User as UserIcon, Mail, KeyRound, Phone, ArrowRight, ShieldCheck, Loader2, Eye, EyeOff, Sun, Moon, Globe, Calendar } from 'lucide-react';
+import { COUNTRIES } from '../../countries';
 
 const SignupPage: React.FC = () => {
   const { setUser, t, lang, settings, setLang, isDarkMode, toggleDarkMode } = useApp();
@@ -17,13 +19,35 @@ const SignupPage: React.FC = () => {
     password: '',
     confirmPassword: '',
     phone: '',
-    major: '' as Major | ''
+    major: '' as Major | '',
+    nationality: '',
+    dateOfBirth: ''
   });
 
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [nationalitySearch, setNationalitySearch] = useState('');
+  const [showNationalityDropdown, setShowNationalityDropdown] = useState(false);
+
+  // DOB Wheel Picker State
+  const [dobDay, setDobDay] = useState('');
+  const [dobMonth, setDobMonth] = useState('');
+  const [dobYear, setDobYear] = useState('');
+
+
+  // Calculate age from DOB
+  const calculateAge = (dob: string): number => {
+    const today = new Date();
+    const birthDate = new Date(dob);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
+  };
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,20 +60,52 @@ const SignupPage: React.FC = () => {
       return;
     }
 
+    // Validate nationality
+    if (!formData.nationality) {
+      setError(lang === 'AR' ? 'يرجى اختيار الجنسية' : 'Please select nationality');
+      setIsLoading(false);
+      return;
+    }
+
+    // Validate DOB
+    if (!dobDay || !dobMonth || !dobYear) {
+      setError(lang === 'AR' ? 'يرجى إدخال تاريخ الميلاد' : 'Please enter date of birth');
+      setIsLoading(false);
+      return;
+    }
+
+    // Construct DOB string (YYYY-MM-DD)
+    const dobString = `${dobYear}-${dobMonth.padStart(2, '0')}-${dobDay.padStart(2, '0')}`;
+
+    // Validate age (18+)
+    const age = calculateAge(dobString);
+    if (age < 18) {
+      setError(t.ageError);
+      setIsLoading(false);
+      return;
+    }
+
+    // Validate future date
+    const dobDate = new Date(dobString);
+    if (dobDate > new Date()) {
+      setError(lang === 'AR' ? 'تاريخ الميلاد لا يمكن أن يكون في المستقبل' : 'Date of birth cannot be in the future');
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      // 1. Sign up via Supabase Auth
-      // The trigger we added to SQL will handle profile creation in the 'profiles' table.
+      // Sign up via Supabase Auth with nationality and DOB
       const authUser = await supabaseService.signUp(formData.email, formData.password, {
         full_name: formData.fullName,
         university_id: formData.universityId,
         role: 'student',
         phone: formData.phone,
-        major: formData.major
+        major: formData.major,
+        nationality: formData.nationality,
+        date_of_birth: dobString
       });
 
       if (authUser) {
-        // Success
-        // We wait a bit or try to fetch profile to ensure trigger finished
         setTimeout(async () => {
           try {
             const profile = await supabaseService.getProfile(authUser.id);
@@ -57,7 +113,6 @@ const SignupPage: React.FC = () => {
             navigate('/student/registration');
           } catch (e) {
             console.error('Wait for profile failed', e);
-            // Fallback: manually fetch again in a bit or redirect to login
             navigate('/auth/login');
           }
         }, 1500);
@@ -223,6 +278,103 @@ const SignupPage: React.FC = () => {
                       <option key={key} value={key}>{value as string}</option>
                     ))}
                   </select>
+                </div>
+              </div>
+
+              {/* Nationality Dropdown (Searchable) */}
+              <div className="md:col-span-2 space-y-1">
+                <label className="text-[10px] font-black uppercase tracking-widest ml-1 block" style={{ color: 'var(--text-secondary)' }}>{t.nationality}</label>
+                <div className="relative">
+                  <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-black/50 z-10" size={16} />
+                  <input
+                    type="text"
+                    required
+                    value={formData.nationality || nationalitySearch}
+                    onChange={(e) => {
+                      setNationalitySearch(e.target.value);
+                      setShowNationalityDropdown(true);
+                      if (COUNTRIES.includes(e.target.value)) {
+                        setFormData({ ...formData, nationality: e.target.value });
+                      }
+                    }}
+                    onFocus={() => setShowNationalityDropdown(true)}
+                    className={inputClasses}
+                    placeholder={t.selectNationality}
+                    autoComplete="off"
+                  />
+                  {showNationalityDropdown && (
+                    <>
+                      <div className="fixed inset-0 z-20" onClick={() => setShowNationalityDropdown(false)} />
+                      <div className="absolute z-30 w-full mt-2 max-h-60 overflow-y-auto bg-white border border-gray-200 rounded-xl shadow-2xl">
+                        {COUNTRIES.filter(c => c.toLowerCase().includes(nationalitySearch.toLowerCase())).map((country) => (
+                          <button
+                            key={country}
+                            type="button"
+                            onClick={() => {
+                              setFormData({ ...formData, nationality: country });
+                              setNationalitySearch(country);
+                              setShowNationalityDropdown(false);
+                            }}
+                            className="w-full text-left px-4 py-3 hover:bg-blue-50 text-sm font-bold text-gray-700 transition-colors border-b border-gray-100 last:border-0"
+                          >
+                            {country}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Date of Birth (Wheel Picker) */}
+              <div className="md:col-span-2 space-y-1">
+                <label className="text-[10px] font-black uppercase tracking-widest ml-1 block" style={{ color: 'var(--text-secondary)' }}>{t.dateOfBirth}</label>
+                <div className="grid grid-cols-3 gap-3">
+                  {/* Day */}
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-black/50 z-10" size={16} />
+                    <select
+                      required
+                      value={dobDay}
+                      onChange={(e) => setDobDay(e.target.value)}
+                      className={`w-full pl-10 pr-4 py-3 bg-white/20 border border-[var(--border-color)] rounded-xl focus:ring-2 focus:ring-[var(--primary)] focus:bg-white/40 outline-none transition-all text-sm font-bold text-black appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23000000%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C/polyline%3E%3C/svg%3E')] bg-[length:16px] bg-[right_0.5rem_center] bg-no-repeat`}
+                    >
+                      <option value="">{t.day}</option>
+                      {Array.from({ length: 31 }, (_, i) => i + 1).map(d => (
+                        <option key={d} value={d}>{d}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Month */}
+                  <div>
+                    <select
+                      required
+                      value={dobMonth}
+                      onChange={(e) => setDobMonth(e.target.value)}
+                      className={`w-full py-3 px-4 bg-white/20 border border-[var(--border-color)] rounded-xl focus:ring-2 focus:ring-[var(--primary)] focus:bg-white/40 outline-none transition-all text-sm font-bold text-black appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23000000%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C/polyline%3E%3C/svg%3E')] bg-[length:16px] bg-[right_0.5rem_center] bg-no-repeat`}
+                    >
+                      <option value="">{t.month}</option>
+                      {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
+                        <option key={m} value={m}>{m}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Year */}
+                  <div>
+                    <select
+                      required
+                      value={dobYear}
+                      onChange={(e) => setDobYear(e.target.value)}
+                      className={`w-full py-3 px-4 bg-white/20 border border-[var(--border-color)] rounded-xl focus:ring-2 focus:ring-[var(--primary)] focus:bg-white/40 outline-none transition-all text-sm font-bold text-black appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23000000%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C/polyline%3E%3C/svg%3E')] bg-[length:16px] bg-[right_0.5rem_center] bg-no-repeat`}
+                    >
+                      <option value="">{t.year}</option>
+                      {Array.from({ length: new Date().getFullYear() - 1950 + 1 }, (_, i) => new Date().getFullYear() - i).map(y => (
+                        <option key={y} value={y}>{y}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </div>
             </div>

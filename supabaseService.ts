@@ -40,11 +40,13 @@ export const supabaseService = {
             ...data,
             fullName: data.full_name,
             universityId: data.university_id,
-            password: data.password, // Include password
+            password: data.password,
+            nationality: data.nationality,
+            dateOfBirth: data.date_of_birth,
             assignedCourses: data.assigned_courses,
             supervisorPermissions: data.supervisor_permissions,
-            permissions: data.admin_permissions, // New field
-            fullAccess: data.full_access, // New field
+            permissions: data.admin_permissions,
+            fullAccess: data.full_access,
             isDisabled: data.is_disabled,
             createdAt: data.created_at
         } as User;
@@ -58,11 +60,13 @@ export const supabaseService = {
             ...p,
             fullName: p.full_name,
             universityId: p.university_id,
-            password: p.password, // Include password
+            password: p.password,
+            nationality: p.nationality,
+            dateOfBirth: p.date_of_birth,
             assignedCourses: p.assigned_courses,
             supervisorPermissions: p.supervisor_permissions,
-            permissions: p.admin_permissions, // New field
-            fullAccess: p.full_access, // New field
+            permissions: p.admin_permissions,
+            fullAccess: p.full_access,
             isDisabled: p.is_disabled,
             createdAt: p.created_at
         })) as User[];
@@ -80,10 +84,12 @@ export const supabaseService = {
             university_id: user.universityId,
             phone: user.phone || '',
             major: user.major || '',
+            nationality: user.nationality || null,
+            date_of_birth: user.dateOfBirth || null,
             password: user.password,
             assigned_courses: user.assignedCourses || [],
             supervisor_permissions: user.supervisorPermissions || null,
-            admin_permissions: user.permissions || null, // Map permissions for admins
+            admin_permissions: user.permissions || null,
             full_access: user.fullAccess === undefined ? true : user.fullAccess,
             is_disabled: user.isDisabled || false
         };

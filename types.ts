@@ -12,6 +12,8 @@ export interface User {
   universityId: string;
   phone?: string;
   major?: Major | string;
+  nationality?: string;
+  dateOfBirth?: string;
   createdAt: string;
   assignedCourses?: string[];
   supervisorPermissions?: {

@@ -3,7 +3,8 @@ import React, { useState } from 'react';
 import { useApp } from '../../App';
 import { storage } from '../../storage';
 import { User, Major } from '../../types';
-import { Plus, Edit2, Trash2, X, Users, Save, Search, UserMinus, UserCheck, ShieldAlert, Key } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Users, Save, Search, UserMinus, UserCheck, ShieldAlert, Key, Globe, Calendar } from 'lucide-react';
+import { COUNTRIES } from '../../countries';
 
 const AdminStudents: React.FC = () => {
   const { t, lang, isDarkMode, user } = useApp();
@@ -19,8 +20,13 @@ const AdminStudents: React.FC = () => {
     email: '',
     phone: '',
     major: '',
+    nationality: '',
+    dateOfBirth: '',
     password: ''
   });
+
+  const [nationalitySearch, setNationalitySearch] = useState('');
+  const [showNationalityDropdown, setShowNationalityDropdown] = useState(false);
 
   const students = users.filter(u => u.role === 'student');
   const filteredStudents = students.filter(s =>
@@ -42,13 +48,15 @@ const AdminStudents: React.FC = () => {
 
   const handleOpenAdd = () => {
     setEditingUser(null);
-    setFormData({ fullName: '', universityId: '', email: '', phone: '', major: '', password: '' });
+    setFormData({ fullName: '', universityId: '', email: '', phone: '', major: '', nationality: '', dateOfBirth: '', password: '' });
+    setNationalitySearch('');
     setIsModalOpen(true);
   };
 
   const handleOpenEdit = (user: User) => {
     setEditingUser(user);
     setFormData({ ...user });
+    setNationalitySearch(user.nationality || '');
     setIsModalOpen(true);
   };
 
