@@ -351,5 +351,25 @@ export const supabaseService = {
 
         const { error } = await supabase.from('participation').upsert(payload, { onConflict: 'course_id,student_id,lecture_index' });
         if (error) console.error('Participation Upsert Error:', error);
+    },
+
+    async deleteAttendance(courseId: string, studentId: string, lectureIndex: number) {
+        const { error } = await supabase
+            .from('attendance')
+            .delete()
+            .eq('course_id', courseId)
+            .eq('student_id', studentId)
+            .eq('lecture_index', lectureIndex);
+        if (error) console.error('Attendance Delete Error:', error);
+    },
+
+    async deleteParticipation(courseId: string, studentId: string, lectureIndex: number) {
+        const { error } = await supabase
+            .from('participation')
+            .delete()
+            .eq('course_id', courseId)
+            .eq('student_id', studentId)
+            .eq('lecture_index', lectureIndex);
+        if (error) console.error('Participation Delete Error:', error);
     }
 };

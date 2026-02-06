@@ -90,13 +90,13 @@ const AdminAttendance: React.FC = () => {
       const studentArr = [...(courseRecord[studentId] || Array(12).fill(null))];
 
       const current = studentArr[lectureIdx];
-      // Logic: null -> true -> false -> true
+      // 3-State Logic: null → true (Present) → false (Absent) → null (Unmarked)
       if (current === null || current === undefined) {
         studentArr[lectureIdx] = true;
       } else if (current === true) {
         studentArr[lectureIdx] = false;
       } else {
-        studentArr[lectureIdx] = true;
+        studentArr[lectureIdx] = null;
       }
 
       return {

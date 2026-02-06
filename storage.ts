@@ -210,19 +210,25 @@ export const storage = {
 
     // Convert Map to Rows for Supabase
     const rows: { courseId: string; studentId: string; lectureIndex: number; status: boolean; }[] = [];
+    const deletions: { courseId: string; studentId: string; lectureIndex: number; }[] = [];
+
     Object.entries(recordMap).forEach(([cId, students]) => {
       Object.entries(students).forEach(([sId, attendanceArr]) => {
         attendanceArr.forEach((status, idx) => {
           if (status !== null) {
             rows.push({ courseId: cId, studentId: sId, lectureIndex: idx, status });
+          } else {
+            // Track nulls for deletion
+            deletions.push({ courseId: cId, studentId: sId, lectureIndex: idx });
           }
         });
       });
     });
 
-    // Bulk upsert would be better but we only have single upsert in service
-    // Ideally we should add bulk upsert to service
+    // Upsert non-null values
     rows.forEach(r => supabaseService.upsertAttendance(r).catch(() => { }));
+    // Delete null values
+    deletions.forEach(d => supabaseService.deleteAttendance(d.courseId, d.studentId, d.lectureIndex).catch(() => { }));
   },
 
   // Note: syncFromSupabase handles the reverse conversion (Row -> Map)
@@ -235,18 +241,25 @@ export const storage = {
 
     // Convert Map to Rows for Supabase
     const rows: { courseId: string; studentId: string; lectureIndex: number; status: boolean; }[] = [];
+    const deletions: { courseId: string; studentId: string; lectureIndex: number; }[] = [];
+
     Object.entries(recordMap).forEach(([cId, students]) => {
       Object.entries(students).forEach(([sId, participationArr]) => {
         participationArr.forEach((status, idx) => {
           if (status !== null) {
             rows.push({ courseId: cId, studentId: sId, lectureIndex: idx, status });
+          } else {
+            // Track nulls for deletion
+            deletions.push({ courseId: cId, studentId: sId, lectureIndex: idx });
           }
         });
       });
     });
 
-    // Bulk upsert to Supabase
+    // Upsert non-null values
     rows.forEach(r => supabaseService.upsertParticipation(r).catch(() => { }));
+    // Delete null values
+    deletions.forEach(d => supabaseService.deleteParticipation(d.courseId, d.studentId, d.lectureIndex).catch(() => { }));
   },
 
   getSemesters: (): Semester[] => JSON.parse(localStorage.getItem(KEYS.SEMESTERS) || '[]'),
