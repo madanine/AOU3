@@ -65,7 +65,7 @@ const MainLayout: React.FC = () => {
         { label: t.courses, path: '/admin/courses', icon: BookOpen, key: 'courses' },
         { label: t.assignments, path: '/admin/assignments', icon: ClipboardList, key: 'assignments' },
         { label: t.grading, path: '/admin/grading', icon: GradIcon, key: 'grading' },
-        { label: lang === 'AR' ? 'التحضير' : 'Attendance', path: '/admin/attendance', icon: CheckSquare, key: 'attendance' },
+        { label: lang === 'AR' ? 'الحضور' : 'Attendance', path: '/admin/attendance', icon: CheckSquare, key: 'attendance' },
         { label: lang === 'AR' ? 'المشرفين' : 'Supervisors', path: '/admin/supervisors', icon: ShieldCheck, key: 'supervisors' },
         { label: t.students, path: '/admin/students', icon: Users, key: 'students' },
         { label: t.enrollments, path: '/admin/enrollments', icon: Library, key: 'enrollments' },
@@ -93,7 +93,7 @@ const MainLayout: React.FC = () => {
       const items = [];
 
       if (perms.attendance) {
-        items.push({ label: lang === 'AR' ? 'التحضير' : 'Attendance', path: '/supervisor/attendance', icon: CheckSquare, key: 'attendance' });
+        items.push({ label: lang === 'AR' ? 'الحضور' : 'Attendance', path: '/supervisor/attendance', icon: CheckSquare, key: 'attendance' });
       }
       if (perms.assignments) {
         items.push({ label: t.assignments, path: '/supervisor/assignments', icon: ClipboardList, key: 'assignments' });

@@ -37,7 +37,7 @@ const AdminManagement: React.FC = () => {
   const permissionLabels: Record<string, string> = {
     dashboard: lang === 'AR' ? 'لوحة التحكم' : 'Dashboard',
     courses: lang === 'AR' ? 'المواد' : 'Courses',
-    attendance: lang === 'AR' ? 'التحضير' : 'Attendance',
+    attendance: lang === 'AR' ? 'الحضور' : 'Attendance',
     supervisors: lang === 'AR' ? 'المشرفين' : 'Supervisors',
     students: lang === 'AR' ? 'الطلاب' : 'Students',
     enrollments: lang === 'AR' ? 'التسجيلات' : 'Enrollments',
