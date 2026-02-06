@@ -368,8 +368,8 @@ const AdminAttendance: React.FC = () => {
 
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>{lang === 'AR' ? 'التحضير والمشاركة' : 'Attendance & Participation'}</h1>
-          <p className="font-medium" style={{ color: 'var(--text-secondary)' }}>{user?.role === 'admin' ? 'نظام تحضير الطلاب المركزي' : 'موادك المسندة'}</p>
+          <h1 className="text-3xl font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>{lang === 'AR' ? 'الحضور والمشاركة' : 'Attendance & Participation'}</h1>
+          <p className="font-medium" style={{ color: 'var(--text-secondary)' }}>{user?.role === 'admin' ? 'نظام الحضور والمشاركة المركزي' : 'موادك المسندة'}</p>
         </div>
 
         <div className="flex bg-gray-100 p-1 rounded-xl">
