@@ -6,7 +6,7 @@ import { useApp } from '../../App';
 import { supabaseService } from '../../supabaseService';
 import { User, Major, Language } from '../../types';
 import { User as UserIcon, Mail, KeyRound, Phone, ArrowRight, ShieldCheck, Loader2, Eye, EyeOff, Sun, Moon, Globe, Calendar } from 'lucide-react';
-import { COUNTRIES } from '../../countries';
+import { COUNTRIES, getCountryName, findCountryByName } from '../../countries';
 
 const SignupPage: React.FC = () => {
   const { setUser, t, lang, settings, setLang, isDarkMode, toggleDarkMode } = useApp();
@@ -53,6 +53,13 @@ const SignupPage: React.FC = () => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
+
+    // Password validation (min 6 characters)
+    if (formData.password.length < 6) {
+      setError(lang === 'AR' ? 'يجب أن تكون كلمة المرور 6 أحرف على الأقل' : 'Password must be at least 6 characters');
+      setIsLoading(false);
+      return;
+    }
 
     if (formData.password !== formData.confirmPassword) {
       setError(lang === 'AR' ? 'كلمات المرور غير متطابقة' : 'Passwords do not match');
@@ -289,12 +296,15 @@ const SignupPage: React.FC = () => {
                   <input
                     type="text"
                     required
-                    value={formData.nationality || nationalitySearch}
+                    value={nationalitySearch}
                     onChange={(e) => {
-                      setNationalitySearch(e.target.value);
+                      const searchValue = e.target.value;
+                      setNationalitySearch(searchValue);
                       setShowNationalityDropdown(true);
-                      if (COUNTRIES.includes(e.target.value)) {
-                        setFormData({ ...formData, nationality: e.target.value });
+
+                      // Clear nationality if user is typing (makes it editable)
+                      if (formData.nationality && searchValue !== getCountryName(formData.nationality, lang)) {
+                        setFormData({ ...formData, nationality: '' });
                       }
                     }}
                     onFocus={() => setShowNationalityDropdown(true)}
@@ -306,20 +316,26 @@ const SignupPage: React.FC = () => {
                     <>
                       <div className="fixed inset-0 z-20" onClick={() => setShowNationalityDropdown(false)} />
                       <div className="absolute z-30 w-full mt-2 max-h-60 overflow-y-auto bg-white border border-gray-200 rounded-xl shadow-2xl">
-                        {COUNTRIES.filter(c => c.toLowerCase().includes(nationalitySearch.toLowerCase())).map((country) => (
-                          <button
-                            key={country}
-                            type="button"
-                            onClick={() => {
-                              setFormData({ ...formData, nationality: country });
-                              setNationalitySearch(country);
-                              setShowNationalityDropdown(false);
-                            }}
-                            className="w-full text-left px-4 py-3 hover:bg-blue-50 text-sm font-bold text-gray-700 transition-colors border-b border-gray-100 last:border-0"
-                          >
-                            {country}
-                          </button>
-                        ))}
+                        {COUNTRIES.filter(country => {
+                          const displayName = lang === 'AR' ? country.name_ar : country.name_en;
+                          return displayName.toLowerCase().includes(nationalitySearch.toLowerCase());
+                        }).map((country) => {
+                          const displayName = lang === 'AR' ? country.name_ar : country.name_en;
+                          return (
+                            <button
+                              key={country.code}
+                              type="button"
+                              onClick={() => {
+                                setFormData({ ...formData, nationality: country.code });
+                                setNationalitySearch(displayName);
+                                setShowNationalityDropdown(false);
+                              }}
+                              className="w-full text-left px-4 py-3 hover:bg-blue-50 text-sm font-bold text-gray-700 transition-colors border-b border-gray-100 last:border-0"
+                            >
+                              {displayName}
+                            </button>
+                          );
+                        })}
                       </div>
                     </>
                   )}
@@ -337,7 +353,7 @@ const SignupPage: React.FC = () => {
                       required
                       value={dobDay}
                       onChange={(e) => setDobDay(e.target.value)}
-                      className={`w-full pl-10 pr-4 py-3 bg-white/20 border border-[var(--border-color)] rounded-xl focus:ring-2 focus:ring-[var(--primary)] focus:bg-white/40 outline-none transition-all text-sm font-bold text-black appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23000000%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C/polyline%3E%3C/svg%3E')] bg-[length:16px] bg-[right_0.5rem_center] bg-no-repeat`}
+                      className={`w-full pl-10 pr-4 py-3 bg-white/20 border border-[var(--border-color)] rounded-xl focus:ring-2 focus:ring-[var(--primary)] focus:bg-white/40 outline-none transition-all text-sm font-bold text-black appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23000000%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C/polyline%3E%3C/svg%3E')] bg-[length:16px] bg-no-repeat ${lang === 'AR' ? 'bg-[left_0.5rem_center]' : 'bg-[right_0.5rem_center]'}`}
                     >
                       <option value="">{t.day}</option>
                       {Array.from({ length: 31 }, (_, i) => i + 1).map(d => (
@@ -352,7 +368,7 @@ const SignupPage: React.FC = () => {
                       required
                       value={dobMonth}
                       onChange={(e) => setDobMonth(e.target.value)}
-                      className={`w-full py-3 px-4 bg-white/20 border border-[var(--border-color)] rounded-xl focus:ring-2 focus:ring-[var(--primary)] focus:bg-white/40 outline-none transition-all text-sm font-bold text-black appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23000000%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C/polyline%3E%3C/svg%3E')] bg-[length:16px] bg-[right_0.5rem_center] bg-no-repeat`}
+                      className={`w-full py-3 px-4 bg-white/20 border border-[var(--border-color)] rounded-xl focus:ring-2 focus:ring-[var(--primary)] focus:bg-white/40 outline-none transition-all text-sm font-bold text-black appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23000000%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C/polyline%3E%3C/svg%3E')] bg-[length:16px] bg-no-repeat ${lang === 'AR' ? 'bg-[left_0.5rem_center]' : 'bg-[right_0.5rem_center]'}`}
                     >
                       <option value="">{t.month}</option>
                       {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
@@ -367,7 +383,7 @@ const SignupPage: React.FC = () => {
                       required
                       value={dobYear}
                       onChange={(e) => setDobYear(e.target.value)}
-                      className={`w-full py-3 px-4 bg-white/20 border border-[var(--border-color)] rounded-xl focus:ring-2 focus:ring-[var(--primary)] focus:bg-white/40 outline-none transition-all text-sm font-bold text-black appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23000000%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C/polyline%3E%3C/svg%3E')] bg-[length:16px] bg-[right_0.5rem_center] bg-no-repeat`}
+                      className={`w-full py-3 px-4 bg-white/20 border border-[var(--border-color)] rounded-xl focus:ring-2 focus:ring-[var(--primary)] focus:bg-white/40 outline-none transition-all text-sm font-bold text-black appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23000000%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C/polyline%3E%3C/svg%3E')] bg-[length:16px] bg-no-repeat ${lang === 'AR' ? 'bg-[left_0.5rem_center]' : 'bg-[right_0.5rem_center]'}`}
                     >
                       <option value="">{t.year}</option>
                       {Array.from({ length: new Date().getFullYear() - 1950 + 1 }, (_, i) => new Date().getFullYear() - i).map(y => (

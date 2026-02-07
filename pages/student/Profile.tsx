@@ -4,7 +4,7 @@ import { useApp } from '../../App';
 import { storage } from '../../storage';
 import { User, Smartphone, GraduationCap, Mail, Fingerprint, Save, CheckCircle, Lock, KeyRound, AlertCircle, Globe, Calendar } from 'lucide-react';
 import { Major } from '../../types';
-import { COUNTRIES } from '../../countries';
+import { COUNTRIES, getCountryName } from '../../countries';
 
 const Profile: React.FC = () => {
   const { user, setUser, t, lang, settings } = useApp();
@@ -22,7 +22,7 @@ const Profile: React.FC = () => {
     dateOfBirth: user?.dateOfBirth || ''
   });
 
-  const [nationalitySearch, setNationalitySearch] = useState(user?.nationality || '');
+  const [nationalitySearch, setNationalitySearch] = useState(user?.nationality ? getCountryName(user.nationality, lang) : '');
   const [showNationalityDropdown, setShowNationalityDropdown] = useState(false);
 
   const [passwordData, setPasswordData] = useState({
@@ -208,12 +208,15 @@ const Profile: React.FC = () => {
                       <input
                         type="text"
                         required
-                        value={formData.nationality || nationalitySearch}
+                        value={nationalitySearch}
                         onChange={(e) => {
-                          setNationalitySearch(e.target.value);
+                          const searchValue = e.target.value;
+                          setNationalitySearch(searchValue);
                           setShowNationalityDropdown(true);
-                          if (COUNTRIES.includes(e.target.value)) {
-                            setFormData({ ...formData, nationality: e.target.value });
+
+                          // Clear nationality if user is typing
+                          if (formData.nationality && searchValue !== getCountryName(formData.nationality, lang)) {
+                            setFormData({ ...formData, nationality: '' });
                           }
                         }}
                         onFocus={() => setShowNationalityDropdown(true)}
@@ -225,20 +228,26 @@ const Profile: React.FC = () => {
                         <>
                           <div className="fixed inset-0 z-20" onClick={() => setShowNationalityDropdown(false)} />
                           <div className="absolute z-30 w-full mt-2 max-h-60 overflow-y-auto bg-white dark:bg-gray-800 border border-gray-200 rounded-xl shadow-2xl">
-                            {COUNTRIES.filter(c => c.toLowerCase().includes(nationalitySearch.toLowerCase())).map((country) => (
-                              <button
-                                key={country}
-                                type="button"
-                                onClick={() => {
-                                  setFormData({ ...formData, nationality: country });
-                                  setNationalitySearch(country);
-                                  setShowNationalityDropdown(false);
-                                }}
-                                className="w-full text-left px-4 py-3 hover:bg-blue-50 dark:hover:bg-gray-700 text-sm font-bold text-gray-700 dark:text-gray-200 transition-colors border-b border-gray-100 dark:border-gray-700 last:border-0"
-                              >
-                                {country}
-                              </button>
-                            ))}
+                            {COUNTRIES.filter(country => {
+                              const displayName = lang === 'AR' ? country.name_ar : country.name_en;
+                              return displayName.toLowerCase().includes(nationalitySearch.toLowerCase());
+                            }).map((country) => {
+                              const displayName = lang === 'AR' ? country.name_ar : country.name_en;
+                              return (
+                                <button
+                                  key={country.code}
+                                  type="button"
+                                  onClick={() => {
+                                    setFormData({ ...formData, nationality: country.code });
+                                    setNationalitySearch(displayName);
+                                    setShowNationalityDropdown(false);
+                                  }}
+                                  className="w-full text-left px-4 py-3 hover:bg-blue-50 dark:hover:bg-gray-700 text-sm font-bold text-gray-700 dark:text-gray-200 transition-colors border-b border-gray-100 dark:border-gray-700 last:border-0"
+                                >
+                                  {displayName}
+                                </button>
+                              );
+                            })}
                           </div>
                         </>
                       )}
