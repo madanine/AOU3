@@ -79,6 +79,11 @@ const MainLayout: React.FC = () => {
         return perms[item.key] === true;
       });
 
+      // University ID Registry (Super Admin or granted permission)
+      if (isPrimaryAdmin || user.canAccessRegistry) {
+        filtered.push({ label: t.universityIdRegistry, path: '/admin/registry', icon: FileSpreadsheet, key: 'registry' });
+      }
+
       // ONLY Primary Admin can see Admin Management
       if (isPrimaryAdmin) {
         filtered.push({ label: lang === 'AR' ? 'إدارة المسؤولين' : 'Admin Management', path: '/admin/admins', icon: Lock, key: 'adminManagement' });

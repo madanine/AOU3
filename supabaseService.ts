@@ -1,6 +1,6 @@
 
 import { supabase } from './supabase';
-import { User, Course, Enrollment, SiteSettings, AttendanceRow, ParticipationRow, Semester, Assignment, Submission } from './types';
+import { User, Course, Enrollment, SiteSettings, AttendanceRow, ParticipationRow, Semester, Assignment, Submission, AllowedStudent } from './types';
 
 export const supabaseService = {
     // Auth
@@ -48,6 +48,7 @@ export const supabaseService = {
             permissions: data.admin_permissions,
             fullAccess: data.full_access,
             isDisabled: data.is_disabled,
+            canAccessRegistry: data.can_access_registry,
             createdAt: data.created_at
         } as User;
     },
@@ -91,6 +92,7 @@ export const supabaseService = {
             supervisor_permissions: user.supervisorPermissions || null,
             admin_permissions: user.permissions || null,
             full_access: user.fullAccess === undefined ? true : user.fullAccess,
+            can_access_registry: user.canAccessRegistry || false,
             is_disabled: user.isDisabled || false
         };
 
@@ -377,5 +379,192 @@ export const supabaseService = {
             .eq('student_id', studentId)
             .eq('lecture_index', lectureIndex);
         if (error) console.error('Participation Delete Error:', error);
+    },
+
+    // ============================================
+    // University ID Registry Methods (Cloud-Only)
+    // ============================================
+
+    // Check if university ID is valid and available
+    async checkUniversityId(universityId: string) {
+        const { data, error } = await supabase
+            .from('allowed_students')
+            .select('*')
+            .eq('university_id', universityId.trim())
+            .single();
+
+        if (error && error.code !== 'PGRST116') {
+            console.error('University ID Check Error:', error);
+            return null;
+        }
+
+        if (!data) return { exists: false };
+
+        return {
+            exists: true,
+            isUsed: data.is_used,
+            id: data.id,
+            name: data.name
+        };
+    },
+
+    // Mark university ID as used after successful signup
+    async markUniversityIdAsUsed(universityId: string, userId: string) {
+        const { error } = await supabase
+            .from('allowed_students')
+            .update({
+                is_used: true,
+                used_at: new Date().toISOString(),
+                used_by: userId
+            })
+            .eq('university_id', universityId.trim());
+
+        if (error) {
+            console.error('Mark ID as Used Error:', error);
+            throw error;
+        }
+    },
+
+    // Get all allowed students (with search and filter)
+    async getAllowedStudents(searchQuery?: string, filter?: 'all' | 'available' | 'used') {
+        let query = supabase.from('allowed_students').select('*');
+
+        // Apply filter
+        if (filter === 'available') {
+            query = query.eq('is_used', false);
+        } else if (filter === 'used') {
+            query = query.eq('is_used', true);
+        }
+
+        // Apply search
+        if (searchQuery && searchQuery.trim()) {
+            query = query.or(`university_id.ilike.%${searchQuery.trim()}%,name.ilike.%${searchQuery.trim()}%`);
+        }
+
+        query = query.order('created_at', { ascending: false });
+
+        const { data, error } = await query;
+
+        if (error) {
+            console.error('Get Allowed Students Error:', error);
+            throw error;
+        }
+
+        return data.map((item: any) => ({
+            id: item.id,
+            universityId: item.university_id,
+            name: item.name,
+            isUsed: item.is_used,
+            usedAt: item.used_at,
+            usedBy: item.used_by,
+            createdAt: item.created_at
+        }));
+    },
+
+    // Add single allowed student
+    async addAllowedStudent(universityId: string, name: string) {
+        const { data, error } = await supabase
+            .from('allowed_students')
+            .insert({
+                university_id: universityId.trim(),
+                name: name.trim(),
+                is_used: false
+            })
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Add Allowed Student Error:', error);
+            throw error;
+        }
+
+        return {
+            id: data.id,
+            universityId: data.university_id,
+            name: data.name,
+            isUsed: data.is_used,
+            createdAt: data.created_at
+        };
+    },
+
+    // Bulk add allowed students (from Excel)
+    async bulkAddAllowedStudents(students: { universityId: string; name: string }[]) {
+        const records = students.map(s => ({
+            university_id: s.universityId.trim(),
+            name: s.name.trim(),
+            is_used: false
+        }));
+
+        const { data, error } = await supabase
+            .from('allowed_students')
+            .upsert(records, {
+                onConflict: 'university_id',
+                ignoreDuplicates: false
+            })
+            .select();
+
+        if (error) {
+            console.error('Bulk Add Error:', error);
+            throw error;
+        }
+
+        return data || [];
+    },
+
+    // Update allowed student (name only if not used, both if not used)
+    async updateAllowedStudent(id: string, updates: { universityId?: string; name?: string }, isUsed: boolean) {
+        const updateData: any = {};
+
+        // Always allow name updates
+        if (updates.name !== undefined) {
+            updateData.name = updates.name.trim();
+        }
+
+        // Only allow universityId updates if not used
+        if (!isUsed && updates.universityId !== undefined) {
+            updateData.university_id = updates.universityId.trim();
+        }
+
+        const { error } = await supabase
+            .from('allowed_students')
+            .update(updateData)
+            .eq('id', id);
+
+        if (error) {
+            console.error('Update Allowed Student Error:', error);
+            throw error;
+        }
+    },
+
+    // Delete allowed student (only if not used)
+    async deleteAllowedStudent(id: string) {
+        const { error } = await supabase
+            .from('allowed_students')
+            .delete()
+            .eq('id', id)
+            .eq('is_used', false); // Safety: only delete if not used
+
+        if (error) {
+            console.error('Delete Allowed Student Error:', error);
+            throw error;
+        }
+    },
+
+    // Get registry stats
+    async getRegistryStats() {
+        const { data, error } = await supabase
+            .from('allowed_students')
+            .select('is_used');
+
+        if (error) {
+            console.error('Get Stats Error:', error);
+            return { total: 0, available: 0, used: 0 };
+        }
+
+        const total = data.length;
+        const used = data.filter(r => r.is_used).length;
+        const available = total - used;
+
+        return { total, available, used };
     }
 };

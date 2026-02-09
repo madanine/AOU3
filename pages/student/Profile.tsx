@@ -140,8 +140,9 @@ const Profile: React.FC = () => {
                       <input
                         required
                         value={formData.universityId}
-                        onChange={(e) => setFormData({ ...formData, universityId: e.target.value })}
-                        className="w-full pl-10 pr-4 py-3 bg-gray-50/50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none transition-all text-sm font-bold text-gray-700"
+                        readOnly
+                        disabled
+                        className="w-full pl-10 pr-4 py-3 bg-gray-100 border border-gray-200 rounded-xl outline-none text-sm font-bold text-gray-500 cursor-not-allowed"
                       />
                     </div>
                   </div>

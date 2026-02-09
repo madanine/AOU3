@@ -31,6 +31,7 @@ import AdminAssignments from './pages/admin/Assignments';
 import AdminGrading from './pages/admin/Grading';
 import AdminManagement from './pages/admin/AdminManagement';
 import ChangePassword from './pages/admin/ChangePassword';
+import UniversityIdRegistry from './pages/admin/UniversityIdRegistry';
 
 import MainLayout from './components/layout/MainLayout';
 
@@ -236,6 +237,11 @@ const App: React.FC = () => {
             <Route path="/admin/site-settings" element={<AdminSiteSettings />} />
             <Route path="/admin/admins" element={<AdminManagement />} />
             <Route path="/admin/change-password" element={<ChangePassword />} />
+            <Route path="/admin/registry" element={
+              user?.role === 'admin' && (user?.fullAccess || user?.canAccessRegistry) ?
+                <UniversityIdRegistry /> :
+                <Navigate to="/admin/dashboard" />
+            } />
 
             {/* Supervisor Routes */}
             <Route path="/supervisor/attendance" element={<AdminAttendance />} />

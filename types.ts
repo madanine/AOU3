@@ -35,6 +35,18 @@ export interface User {
   };
   fullAccess?: boolean;
   isDisabled?: boolean;
+  canAccessRegistry?: boolean;  // New: University ID Registry permission
+}
+
+// University ID Registry
+export interface AllowedStudent {
+  id: string;
+  universityId: string;
+  name: string;
+  isUsed: boolean;
+  usedAt?: string;
+  usedBy?: string;
+  createdAt: string;
 }
 
 export interface ThemeSettings {

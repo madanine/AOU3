@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../../App';
 import { storage } from '../../storage';
 import { User } from '../../types';
-import { Plus, Shield, X, Save, Edit3, Trash2, Key, Lock, CheckSquare, CheckCircle, AlertTriangle, AlertCircle } from 'lucide-react';
+import { Plus, Shield, X, Save, Edit3, Trash2, Key, Lock, CheckSquare, CheckCircle, AlertTriangle, AlertCircle, FileSpreadsheet } from 'lucide-react';
 
 const AdminManagement: React.FC = () => {
   const { user: currentUser, lang, t } = useApp();
@@ -22,6 +22,7 @@ const AdminManagement: React.FC = () => {
     fullName: '',
     email: '',
     fullAccess: true,
+    canAccessRegistry: false,
     permissions: {
       dashboard: true,
       courses: true,
@@ -42,7 +43,8 @@ const AdminManagement: React.FC = () => {
     students: lang === 'AR' ? 'الطلاب' : 'Students',
     enrollments: lang === 'AR' ? 'التسجيلات' : 'Enrollments',
     exportData: lang === 'AR' ? 'تصدير البيانات' : 'Export Data',
-    siteSettings: lang === 'AR' ? 'إعدادات الموقع' : 'Site Settings'
+    siteSettings: lang === 'AR' ? 'إعدادات الموقع' : 'Site Settings',
+    canAccessRegistry: t.registryAccess
   };
 
   const openAdd = () => {
@@ -53,6 +55,7 @@ const AdminManagement: React.FC = () => {
       fullName: '',
       email: '',
       fullAccess: true,
+      canAccessRegistry: false,
       permissions: {
         dashboard: true, courses: true, attendance: true, supervisors: true,
         students: true, enrollments: true, exportData: true, siteSettings: true
@@ -69,6 +72,7 @@ const AdminManagement: React.FC = () => {
       fullName: adm.fullName || '',
       email: adm.email || '',
       fullAccess: adm.fullAccess !== undefined ? adm.fullAccess : true,
+      canAccessRegistry: adm.canAccessRegistry || false,
       permissions: {
         dashboard: true, courses: true, attendance: true, supervisors: true,
         students: true, enrollments: true, exportData: true, siteSettings: true,
@@ -122,6 +126,7 @@ const AdminManagement: React.FC = () => {
         email: formData.email || `${formData.universityId}@admin.aou.edu`,
         role: 'admin' as const,
         fullAccess: formData.fullAccess,
+        canAccessRegistry: formData.canAccessRegistry,
         permissions: formData.permissions,
         createdAt: existingUser?.createdAt || new Date().toISOString()
       };
@@ -235,6 +240,15 @@ const AdminManagement: React.FC = () => {
                     {formData.fullAccess && <Lock size={14} className="text-white" />}
                   </div>
                   <span className="text-sm font-black text-gray-700 uppercase">{lang === 'AR' ? 'وصول كامل للموقع' : 'Full Access'}</span>
+                </label>
+              </div>
+
+              <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <div onClick={() => setFormData({ ...formData, canAccessRegistry: !formData.canAccessRegistry })} className={`w-6 h-6 rounded-lg border flex items-center justify-center transition-all ${formData.canAccessRegistry ? 'bg-blue-500 border-blue-500' : 'bg-white border-gray-300'}`}>
+                    {formData.canAccessRegistry && <FileSpreadsheet size={14} className="text-white" />}
+                  </div>
+                  <span className="text-sm font-black text-gray-700 uppercase">{permissionLabels.canAccessRegistry}</span>
                 </label>
               </div>
 

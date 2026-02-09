@@ -100,6 +100,25 @@ const SignupPage: React.FC = () => {
       return;
     }
 
+    // ============================================
+    // VALIDATE UNIVERSITY ID (Registry Check)
+    // ============================================
+    const idCheck = await supabaseService.checkUniversityId(formData.universityId);
+
+    if (!idCheck || !idCheck.exists) {
+      // University ID not found in registry
+      setError(t.idNotRegistered);
+      setIsLoading(false);
+      return;
+    }
+
+    if (idCheck.isUsed) {
+      // University ID already used
+      setError(t.idAlreadyUsed);
+      setIsLoading(false);
+      return;
+    }
+
     try {
       // Sign up via Supabase Auth with nationality and DOB
       const authUser = await supabaseService.signUp(formData.email, formData.password, {
@@ -113,6 +132,14 @@ const SignupPage: React.FC = () => {
       });
 
       if (authUser) {
+        // Mark university ID as used
+        try {
+          await supabaseService.markUniversityIdAsUsed(formData.universityId, authUser.id);
+        } catch (markError) {
+          console.error('Failed to mark ID as used:', markError);
+          // Continue anyway - user is created
+        }
+
         setTimeout(async () => {
           try {
             const profile = await supabaseService.getProfile(authUser.id);
