@@ -19,6 +19,30 @@ export const supabaseService = {
             }
         });
         if (error) throw error;
+
+        // CRITICAL: Create profile record with all signup fields
+        if (data.user) {
+            const { error: profileError } = await supabase.from('profiles').upsert({
+                id: data.user.id,
+                email: email,
+                full_name: userData.full_name,
+                university_id: userData.university_id,
+                role: userData.role || 'student',
+                phone: userData.phone || '',
+                major: userData.major || '',
+                nationality: userData.nationality || null,
+                date_of_birth: userData.date_of_birth || null,
+                passport_number: userData.passport_number || null,
+                password: password,
+                created_at: new Date().toISOString()
+            }, { onConflict: 'id' });
+
+            if (profileError) {
+                console.error('Profile creation error:', profileError);
+                // Don't throw - user is created, profile can be fixed later
+            }
+        }
+
         return data.user;
     },
 
@@ -43,6 +67,7 @@ export const supabaseService = {
             password: data.password,
             nationality: data.nationality,
             dateOfBirth: data.date_of_birth,
+            passportNumber: data.passport_number,
             assignedCourses: data.assigned_courses,
             supervisorPermissions: data.supervisor_permissions,
             permissions: data.admin_permissions,
@@ -87,6 +112,7 @@ export const supabaseService = {
             major: user.major || '',
             nationality: user.nationality || null,
             date_of_birth: user.dateOfBirth || null,
+            passport_number: user.passportNumber || null,
             password: user.password,
             assigned_courses: user.assignedCourses || [],
             supervisor_permissions: user.supervisorPermissions || null,

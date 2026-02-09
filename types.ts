@@ -14,6 +14,7 @@ export interface User {
   major?: Major | string;
   nationality?: string;
   dateOfBirth?: string;
+  passportNumber?: string;
   createdAt: string;
   assignedCourses?: string[];
   supervisorPermissions?: {

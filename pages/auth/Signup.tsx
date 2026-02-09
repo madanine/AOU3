@@ -21,6 +21,7 @@ const SignupPage: React.FC = () => {
     phone: '',
     major: '' as Major | '',
     nationality: '',
+    passportNumber: '',
     dateOfBirth: ''
   });
 
@@ -120,7 +121,7 @@ const SignupPage: React.FC = () => {
     }
 
     try {
-      // Sign up via Supabase Auth with nationality and DOB
+      // Sign up via Supabase Auth with all fields including passport
       const authUser = await supabaseService.signUp(formData.email, formData.password, {
         full_name: formData.fullName,
         university_id: formData.universityId,
@@ -128,6 +129,7 @@ const SignupPage: React.FC = () => {
         phone: formData.phone,
         major: formData.major,
         nationality: formData.nationality,
+        passport_number: formData.passportNumber || null,
         date_of_birth: dobString
       });
 
@@ -418,6 +420,21 @@ const SignupPage: React.FC = () => {
                       ))}
                     </select>
                   </div>
+                </div>
+              </div>
+
+              {/* Passport Number (Optional) */}
+              <div className="md:col-span-2 space-y-1">
+                <label className="text-[10px] font-black uppercase tracking-widest ml-1 block" style={{ color: 'var(--text-secondary)' }}>{t.passportNumber}</label>
+                <div className="relative group">
+                  <ShieldCheck className="absolute left-3 top-1/2 -translate-y-1/2 text-black/50" size={16} />
+                  <input
+                    type="text"
+                    value={formData.passportNumber}
+                    onChange={(e) => setFormData({ ...formData, passportNumber: e.target.value })}
+                    className={inputClasses}
+                    placeholder={lang === 'AR' ? 'A12345678 (اختياري)' : 'A12345678 (optional)'}
+                  />
                 </div>
               </div>
             </div>

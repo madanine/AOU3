@@ -21,6 +21,7 @@ const AdminStudents: React.FC = () => {
     phone: '',
     major: '',
     nationality: '',
+    passportNumber: '',
     dateOfBirth: '',
     password: ''
   });
@@ -343,6 +344,21 @@ const AdminStudents: React.FC = () => {
                         </div>
                       </>
                     )}
+                  </div>
+                </div>
+
+                {/* Passport Number (Optional) */}
+                <div className="md:col-span-2 space-y-1">
+                  <label className="text-[10px] font-black uppercase tracking-widest ml-1" style={{ color: 'var(--text-secondary)' }}>{t.passportNumber}</label>
+                  <div className="relative">
+                    <ShieldAlert className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10" size={16} />
+                    <input
+                      type="text"
+                      value={formData.passportNumber}
+                      onChange={(e) => setFormData({ ...formData, passportNumber: e.target.value })}
+                      placeholder={lang === 'AR' ? 'A12345678 (اختياري)' : 'A12345678 (optional)'}
+                      className="w-full pl-10 pr-4 py-3 rounded-xl border outline-none font-bold text-sm bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-900 dark:text-white"
+                    />
                   </div>
                 </div>
 

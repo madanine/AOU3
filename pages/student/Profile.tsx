@@ -19,6 +19,7 @@ const Profile: React.FC = () => {
     major: user?.major as Major | '',
     universityId: user?.universityId || '',
     nationality: user?.nationality || '',
+    passportNumber: user?.passportNumber || '',
     dateOfBirth: user?.dateOfBirth || ''
   });
 
@@ -189,8 +190,8 @@ const Profile: React.FC = () => {
                       <select
                         required
                         value={formData.major}
-                        onChange={(e) => setFormData({ ...formData, major: e.target.value as Major })}
-                        className={`w-full py-3 bg-gray-50/50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none transition-all text-sm font-bold text-gray-700 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23cbd5e1%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C/polyline%3E%3C/svg%3E')] bg-[length:18px] bg-no-repeat ${lang === 'AR' ? 'bg-[left_1rem_center] pl-10 pr-5' : 'bg-[right_1rem_center] pr-10 pl-5'
+                        disabled
+                        className={`w-full py-3 bg-gray-100 border border-gray-200 rounded-xl outline-none text-sm font-bold text-gray-500 cursor-not-allowed appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23cbd5e1%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C/polyline%3E%3C/svg%3E')] bg-[length:18px] bg-no-repeat ${lang === 'AR' ? 'bg-[left_1rem_center] pl-10 pr-5' : 'bg-[right_1rem_center] pr-10 pl-5'
                           }`}
                       >
                         <option value="">{t.selectMajor}</option>
@@ -252,6 +253,21 @@ const Profile: React.FC = () => {
                           </div>
                         </>
                       )}
+                    </div>
+                  </div>
+
+                  {/* Passport Number (Optional) */}
+                  <div className="space-y-2 md:col-span-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest ml-1" style={{ color: 'var(--text-secondary)' }}>{t.passportNumber}</label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" size={16} />
+                      <input
+                        type="text"
+                        value={formData.passportNumber}
+                        onChange={(e) => setFormData({ ...formData, passportNumber: e.target.value })}
+                        placeholder={lang === 'AR' ? 'A12345678 (اختياري)' : 'A12345678 (optional)'}
+                        className="w-full pl-10 pr-4 py-3 bg-gray-50/50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none transition-all text-sm font-bold text-gray-700"
+                      />
                     </div>
                   </div>
 

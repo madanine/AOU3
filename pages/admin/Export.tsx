@@ -6,6 +6,7 @@ import { supabaseService } from '../../supabaseService';
 import { FileSpreadsheet, Download, Info, RefreshCw } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import SemesterControls from '../../components/admin/SemesterControls';
+import { getCountryName } from '../../countries';
 
 const AdminExport: React.FC = () => {
   const { t, settings, lang, user } = useApp();
@@ -56,6 +57,9 @@ const AdminExport: React.FC = () => {
           ...baseData,
           [t.email]: s?.email || '—',
           [t.phone]: s?.phone || '—',
+          [t.nationality]: s?.nationality ? getCountryName(s.nationality, lang) : '—',
+          [t.dateOfBirth]: s?.dateOfBirth || '—',
+          [t.passportNumber]: s?.passportNumber || '—',
           [t.major]: s?.major ? (t.majorList[s.major] || s.major) : '—',
           [t.courseCode]: c?.code || e.courseId,
           [t.courseTitle]: lang === 'AR' ? (c?.title_ar || c?.title) : (c?.title || c?.title_ar),
