@@ -355,7 +355,7 @@ const SignupPage: React.FC = () => {
                       onChange={(e) => setDobDay(e.target.value)}
                       className={`w-full pl-10 pr-4 py-3 bg-white/20 border border-[var(--border-color)] rounded-xl focus:ring-2 focus:ring-[var(--primary)] focus:bg-white/40 outline-none transition-all text-sm font-bold text-black appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23000000%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C/polyline%3E%3C/svg%3E')] bg-[length:16px] bg-no-repeat ${lang === 'AR' ? 'bg-[left_0.5rem_center]' : 'bg-[right_0.5rem_center]'}`}
                     >
-                      <option value="">{t.day}</option>
+                      <option value="">{t.dobDay}</option>
                       {Array.from({ length: 31 }, (_, i) => i + 1).map(d => (
                         <option key={d} value={d}>{d}</option>
                       ))}
@@ -370,7 +370,7 @@ const SignupPage: React.FC = () => {
                       onChange={(e) => setDobMonth(e.target.value)}
                       className={`w-full py-3 px-4 bg-white/20 border border-[var(--border-color)] rounded-xl focus:ring-2 focus:ring-[var(--primary)] focus:bg-white/40 outline-none transition-all text-sm font-bold text-black appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23000000%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C/polyline%3E%3C/svg%3E')] bg-[length:16px] bg-no-repeat ${lang === 'AR' ? 'bg-[left_0.5rem_center]' : 'bg-[right_0.5rem_center]'}`}
                     >
-                      <option value="">{t.month}</option>
+                      <option value="">{t.dobMonth}</option>
                       {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
                         <option key={m} value={m}>{m}</option>
                       ))}
@@ -385,7 +385,7 @@ const SignupPage: React.FC = () => {
                       onChange={(e) => setDobYear(e.target.value)}
                       className={`w-full py-3 px-4 bg-white/20 border border-[var(--border-color)] rounded-xl focus:ring-2 focus:ring-[var(--primary)] focus:bg-white/40 outline-none transition-all text-sm font-bold text-black appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23000000%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C/polyline%3E%3C/svg%3E')] bg-[length:16px] bg-no-repeat ${lang === 'AR' ? 'bg-[left_0.5rem_center]' : 'bg-[right_0.5rem_center]'}`}
                     >
-                      <option value="">{t.year}</option>
+                      <option value="">{t.dobYear}</option>
                       {Array.from({ length: new Date().getFullYear() - 1950 + 1 }, (_, i) => new Date().getFullYear() - i).map(y => (
                         <option key={y} value={y}>{y}</option>
                       ))}
