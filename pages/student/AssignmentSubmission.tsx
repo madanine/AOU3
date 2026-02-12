@@ -388,104 +388,126 @@ const StudentAssignmentSubmission: React.FC = () => {
             return null;
           })()}
 
-          {!getSubmissionForAssignment(selectedAssignment.id) ? (
-            /* Submission Form */
-            <form onSubmit={handleSubmit} className="p-8 space-y-8">
-              {selectedAssignment.type === 'file' && (
-                <div className="space-y-4">
-                  <label className="block w-full cursor-pointer group">
-                    <div className="border-4 border-dashed border-gray-100 rounded-[2rem] p-12 flex flex-col items-center justify-center gap-4 group-hover:border-[var(--primary)] group-hover:bg-blue-50/30 transition-all">
-                      <div className="w-20 h-20 bg-gray-50 rounded-3xl flex items-center justify-center text-gray-300 group-hover:text-[var(--primary)] group-hover:bg-white transition-all shadow-sm">
-                        <Upload size={40} />
-                      </div>
-                      <div className="text-center">
-                        <p className="text-sm font-black uppercase tracking-widest" style={{ color: 'var(--text-primary)' }}>{file ? file.name : t.fileUpload}</p>
-                        <p className="text-xs font-bold mt-1" style={{ color: 'var(--text-secondary)' }}>PDF, DOCX, ZIP (Max 10MB)</p>
-                      </div>
-                    </div>
-                    <input type="file" className="hidden" onChange={handleFileChange} required />
-                  </label>
+          {!getSubmissionForAssignment(selectedAssignment.id) && (
+            new Date() > new Date(selectedAssignment.deadline) ? (
+              <div className="flex flex-col items-center justify-center py-24 px-8 text-center space-y-6 animate-in fade-in slide-in-from-bottom-4">
+                <div className="w-24 h-24 bg-red-50 rounded-[2rem] flex items-center justify-center text-red-500 shadow-sm border border-red-100">
+                  <Clock size={48} />
                 </div>
-              )}
-
-              {selectedAssignment.type === 'mcq' && (
-                <div className="space-y-10">
-                  {selectedAssignment.questions.map((q, idx) => (
-                    <div key={q.id} className="space-y-4">
-                      <div className="flex gap-4">
-                        <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-black flex-shrink-0">
-                          {idx + 1}
-                        </div>
-                        <p className="text-lg font-bold pt-1" style={{ color: 'var(--text-primary)' }}>{q.text}</p>
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pl-14">
-                        {q.options?.map((opt, oIdx) => (
-                          <button
-                            key={oIdx}
-                            type="button"
-                            onClick={() => {
-                              const next = [...mcqAnswers];
-                              next[idx] = opt;
-                              setMcqAnswers(next);
-                            }}
-                            className={`p-4 rounded-2xl border text-left font-bold text-sm transition-all flex items-center justify-between ${mcqAnswers[idx] === opt
-                              ? 'bg-purple-50 border-purple-200 text-purple-700 ring-2 ring-purple-100'
-                              : 'bg-white border-gray-100 hover:border-gray-300 text-gray-600'
-                              }`}
-                          >
-                            {opt}
-                            {mcqAnswers[idx] === opt && <CheckSquare size={16} />}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
+                <div className="space-y-2">
+                  <h3 className="text-2xl font-black text-red-600 uppercase tracking-tight">
+                    {lang === 'AR' ? 'انتهى وقت التسليم' : 'Deadline has passed'}
+                  </h3>
+                  <p className="text-gray-500 font-bold max-w-md mx-auto leading-relaxed">
+                    {lang === 'AR'
+                      ? 'انتهى وقت تسليم التكليف ولا يمكن التسليم الآن.'
+                      : 'Submission is closed. You can no longer submit this assignment.'}
+                  </p>
                 </div>
-              )}
-
-              {selectedAssignment.type === 'essay' && (
-                <div className="space-y-10">
-                  {selectedAssignment.questions.map((q, idx) => (
-                    <div key={q.id} className="space-y-4">
-                      <div className="flex gap-4">
-                        <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-black flex-shrink-0">
-                          {idx + 1}
-                        </div>
-                        <p className="text-lg font-bold pt-1" style={{ color: 'var(--text-primary)' }}>{q.text}</p>
-                      </div>
-                      <textarea
-                        required
-                        placeholder={lang === 'AR' ? 'اكتب إجابتك هنا...' : 'Write your answer here...'}
-                        value={essayAnswers[idx] || ''}
-                        onChange={e => {
-                          const next = [...essayAnswers];
-                          next[idx] = e.target.value;
-                          setEssayAnswers(next);
-                        }}
-                        className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-amber-500/10 focus:bg-white transition-all text-sm font-bold min-h-[150px]"
-                      />
-                    </div>
-                  ))}
+                <div className="px-6 py-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-black uppercase text-gray-500 tracking-widest flex items-center gap-2">
+                  <Clock size={14} />
+                  {t.deadline}: {new Date(selectedAssignment.deadline).toLocaleString(lang === 'AR' ? 'ar-SA' : 'en-US')}
                 </div>
-              )}
-
-              <div className="pt-8 border-t border-gray-100 flex flex-col md:flex-row gap-4 items-center justify-center">
-                <button
-                  type="submit"
-                  disabled={isSubmitting || success}
-                  className="w-full md:w-auto px-12 py-5 bg-[var(--primary)] text-white font-black rounded-3xl shadow-xl hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-3 uppercase text-xs tracking-widest disabled:opacity-50"
-                >
-                  {success ? (
-                    <><CheckCircle2 size={24} /> {t.submitted}</>
-                  ) : isSubmitting ? (
-                    <><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> {lang === 'AR' ? 'جاري الإرسال...' : 'Sending...'}</>
-                  ) : (
-                    <><Send size={24} /> {t.submit}</>
-                  )}
-                </button>
               </div>
-            </form>
-          ) : null}
+            ) : (
+              /* Submission Form */
+              <form onSubmit={handleSubmit} className="p-8 space-y-8">
+                {selectedAssignment.type === 'file' && (
+                  <div className="space-y-4">
+                    <label className="block w-full cursor-pointer group">
+                      <div className="border-4 border-dashed border-gray-100 rounded-[2rem] p-12 flex flex-col items-center justify-center gap-4 group-hover:border-[var(--primary)] group-hover:bg-blue-50/30 transition-all">
+                        <div className="w-20 h-20 bg-gray-50 rounded-3xl flex items-center justify-center text-gray-300 group-hover:text-[var(--primary)] group-hover:bg-white transition-all shadow-sm">
+                          <Upload size={40} />
+                        </div>
+                        <div className="text-center">
+                          <p className="text-sm font-black uppercase tracking-widest" style={{ color: 'var(--text-primary)' }}>{file ? file.name : t.fileUpload}</p>
+                          <p className="text-xs font-bold mt-1" style={{ color: 'var(--text-secondary)' }}>PDF, DOCX, ZIP (Max 10MB)</p>
+                        </div>
+                      </div>
+                      <input type="file" className="hidden" onChange={handleFileChange} required />
+                    </label>
+                  </div>
+                )}
+
+                {selectedAssignment.type === 'mcq' && (
+                  <div className="space-y-10">
+                    {selectedAssignment.questions.map((q, idx) => (
+                      <div key={q.id} className="space-y-4">
+                        <div className="flex gap-4">
+                          <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-black flex-shrink-0">
+                            {idx + 1}
+                          </div>
+                          <p className="text-lg font-bold pt-1" style={{ color: 'var(--text-primary)' }}>{q.text}</p>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pl-14">
+                          {q.options?.map((opt, oIdx) => (
+                            <button
+                              key={oIdx}
+                              type="button"
+                              onClick={() => {
+                                const next = [...mcqAnswers];
+                                next[idx] = opt;
+                                setMcqAnswers(next);
+                              }}
+                              className={`p-4 rounded-2xl border text-left font-bold text-sm transition-all flex items-center justify-between ${mcqAnswers[idx] === opt
+                                ? 'bg-purple-50 border-purple-200 text-purple-700 ring-2 ring-purple-100'
+                                : 'bg-white border-gray-100 hover:border-gray-300 text-gray-600'
+                                }`}
+                            >
+                              {opt}
+                              {mcqAnswers[idx] === opt && <CheckSquare size={16} />}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {selectedAssignment.type === 'essay' && (
+                  <div className="space-y-10">
+                    {selectedAssignment.questions.map((q, idx) => (
+                      <div key={q.id} className="space-y-4">
+                        <div className="flex gap-4">
+                          <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-black flex-shrink-0">
+                            {idx + 1}
+                          </div>
+                          <p className="text-lg font-bold pt-1" style={{ color: 'var(--text-primary)' }}>{q.text}</p>
+                        </div>
+                        <textarea
+                          required
+                          placeholder={lang === 'AR' ? 'اكتب إجابتك هنا...' : 'Write your answer here...'}
+                          value={essayAnswers[idx] || ''}
+                          onChange={e => {
+                            const next = [...essayAnswers];
+                            next[idx] = e.target.value;
+                            setEssayAnswers(next);
+                          }}
+                          className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-amber-500/10 focus:bg-white transition-all text-sm font-bold min-h-[150px]"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="pt-8 border-t border-gray-100 flex flex-col md:flex-row gap-4 items-center justify-center">
+                  <button
+                    type="submit"
+                    disabled={isSubmitting || success}
+                    className="w-full md:w-auto px-12 py-5 bg-[var(--primary)] text-white font-black rounded-3xl shadow-xl hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-3 uppercase text-xs tracking-widest disabled:opacity-50"
+                  >
+                    {success ? (
+                      <><CheckCircle2 size={24} /> {t.submitted}</>
+                    ) : isSubmitting ? (
+                      <><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> {lang === 'AR' ? 'جاري الإرسال...' : 'Sending...'}</>
+                    ) : (
+                      <><Send size={24} /> {t.submit}</>
+                    )}
+                  </button>
+                </div>
+              </form>
+            )
+          )}
         </div>
       )}
     </div>
