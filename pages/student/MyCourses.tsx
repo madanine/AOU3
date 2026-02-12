@@ -123,14 +123,34 @@ const MyCourses: React.FC = () => {
                     )}
                   </div>
                 )}
+              </div>
 
-                <div className="flex items-center px-6 py-3 bg-black/10 rounded-2xl border border-black/10 transition-all">
-                  <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--text-primary)' }}>
-                    <Calendar size={14} className="text-black/40" />
-                    <span>{new Date(course.enrolledAt).toLocaleDateString()}</span>
+              {/* Course Notes Section */}
+              {course.notes && (
+                <div className="mt-4 pt-4 border-t border-gray-100 dark:border-white/5">
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-[var(--text-secondary)] mb-2">
+                    {storage.getLanguage() === 'AR' ? 'ملاحظات' : 'Notes'}
+                  </h4>
+                  <div className="text-sm font-medium leading-relaxed whitespace-pre-wrap text-[var(--text-primary)]">
+                    {course.notes.split(/(\s+)/).map((part: string, i: number) => {
+                      if (part.match(/^(https?:\/\/[^\s]+)/)) {
+                        return (
+                          <a
+                            key={i}
+                            href={part}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-500 hover:text-blue-600 underline break-all"
+                          >
+                            {part}
+                          </a>
+                        );
+                      }
+                      return part;
+                    })}
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           ))}
 
@@ -144,38 +164,40 @@ const MyCourses: React.FC = () => {
       </div>
 
       {/* Previous Semesters History */}
-      {groupedCourses.previous.length > 0 && (
-        <div className="pt-8 border-t border-gray-100 dark:border-white/5 space-y-8 animate-in slide-in-from-bottom-8 duration-700 delay-200">
-          <div className="flex items-center gap-2 opacity-60">
-            <Calendar size={18} />
-            <h2 className="text-sm font-black uppercase tracking-widest">{storage.getLanguage() === 'AR' ? 'الفصول السابقة' : 'Previous Semesters'}</h2>
-          </div>
-
-          {groupedCourses.previous.map((semesterGroup, idx) => (
-            <div key={idx} className="space-y-4 opacity-75 hover:opacity-100 transition-opacity">
-              <h3 className="text-xs font-black uppercase tracking-wider text-[var(--primary)] pl-2 border-l-4 border-[var(--primary)]">
-                {semesterGroup.semesterName}
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {semesterGroup.courses.map(course => (
-                  <div key={course.id} className="bg-[var(--card-bg)] p-4 rounded-2xl border border-[var(--border-color)] flex justify-between items-center group">
-                    <div>
-                      <h4 className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>{translate(course, 'title')}</h4>
-                      <p className="text-[10px] uppercase font-black mt-1" style={{ color: 'var(--text-secondary)' }}>
-                        {course.code} • {translate(course, 'doctor')}
-                      </p>
-                    </div>
-                    <span className="px-3 py-1 bg-gray-200 dark:bg-black/20 rounded-lg text-[10px] font-black text-gray-500">
-                      {storage.getLanguage() === 'AR' ? 'مكتمل' : 'COMPLETED'}
-                    </span>
-                  </div>
-                ))}
-              </div>
+      {
+        groupedCourses.previous.length > 0 && (
+          <div className="pt-8 border-t border-gray-100 dark:border-white/5 space-y-8 animate-in slide-in-from-bottom-8 duration-700 delay-200">
+            <div className="flex items-center gap-2 opacity-60">
+              <Calendar size={18} />
+              <h2 className="text-sm font-black uppercase tracking-widest">{storage.getLanguage() === 'AR' ? 'الفصول السابقة' : 'Previous Semesters'}</h2>
             </div>
-          ))}
-        </div>
-      )}
-    </div>
+
+            {groupedCourses.previous.map((semesterGroup, idx) => (
+              <div key={idx} className="space-y-4 opacity-75 hover:opacity-100 transition-opacity">
+                <h3 className="text-xs font-black uppercase tracking-wider text-[var(--primary)] pl-2 border-l-4 border-[var(--primary)]">
+                  {semesterGroup.semesterName}
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {semesterGroup.courses.map(course => (
+                    <div key={course.id} className="bg-[var(--card-bg)] p-4 rounded-2xl border border-[var(--border-color)] flex justify-between items-center group">
+                      <div>
+                        <h4 className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>{translate(course, 'title')}</h4>
+                        <p className="text-[10px] uppercase font-black mt-1" style={{ color: 'var(--text-secondary)' }}>
+                          {course.code} • {translate(course, 'doctor')}
+                        </p>
+                      </div>
+                      <span className="px-3 py-1 bg-gray-200 dark:bg-black/20 rounded-lg text-[10px] font-black text-gray-500">
+                        {storage.getLanguage() === 'AR' ? 'مكتمل' : 'COMPLETED'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )
+      }
+    </div >
   );
 };
 
