@@ -25,8 +25,8 @@ const StudentTimetable: React.FC = () => {
     day: t.days[course.day as keyof typeof t.days],
     date: lang === 'AR' ? '—' : '—', // You can add actual dates if needed
     subject: translate(course, 'title'),
-    code: course.code,
     time: course.time,
+    notes: course.notes,
     doctor: translate(course, 'doctor')
   }));
 
@@ -136,13 +136,13 @@ const StudentTimetable: React.FC = () => {
                     {lang === 'AR' ? 'اليوم' : 'Day'}
                   </th>
                   <th className="px-4 py-4 text-sm font-black uppercase tracking-wider text-center bg-gray-50" style={{ color: 'var(--text-secondary)' }}>
-                    {lang === 'AR' ? 'رمز المادة' : 'Code'}
-                  </th>
-                  <th className="px-4 py-4 text-sm font-black uppercase tracking-wider text-center bg-gray-50" style={{ color: 'var(--text-secondary)' }}>
                     {lang === 'AR' ? 'المادة' : 'Subject'}
                   </th>
                   <th className="px-4 py-4 text-sm font-black uppercase tracking-wider text-center bg-gray-50" style={{ color: 'var(--text-secondary)' }}>
                     {lang === 'AR' ? 'الوقت' : 'Time'}
+                  </th>
+                  <th className="px-4 py-4 text-sm font-black uppercase tracking-wider text-center bg-gray-50" style={{ color: 'var(--text-secondary)' }}>
+                    {lang === 'AR' ? 'ملاحظات' : 'Notes'}
                   </th>
                 </tr>
               </thead>
@@ -159,11 +159,6 @@ const StudentTimetable: React.FC = () => {
                       </span>
                     </td>
                     <td className="px-4 py-5 text-center">
-                      <span className="px-3 py-1 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-lg text-xs font-black uppercase">
-                        {row.code}
-                      </span>
-                    </td>
-                    <td className="px-4 py-5 text-center">
                       <div className="font-bold text-base" style={{ color: 'var(--text-primary)' }}>
                         {row.subject}
                       </div>
@@ -171,6 +166,11 @@ const StudentTimetable: React.FC = () => {
                     <td className="px-4 py-5 text-center">
                       <span className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
                         {row.time}
+                      </span>
+                    </td>
+                    <td className="px-4 py-5 text-center max-w-xs">
+                      <span className="text-xs font-medium leading-relaxed block whitespace-pre-wrap" style={{ color: 'var(--text-secondary)' }}>
+                        {row.notes || '-'}
                       </span>
                     </td>
                   </tr>
@@ -199,7 +199,7 @@ const StudentTimetable: React.FC = () => {
           </div>
         )}
       </div>
-    </div>
+    </div >
   );
 };
 
