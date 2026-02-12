@@ -27,6 +27,27 @@ const UniversityIdRegistry: React.FC = () => {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [studentToDelete, setStudentToDelete] = useState<AllowedStudent | null>(null);
 
+    // Export Dropdown State
+    const [isExportOpen, setIsExportOpen] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
+
+    // Click outside handler for export dropdown
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setIsExportOpen(false);
+            }
+        };
+
+        if (isExportOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [isExportOpen]);
+
     useEffect(() => {
         loadData();
     }, []);
@@ -273,34 +294,46 @@ const UniversityIdRegistry: React.FC = () => {
                 </button>
 
                 {/* Export Dropdown */}
-                <div className="relative group">
+                <div className="relative group" ref={dropdownRef}>
                     <button
+                        onClick={() => setIsExportOpen(!isExportOpen)}
                         className="px-4 py-3 rounded-xl font-bold text-sm flex items-center gap-2 transition-all"
                         style={{ backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)', border: '2px solid var(--border-color)' }}
                     >
                         <Download size={18} />
                         {t.exportExcel}
                     </button>
-                    <div className="absolute top-full mt-2 right-0 hidden group-hover:block bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 py-2 min-w-[180px] z-50">
-                        <button
-                            onClick={() => exportToExcel('all')}
-                            className="w-full px-4 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-bold text-gray-700 dark:text-gray-200"
-                        >
-                            {t.exportAll}
-                        </button>
-                        <button
-                            onClick={() => exportToExcel('available')}
-                            className="w-full px-4 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-bold text-gray-700 dark:text-gray-200"
-                        >
-                            {t.exportAvailable}
-                        </button>
-                        <button
-                            onClick={() => exportToExcel('used')}
-                            className="w-full px-4 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-bold text-gray-700 dark:text-gray-200"
-                        >
-                            {t.exportUsed}
-                        </button>
-                    </div>
+                    {isExportOpen && (
+                        <div className="absolute top-full mt-2 right-0 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 py-2 min-w-[180px] z-50 animate-in fade-in zoom-in-95 duration-100">
+                            <button
+                                onClick={() => {
+                                    exportToExcel('all');
+                                    setIsExportOpen(false);
+                                }}
+                                className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 text-sm font-bold text-gray-700 dark:text-gray-200"
+                            >
+                                {t.exportAll}
+                            </button>
+                            <button
+                                onClick={() => {
+                                    exportToExcel('available');
+                                    setIsExportOpen(false);
+                                }}
+                                className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 text-sm font-bold text-gray-700 dark:text-gray-200"
+                            >
+                                {t.exportAvailable}
+                            </button>
+                            <button
+                                onClick={() => {
+                                    exportToExcel('used');
+                                    setIsExportOpen(false);
+                                }}
+                                className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 text-sm font-bold text-gray-700 dark:text-gray-200"
+                            >
+                                {t.exportUsed}
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
 
