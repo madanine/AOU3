@@ -23,6 +23,10 @@ const UniversityIdRegistry: React.FC = () => {
     const [editingStudent, setEditingStudent] = useState<AllowedStudent | null>(null);
     const [formData, setFormData] = useState({ universityId: '', name: '' });
 
+    // Delete Confirmation State
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [studentToDelete, setStudentToDelete] = useState<AllowedStudent | null>(null);
+
     useEffect(() => {
         loadData();
     }, []);
@@ -155,14 +159,22 @@ const UniversityIdRegistry: React.FC = () => {
         }
     };
 
-    const handleDelete = async (id: string) => {
-        if (!window.confirm(t.confirmDelete)) return;
+    const handleDeleteClick = (student: AllowedStudent) => {
+        setStudentToDelete(student);
+        setIsDeleteModalOpen(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!studentToDelete) return;
 
         try {
-            await supabaseService.deleteAllowedStudent(id);
+            await supabaseService.deleteAllowedStudent(studentToDelete.id);
+            setIsDeleteModalOpen(false);
+            setStudentToDelete(null);
             loadData();
         } catch (error) {
             console.error('Delete error:', error);
+            alert(lang === 'AR' ? 'حدث خطأ أثناء الحذف' : 'Error deleting record');
         }
     };
 
@@ -408,14 +420,15 @@ const UniversityIdRegistry: React.FC = () => {
                                             >
                                                 <Edit2 size={16} />
                                             </button>
-                                            {!student.isUsed && (
-                                                <button
-                                                    onClick={() => handleDelete(student.id)}
-                                                    className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 transition-colors"
-                                                >
-                                                    <Trash2 size={16} />
-                                                </button>
-                                            )}
+
+
+                                            <button
+                                                onClick={() => handleDeleteClick(student)}
+                                                className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 transition-colors"
+                                                title={t.delete}
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
                                         </div>
                                     </td>
                                 </tr>
@@ -426,97 +439,159 @@ const UniversityIdRegistry: React.FC = () => {
             </div>
 
             {/* Add Modal */}
-            {isAddModalOpen && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 max-w-md w-full">
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-xl font-black" style={{ color: 'var(--text-primary)' }}>{t.addStudent}</h3>
-                            <button onClick={() => setIsAddModalOpen(false)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">
-                                <X size={20} />
-                            </button>
-                        </div>
-                        <div className="space-y-4">
-                            <div>
-                                <label className="text-xs font-bold mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t.universityIdColumn}</label>
-                                <input
-                                    type="text"
-                                    value={formData.universityId}
-                                    onChange={(e) => setFormData({ ...formData, universityId: e.target.value })}
-                                    className="w-full px-4 py-3 rounded-xl border font-bold text-sm outline-none focus:ring-2 focus:ring-[var(--primary)]"
-                                    style={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
-                                />
+            {
+                isAddModalOpen && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                        <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 max-w-md w-full">
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-xl font-black" style={{ color: 'var(--text-primary)' }}>{t.addStudent}</h3>
+                                <button onClick={() => setIsAddModalOpen(false)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">
+                                    <X size={20} />
+                                </button>
                             </div>
-                            <div>
-                                <label className="text-xs font-bold mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t.nameColumn}</label>
-                                <input
-                                    type="text"
-                                    value={formData.name}
-                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                    className="w-full px-4 py-3 rounded-xl border font-bold text-sm outline-none focus:ring-2 focus:ring-[var(--primary)]"
-                                    style={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
-                                />
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="text-xs font-bold mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t.universityIdColumn}</label>
+                                    <input
+                                        type="text"
+                                        value={formData.universityId}
+                                        onChange={(e) => setFormData({ ...formData, universityId: e.target.value })}
+                                        className="w-full px-4 py-3 rounded-xl border font-bold text-sm outline-none focus:ring-2 focus:ring-[var(--primary)]"
+                                        style={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-xs font-bold mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t.nameColumn}</label>
+                                    <input
+                                        type="text"
+                                        value={formData.name}
+                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                        className="w-full px-4 py-3 rounded-xl border font-bold text-sm outline-none focus:ring-2 focus:ring-[var(--primary)]"
+                                        style={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
+                                    />
+                                </div>
+                                <button
+                                    onClick={handleAdd}
+                                    className="w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2"
+                                    style={{ backgroundColor: 'var(--primary)', color: 'white' }}
+                                >
+                                    <Save size={18} />
+                                    {t.save}
+                                </button>
                             </div>
-                            <button
-                                onClick={handleAdd}
-                                className="w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2"
-                                style={{ backgroundColor: 'var(--primary)', color: 'white' }}
-                            >
-                                <Save size={18} />
-                                {t.save}
-                            </button>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Edit Modal */}
-            {isEditModalOpen && editingStudent && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 max-w-md w-full">
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-xl font-black" style={{ color: 'var(--text-primary)' }}>{t.editStudent}</h3>
-                            <button onClick={() => setIsEditModalOpen(false)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">
-                                <X size={20} />
-                            </button>
-                        </div>
-                        <div className="space-y-4">
-                            <div>
-                                <label className="text-xs font-bold mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t.universityIdColumn}</label>
-                                <input
-                                    type="text"
-                                    value={formData.universityId}
-                                    onChange={(e) => setFormData({ ...formData, universityId: e.target.value })}
-                                    disabled={editingStudent.isUsed}
-                                    className="w-full px-4 py-3 rounded-xl border font-bold text-sm outline-none focus:ring-2 focus:ring-[var(--primary)] disabled:opacity-50 disabled:cursor-not-allowed"
-                                    style={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
-                                />
-                                {editingStudent.isUsed && (
-                                    <p className="text-xs mt-1 text-red-500 font-bold">{t.cannotEditUsedId}</p>
-                                )}
+            {
+                isEditModalOpen && editingStudent && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                        <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 max-w-md w-full">
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-xl font-black" style={{ color: 'var(--text-primary)' }}>{t.editStudent}</h3>
+                                <button onClick={() => setIsEditModalOpen(false)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">
+                                    <X size={20} />
+                                </button>
                             </div>
-                            <div>
-                                <label className="text-xs font-bold mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t.nameColumn}</label>
-                                <input
-                                    type="text"
-                                    value={formData.name}
-                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                    className="w-full px-4 py-3 rounded-xl border font-bold text-sm outline-none focus:ring-2 focus:ring-[var(--primary)]"
-                                    style={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
-                                />
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="text-xs font-bold mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t.universityIdColumn}</label>
+                                    <input
+                                        type="text"
+                                        value={formData.universityId}
+                                        onChange={(e) => setFormData({ ...formData, universityId: e.target.value })}
+                                        disabled={editingStudent.isUsed}
+                                        className="w-full px-4 py-3 rounded-xl border font-bold text-sm outline-none focus:ring-2 focus:ring-[var(--primary)] disabled:opacity-50 disabled:cursor-not-allowed"
+                                        style={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
+                                    />
+                                    {editingStudent.isUsed && (
+                                        <p className="text-xs mt-1 text-red-500 font-bold">{t.cannotEditUsedId}</p>
+                                    )}
+                                </div>
+                                <div>
+                                    <label className="text-xs font-bold mb-1 block" style={{ color: 'var(--text-secondary)' }}>{t.nameColumn}</label>
+                                    <input
+                                        type="text"
+                                        value={formData.name}
+                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                        className="w-full px-4 py-3 rounded-xl border font-bold text-sm outline-none focus:ring-2 focus:ring-[var(--primary)]"
+                                        style={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
+                                    />
+                                </div>
+                                <button
+                                    onClick={handleEdit}
+                                    className="w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2"
+                                    style={{ backgroundColor: 'var(--primary)', color: 'white' }}
+                                >
+                                    <Save size={18} />
+                                    {t.save}
+                                </button>
                             </div>
-                            <button
-                                onClick={handleEdit}
-                                className="w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2"
-                                style={{ backgroundColor: 'var(--primary)', color: 'white' }}
-                            >
-                                <Save size={18} />
-                                {t.save}
-                            </button>
                         </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+
+            {/* Delete Confirmation Modal (Hard Delete Warning) */}
+            {
+                isDeleteModalOpen && studentToDelete && (
+                    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[60] p-4 backdrop-blur-sm">
+                        <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 max-w-lg w-full border-2 border-red-500 shadow-2xl relative overflow-hidden">
+                            {/* Red warning header */}
+                            <div className="absolute top-0 left-0 w-full h-2 bg-red-600"></div>
+
+                            <div className="flex items-start gap-4 mb-6 pt-2">
+                                <div className="p-3 bg-red-100 dark:bg-red-900/30 rounded-full text-red-600">
+                                    <Trash2 size={32} />
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-black text-red-600 mb-2">
+                                        {lang === 'AR' ? 'حذف نهائي (تحذير هام)' : 'Permanent Deletion (Warning)'}
+                                    </h3>
+                                    <p className="text-gray-600 dark:text-gray-300 text-sm font-bold leading-relaxed">
+                                        {lang === 'AR'
+                                            ? 'سيتم حذف الرقم الجامعي نهائيًا. إذا كان مرتبطًا بطالب، فسيتم حذف حساب الطالب وجميع البيانات المرتبطة به بشكل دائم (الملف الشخصي، المقررات، الحضور، الدرجات). لا يمكن التراجع عن هذا الإجراء.'
+                                            : 'This will permanently delete this university ID. If it is linked to a student, the student account and all related data (Profile, Enrollments, Grades) will also be permanently deleted. This action cannot be undone.'
+                                        }
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl mb-6 border border-gray-200 dark:border-gray-700">
+                                <div className="text-xs uppercase font-black text-gray-400 mb-1">{t.universityIdColumn}</div>
+                                <div className="text-lg font-mono font-black">{studentToDelete.universityId}</div>
+                                <div className="text-xs uppercase font-black text-gray-400 mt-3 mb-1">{t.nameColumn}</div>
+                                <div className="text-lg font-black">{studentToDelete.name}</div>
+                                {studentToDelete.isUsed && (
+                                    <div className="mt-3 flex items-center gap-2 text-red-500 font-bold text-xs bg-red-50 dark:bg-red-900/20 p-2 rounded-lg">
+                                        <XCircle size={14} />
+                                        {lang === 'AR' ? 'هذا الرقم مستخدم حالياً وسيتم حذف الطالب المرتبط به!' : 'This ID is currently USED. Linked student will be deleted!'}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="flex gap-3 justify-end">
+                                <button
+                                    onClick={() => setIsDeleteModalOpen(false)}
+                                    className="px-5 py-3 rounded-xl font-bold text-sm bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                                >
+                                    {t.cancel}
+                                </button>
+                                <button
+                                    onClick={confirmDelete}
+                                    className="px-5 py-3 rounded-xl font-black text-sm text-white bg-red-600 hover:bg-red-700 transition-all shadow-lg hover:shadow-red-500/30 flex items-center gap-2"
+                                >
+                                    <Trash2 size={18} />
+                                    {lang === 'AR' ? 'تأكيد الحذف النهائي' : 'Confirm Permanent Delete'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+        </div >
     );
 };
 

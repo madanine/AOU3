@@ -562,16 +562,12 @@ export const supabaseService = {
         }
     },
 
-    // Delete allowed student (only if not used)
+    // Hard Delete allowed student (Cascade to profile if used)
     async deleteAllowedStudent(id: string) {
-        const { error } = await supabase
-            .from('allowed_students')
-            .delete()
-            .eq('id', id)
-            .eq('is_used', false); // Safety: only delete if not used
+        const { error } = await supabase.rpc('hard_delete_registry_entry', { p_entry_id: id });
 
         if (error) {
-            console.error('Delete Allowed Student Error:', error);
+            console.error('Hard Delete Allowed Student Error:', error);
             throw error;
         }
     },
