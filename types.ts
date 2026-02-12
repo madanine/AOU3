@@ -102,6 +102,7 @@ export interface Course {
   lectureLink?: string;
   whatsappLink?: string;
   telegramLink?: string;
+  notes?: string;
 }
 
 export interface Enrollment {

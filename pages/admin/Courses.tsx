@@ -55,7 +55,7 @@ const AdminCourses: React.FC = () => {
     setFormData({
       code: '', title: '', title_ar: '', credits: 3, description: '', description_ar: '',
       doctor: '', doctor_ar: '', day: 'Sunday', time: '10:00 - 12:00', isRegistrationEnabled: true,
-      lectureLink: '', whatsappLink: '', telegramLink: ''
+      lectureLink: '', whatsappLink: '', telegramLink: '', notes: ''
     });
     setIsModalOpen(true);
   };
@@ -273,6 +273,16 @@ const AdminCourses: React.FC = () => {
                     placeholder="https://zoom.us/..."
                   />
                 </div>
+              </div>
+
+              <div className="space-y-1 pt-4 border-t border-gray-100">
+                <label className="text-[10px] font-black uppercase tracking-widest ml-1 text-gray-400">{lang === 'AR' ? 'ملاحظات' : 'Notes'}</label>
+                <textarea
+                  value={formData.notes || ''}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-white/10 rounded-xl outline-none text-sm font-bold text-gray-900 dark:text-white min-h-[100px]"
+                  placeholder={lang === 'AR' ? 'أي تفاصيل إضافية...' : 'Any extra details...'}
+                />
               </div>
 
               <div className="flex gap-3 pt-4">

@@ -145,7 +145,8 @@ export const supabaseService = {
             title_ar: c.title_ar || c.title,
             whatsappLink: c.whatsapp_link,
             telegramLink: c.telegram_link,
-            lectureLink: c.lecture_link
+            lectureLink: c.lecture_link,
+            notes: c.notes
         })) as Course[];
     },
 
@@ -164,6 +165,7 @@ export const supabaseService = {
             whatsapp_link: course.whatsappLink,
             telegram_link: course.telegramLink,
             lecture_link: course.lectureLink,
+            notes: course.notes,
             semester_id: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(course.semesterId || '') ? course.semesterId : null
         };
         if (isUUID) payload.id = course.id;
