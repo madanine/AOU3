@@ -68,9 +68,17 @@ const SignupPage: React.FC = () => {
       return;
     }
 
+
     // Validate nationality
     if (!formData.nationality) {
       setError(lang === 'AR' ? 'يرجى اختيار الجنسية' : 'Please select nationality');
+      setIsLoading(false);
+      return;
+    }
+
+    // Validate Passport Number
+    if (!formData.passportNumber) {
+      setError(lang === 'AR' ? 'رقم جواز السفر مطلوب' : 'Passport number is required');
       setIsLoading(false);
       return;
     }
@@ -430,10 +438,11 @@ const SignupPage: React.FC = () => {
                   <ShieldCheck className="absolute left-3 top-1/2 -translate-y-1/2 text-black/50" size={16} />
                   <input
                     type="text"
+                    required
                     value={formData.passportNumber}
                     onChange={(e) => setFormData({ ...formData, passportNumber: e.target.value })}
                     className={inputClasses}
-                    placeholder={lang === 'AR' ? 'A12345678 (اختياري)' : 'A12345678 (optional)'}
+                    placeholder={lang === 'AR' ? 'A12345678' : 'A12345678'}
                   />
                 </div>
               </div>

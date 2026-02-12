@@ -262,10 +262,11 @@ const Profile: React.FC = () => {
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" size={16} />
                       <input
+                        required
                         type="text"
                         value={formData.passportNumber}
                         onChange={(e) => setFormData({ ...formData, passportNumber: e.target.value })}
-                        placeholder={lang === 'AR' ? 'A12345678 (اختياري)' : 'A12345678 (optional)'}
+                        placeholder={lang === 'AR' ? 'A12345678' : 'A12345678'}
                         className="w-full pl-10 pr-4 py-3 bg-gray-50/50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none transition-all text-sm font-bold text-gray-700"
                       />
                     </div>

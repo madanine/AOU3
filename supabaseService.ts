@@ -89,6 +89,7 @@ export const supabaseService = {
             password: p.password,
             nationality: p.nationality,
             dateOfBirth: p.date_of_birth,
+            passportNumber: p.passport_number,
             assignedCourses: p.assigned_courses,
             supervisorPermissions: p.supervisor_permissions,
             permissions: p.admin_permissions,

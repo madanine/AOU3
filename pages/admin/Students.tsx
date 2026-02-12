@@ -216,14 +216,14 @@ const AdminStudents: React.FC = () => {
 
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in">
-          <div className="w-full max-w-2xl rounded-[2.5rem] border shadow-2xl overflow-hidden animate-in zoom-in-95" style={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)' }}>
+          <div className="w-full max-w-2xl rounded-[2.5rem] border shadow-2xl overflow-hidden animate-in zoom-in-95 flex flex-col max-h-[90vh]" style={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)' }}>
             <div className="p-8 border-b flex justify-between items-center" style={{ borderColor: 'var(--border-color)' }}>
               <h2 className="text-xl font-black" style={{ color: 'var(--text-primary)' }}>{editingUser ? (lang === 'AR' ? 'تعديل طالب' : 'Edit Student') : (lang === 'AR' ? 'إضافة طالب جديد' : 'Add Student')}</h2>
               <button onClick={() => setIsModalOpen(false)} style={{ color: 'var(--text-secondary)' }}>
                 <X size={24} />
               </button>
             </div>
-            <form onSubmit={handleSubmit} className="p-8 space-y-6">
+            <form onSubmit={handleSubmit} className="p-8 space-y-6 overflow-y-auto flex-1">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-1">
                   <label className="text-[10px] font-black uppercase tracking-widest ml-1" style={{ color: 'var(--text-secondary)' }}>{t.fullName}</label>
@@ -353,10 +353,11 @@ const AdminStudents: React.FC = () => {
                   <div className="relative">
                     <ShieldAlert className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10" size={16} />
                     <input
+                      required
                       type="text"
                       value={formData.passportNumber}
                       onChange={(e) => setFormData({ ...formData, passportNumber: e.target.value })}
-                      placeholder={lang === 'AR' ? 'A12345678 (اختياري)' : 'A12345678 (optional)'}
+                      placeholder={lang === 'AR' ? 'A12345678' : 'A12345678'}
                       className="w-full pl-10 pr-4 py-3 rounded-xl border outline-none font-bold text-sm bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-900 dark:text-white"
                     />
                   </div>
