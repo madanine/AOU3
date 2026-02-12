@@ -35,37 +35,42 @@ const AdminExport: React.FC = () => {
       await storage.syncFromSupabase();
       const courses = storage.getCourses();
 
-      const data = enrollments.map(e => {
-        // Robust lookup: try ID, then UniversityID
-        const s = students.find(stu =>
-          stu.id === e.studentId ||
-          stu.universityId === e.studentId
-        );
-        const c = courses.find(cou => cou.id === e.courseId || cou.code === e.courseId);
+      const data = enrollments
+        .filter(e => {
+          // Check if student exists in the fresh DB fetch
+          return students.some(stu => stu.id === e.studentId || stu.universityId === e.studentId);
+        })
+        .map(e => {
+          // Robust lookup: try ID, then UniversityID
+          const s = students.find(stu =>
+            stu.id === e.studentId ||
+            stu.universityId === e.studentId
+          );
+          const c = courses.find(cou => cou.id === e.courseId || cou.code === e.courseId);
 
-        const baseData: any = {
-          [t.universityId]: s?.universityId || e.studentId,
-          [t.fullName]: s?.fullName || (lang === 'AR' ? 'طالب غير مسجل' : 'Unknown Student'),
-        };
+          const baseData: any = {
+            [t.universityId]: s?.universityId || e.studentId,
+            [t.fullName]: s?.fullName || (lang === 'AR' ? 'طالب غير مسجل' : 'Unknown Student'),
+          };
 
-        // Only master admin can see passwords
-        if (isMasterAdmin) {
-          baseData[t.password] = s?.password || '—';
-        }
+          // Only master admin can see passwords
+          if (isMasterAdmin) {
+            baseData[t.password] = s?.password || '—';
+          }
 
-        return {
-          ...baseData,
-          [t.email]: s?.email || '—',
-          [t.phone]: s?.phone || '—',
-          [t.nationality]: s?.nationality ? getCountryName(s.nationality, lang) : '—',
-          [t.dateOfBirth]: s?.dateOfBirth || '—',
-          [t.passportNumber]: s?.passportNumber || '—',
-          [t.major]: s?.major ? (t.majorList[s.major] || s.major) : '—',
-          [t.courseCode]: c?.code || e.courseId,
-          [t.courseTitle]: lang === 'AR' ? (c?.title_ar || c?.title) : (c?.title || c?.title_ar),
-          'التاريخ': new Date(e.enrolledAt).toLocaleString(lang === 'AR' ? 'ar-SA' : 'en-US')
-        };
-      });
+          return {
+            ...baseData,
+            [t.email]: s?.email || '—',
+            [t.phone]: s?.phone || '—',
+            [t.nationality]: s?.nationality ? getCountryName(s.nationality, lang) : '—',
+            [t.dateOfBirth]: s?.dateOfBirth || '—',
+            [t.passportNumber]: s?.passportNumber || '—',
+            [t.major]: s?.major ? (t.majorList[s.major] || s.major) : '—',
+            [t.courseCode]: c?.code || e.courseId,
+            [t.courseTitle]: lang === 'AR' ? (c?.title_ar || c?.title) : (c?.title || c?.title_ar),
+            'التاريخ': new Date(e.enrolledAt).toLocaleString(lang === 'AR' ? 'ar-SA' : 'en-US')
+          };
+        });
 
       const worksheet = XLSX.utils.json_to_sheet(data);
       const workbook = XLSX.utils.book_new();

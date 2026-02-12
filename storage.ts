@@ -40,15 +40,8 @@ export const storage = {
       ]);
 
       if (users) {
-        const localUsers = storage.getUsers();
-        // Merge strategy for users can stay or be strict. For now, let's keep merge to be safe for current user.
-        const merged = [...users];
-        localUsers.forEach(lu => {
-          if (!merged.find(ru => ru.universityId === lu.universityId)) {
-            merged.push(lu);
-          }
-        });
-        localStorage.setItem(KEYS.USERS, JSON.stringify(merged));
+        // STRICT SYNC: Overwrite local with remote. Deletions in DB must reflect locally.
+        localStorage.setItem(KEYS.USERS, JSON.stringify(users));
       }
       if (courses) localStorage.setItem(KEYS.COURSES, JSON.stringify(courses));
       if (enrollments) localStorage.setItem(KEYS.ENROLLMENTS, JSON.stringify(enrollments));
@@ -110,14 +103,18 @@ export const storage = {
       users.push(user);
     }
     localStorage.setItem(KEYS.USERS, JSON.stringify(users));
-    await supabaseService.upsertUser(user).catch(() => { });
+    await supabaseService.upsertUser(user);
     return users;
   },
   deleteUser: async (userId: string) => {
+    // Cloud-first: Delete from DB first
+    await supabaseService.deleteUser(userId);
+
+    // Then update local
     let users = storage.getUsers();
     users = users.filter(u => u.id !== userId);
     localStorage.setItem(KEYS.USERS, JSON.stringify(users));
-    await supabaseService.deleteUser(userId).catch(() => { });
+
     return users;
   },
 
@@ -169,10 +166,14 @@ export const storage = {
     return enrollments;
   },
   deleteEnrollment: async (id: string) => {
+    // Cloud-first: Delete from DB first
+    await supabaseService.deleteEnrollment(id);
+
+    // Then update local
     let enrollments = storage.getEnrollments();
     enrollments = enrollments.filter(e => e.id !== id);
     localStorage.setItem(KEYS.ENROLLMENTS, JSON.stringify(enrollments));
-    await supabaseService.deleteEnrollment(id).catch(() => { });
+
     return enrollments;
   },
 

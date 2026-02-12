@@ -102,11 +102,15 @@ const AdminEnrollments: React.FC = () => {
     setTimeout(() => setShowToast(false), 3000);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm(lang === 'AR' ? 'هل أنت متأكد من حذف هذا التسجيل؟' : 'Are you sure you want to delete this enrollment?')) {
-      const next = enrollments.filter(e => e.id !== id);
-      storage.setEnrollments(next);
-      setEnrollments(next);
+      try {
+        const remaining = await storage.deleteEnrollment(id);
+        setEnrollments(remaining);
+      } catch (err) {
+        console.error('Delete failed:', err);
+        alert(lang === 'AR' ? 'فشل حذف التسجيل' : 'Failed to delete enrollment');
+      }
     }
   };
 
