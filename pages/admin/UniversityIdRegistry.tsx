@@ -284,19 +284,19 @@ const UniversityIdRegistry: React.FC = () => {
                     <div className="absolute top-full mt-2 right-0 hidden group-hover:block bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 py-2 min-w-[180px] z-50">
                         <button
                             onClick={() => exportToExcel('all')}
-                            className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 text-sm font-bold"
+                            className="w-full px-4 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-bold text-gray-700 dark:text-gray-200"
                         >
                             {t.exportAll}
                         </button>
                         <button
                             onClick={() => exportToExcel('available')}
-                            className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 text-sm font-bold"
+                            className="w-full px-4 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-bold text-gray-700 dark:text-gray-200"
                         >
                             {t.exportAvailable}
                         </button>
                         <button
                             onClick={() => exportToExcel('used')}
-                            className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 text-sm font-bold"
+                            className="w-full px-4 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-bold text-gray-700 dark:text-gray-200"
                         >
                             {t.exportUsed}
                         </button>
@@ -351,8 +351,8 @@ const UniversityIdRegistry: React.FC = () => {
             </div>
 
             {/* Table */}
-            <div className="rounded-2xl overflow-hidden border" style={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)' }}>
-                <table className="w-full">
+            <div className="rounded-2xl overflow-x-auto border" style={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)' }}>
+                <table className="w-full min-w-[800px] md:min-w-0">
                     <thead>
                         <tr className="border-b" style={{ backgroundColor: isDarkMode ? '#1a1a1a' : '#f8fafc', borderColor: 'var(--border-color)' }}>
                             <th className="px-6 py-4 text-left text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>{t.universityIdColumn}</th>
@@ -441,8 +441,8 @@ const UniversityIdRegistry: React.FC = () => {
             {/* Add Modal */}
             {
                 isAddModalOpen && (
-                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                        <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 max-w-md w-full">
+                    <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                        <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 max-w-md w-full shadow-2xl">
                             <div className="flex items-center justify-between mb-4">
                                 <h3 className="text-xl font-black" style={{ color: 'var(--text-primary)' }}>{t.addStudent}</h3>
                                 <button onClick={() => setIsAddModalOpen(false)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">
@@ -456,8 +456,8 @@ const UniversityIdRegistry: React.FC = () => {
                                         type="text"
                                         value={formData.universityId}
                                         onChange={(e) => setFormData({ ...formData, universityId: e.target.value })}
-                                        className="w-full px-4 py-3 rounded-xl border font-bold text-sm outline-none focus:ring-2 focus:ring-[var(--primary)]"
-                                        style={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
+                                        className="w-full px-4 py-3 rounded-xl border font-bold text-sm outline-none focus:ring-2 focus:ring-[var(--primary)] bg-gray-50 dark:bg-gray-800"
+                                        style={{ borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
                                     />
                                 </div>
                                 <div>
@@ -466,8 +466,8 @@ const UniversityIdRegistry: React.FC = () => {
                                         type="text"
                                         value={formData.name}
                                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                        className="w-full px-4 py-3 rounded-xl border font-bold text-sm outline-none focus:ring-2 focus:ring-[var(--primary)]"
-                                        style={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
+                                        className="w-full px-4 py-3 rounded-xl border font-bold text-sm outline-none focus:ring-2 focus:ring-[var(--primary)] bg-gray-50 dark:bg-gray-800"
+                                        style={{ borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
                                     />
                                 </div>
                                 <button
@@ -487,8 +487,8 @@ const UniversityIdRegistry: React.FC = () => {
             {/* Edit Modal */}
             {
                 isEditModalOpen && editingStudent && (
-                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                        <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 max-w-md w-full">
+                    <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                        <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 max-w-md w-full shadow-2xl">
                             <div className="flex items-center justify-between mb-4">
                                 <h3 className="text-xl font-black" style={{ color: 'var(--text-primary)' }}>{t.editStudent}</h3>
                                 <button onClick={() => setIsEditModalOpen(false)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">
@@ -503,8 +503,8 @@ const UniversityIdRegistry: React.FC = () => {
                                         value={formData.universityId}
                                         onChange={(e) => setFormData({ ...formData, universityId: e.target.value })}
                                         disabled={editingStudent.isUsed}
-                                        className="w-full px-4 py-3 rounded-xl border font-bold text-sm outline-none focus:ring-2 focus:ring-[var(--primary)] disabled:opacity-50 disabled:cursor-not-allowed"
-                                        style={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
+                                        className="w-full px-4 py-3 rounded-xl border font-bold text-sm outline-none focus:ring-2 focus:ring-[var(--primary)] disabled:opacity-50 disabled:cursor-not-allowed bg-gray-50 dark:bg-gray-800"
+                                        style={{ borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
                                     />
                                     {editingStudent.isUsed && (
                                         <p className="text-xs mt-1 text-red-500 font-bold">{t.cannotEditUsedId}</p>
@@ -516,8 +516,8 @@ const UniversityIdRegistry: React.FC = () => {
                                         type="text"
                                         value={formData.name}
                                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                        className="w-full px-4 py-3 rounded-xl border font-bold text-sm outline-none focus:ring-2 focus:ring-[var(--primary)]"
-                                        style={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
+                                        className="w-full px-4 py-3 rounded-xl border font-bold text-sm outline-none focus:ring-2 focus:ring-[var(--primary)] bg-gray-50 dark:bg-gray-800"
+                                        style={{ borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
                                     />
                                 </div>
                                 <button
