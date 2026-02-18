@@ -1,70 +1,78 @@
-
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>American Open University - Registration Portal</title>
-    <link rel="icon" type="image/png" href="/favicon.ico" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <link rel="manifest" href="/manifest.json" />
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Tajawal:wght@300;400;500;700&display=swap" rel="stylesheet">
-    <style>
-      :root {
-        --primary: #1e3a8a;
-        --secondary: #3b82f6;
-        --accent: #f59e0b;
-        --background: #f8fafc;
-        --card-bg: #ffffff;
-        --text-primary: #1e293b;
-        --text-secondary: #64748b;
-        --border-color: #e2e8f0;
-        --transition-speed: 0.35s;
-      }
-      
-      body {
-        margin: 0;
-        font-family: 'Inter', 'Tajawal', sans-serif;
-        background-color: var(--background);
-        color: var(--text-primary);
-        transition: background-color var(--transition-speed) cubic-bezier(0.4, 0, 0.2, 1), 
-                    color var(--transition-speed) cubic-bezier(0.4, 0, 0.2, 1), 
-                    border-color var(--transition-speed) cubic-bezier(0.4, 0, 0.2, 1);
-      }
 
-      * {
-        transition: background-color var(--transition-speed) cubic-bezier(0.4, 0, 0.2, 1), 
-                    border-color var(--transition-speed) cubic-bezier(0.4, 0, 0.2, 1), 
-                    color var(--transition-speed) cubic-bezier(0.4, 0, 0.2, 1);
-        box-shadow: none !important; /* تقليل اللمعان والظلال في النظام ككل لتعزيز المظهر المطفي */
-      }
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>American Open University - Registration Portal</title>
+  <link rel="icon" type="image/png" href="/favicon.ico" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <link rel="manifest" href="/manifest.json" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Tajawal:wght@300;400;500;700&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --primary: #1e3a8a;
+      --secondary: #3b82f6;
+      --accent: #f59e0b;
+      --background: #f8fafc;
+      --card-bg: #ffffff;
+      --text-primary: #1e293b;
+      --text-secondary: #64748b;
+      --border-color: #e2e8f0;
+      --transition-speed: 0.35s;
+    }
 
-      .dark-shadow {
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
-      }
+    body {
+      margin: 0;
+      font-family: 'Inter', 'Tajawal', sans-serif;
+      background-color: var(--background);
+      color: var(--text-primary);
+      transition: background-color var(--transition-speed) cubic-bezier(0.4, 0, 0.2, 1),
+        color var(--transition-speed) cubic-bezier(0.4, 0, 0.2, 1),
+        border-color var(--transition-speed) cubic-bezier(0.4, 0, 0.2, 1);
+    }
 
-      /* Scrollbar Styling */
-      .custom-scrollbar::-webkit-scrollbar {
-        width: 6px;
-      }
-      .custom-scrollbar::-webkit-scrollbar-track {
-        background: transparent;
-      }
-      .custom-scrollbar::-webkit-scrollbar-thumb {
-        background: #cbd5e1;
-        border-radius: 10px;
-      }
-      .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-        background: #94a3b8;
-      }
+    * {
+      transition: background-color var(--transition-speed) cubic-bezier(0.4, 0, 0.2, 1),
+        border-color var(--transition-speed) cubic-bezier(0.4, 0, 0.2, 1),
+        color var(--transition-speed) cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: none !important;
+      /* تقليل اللمعان والظلال في النظام ككل لتعزيز المظهر المطفي */
+    }
 
-      [dir="rtl"] {
-        font-family: 'Tajawal', sans-serif;
-      }
-    </style>
+    .dark-shadow {
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+    }
+
+    /* Scrollbar Styling */
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 10px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+
+    [dir="rtl"] {
+      font-family: 'Tajawal', sans-serif;
+    }
+  </style>
   <script type="importmap">
 {
   "imports": {
@@ -80,8 +88,10 @@
 </script>
 
 </head>
-  <body>
-    <div id="root"></div>
+
+<body>
+  <div id="root"></div>
   <script type="module" src="/index.tsx"></script>
 </body>
+
 </html>
