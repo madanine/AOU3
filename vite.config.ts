@@ -15,6 +15,9 @@ export default defineConfig(({ mode }) => {
       VitePWA({
         registerType: 'autoUpdate',
         includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
+        workbox: {
+          maximumFileSizeToCacheInBytes: 5 * 1024 * 1024 // 5 MB
+        },
         manifest: {
           name: 'American Open University Portal',
           short_name: 'AOU',
@@ -37,6 +40,19 @@ export default defineConfig(({ mode }) => {
         }
       })
     ],
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            vendor: ['react', 'react-dom', 'react-router-dom'],
+            charts: ['recharts'],
+            pdf: ['jspdf', 'html2canvas'],
+            supabase: ['@supabase/supabase-js'],
+            xlsx: ['xlsx']
+          }
+        }
+      }
+    },
     define: {
       'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
       'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
