@@ -177,3 +177,104 @@ export interface ParticipationRow {
 
 // UI Map Structure for Participation
 export type ParticipationRecord = Record<string, Record<string, (boolean | null)[]>>;
+
+// ============================================================
+// EXAM SYSTEM TYPES
+// ============================================================
+
+export type ExamQuestionType = 'mcq' | 'true_false' | 'essay' | 'matrix';
+
+export interface Exam {
+  id: string;
+  courseId: string;
+  semesterId: string;
+  title: string;
+  startAt: string;
+  endAt: string;
+  totalMarks: number;
+  isPublished: boolean;
+  isResultsReleased: boolean;
+  createdAt: string;
+}
+
+export interface ExamQuestion {
+  id: string;
+  examId: string;
+  type: ExamQuestionType;
+  questionText: string;
+  marks: number;
+  orderIndex: number;
+  matrixRows?: string[];      // For matrix: row labels
+  matrixAnswers?: Record<string, string>; // For matrix: { rowIndex: correctOptionId }
+  createdAt: string;
+  options?: ExamOption[];      // Populated when fetched with options
+}
+
+export interface ExamOption {
+  id: string;
+  questionId: string;
+  optionText: string;
+  isCorrect: boolean;
+  orderIndex: number;
+}
+
+export interface ExamAttempt {
+  id: string;
+  examId: string;
+  studentId: string;
+  startedAt: string;
+  submittedAt?: string;
+  totalScore?: number;
+  isSubmitted: boolean;
+  createdAt: string;
+}
+
+export interface ExamAnswer {
+  id: string;
+  attemptId: string;
+  questionId: string;
+  selectedOptionId?: string;
+  essayAnswer?: string;
+  matrixSelections?: Record<string, string>; // { rowIndex: selectedOptionId }
+  isCorrect?: boolean;
+  awardedMarks?: number;
+  createdAt: string;
+}
+
+export interface ExamException {
+  id: string;
+  examId: string;
+  studentId: string;
+  extendedUntil: string;
+  createdAt: string;
+}
+
+// ============================================================
+// TRANSCRIPT SYSTEM TYPES
+// ============================================================
+
+export interface SemesterTranscript {
+  id: string;
+  studentId: string;
+  semesterId: string;
+  semesterNameSnapshot: string;
+  semesterAverage?: number;
+  releasedAt: string;
+  createdAt: string;
+  courses?: TranscriptCourse[]; // Populated when fetched
+}
+
+export interface TranscriptCourse {
+  id: string;
+  transcriptId: string;
+  courseId: string;
+  courseNameSnapshot: string;
+  courseCodeSnapshot?: string;
+  attendanceScore: number;
+  participationScore: number;
+  assignmentsScore: number;
+  examScore?: number;
+  finalScore: number;
+  percentage: number;
+  createdAt: string;
+}

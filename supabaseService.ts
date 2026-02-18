@@ -1,6 +1,6 @@
 
 import { supabase } from './supabase';
-import { User, Course, Enrollment, SiteSettings, AttendanceRow, ParticipationRow, Semester, Assignment, Submission, AllowedStudent } from './types';
+import { User, Course, Enrollment, SiteSettings, AttendanceRow, ParticipationRow, Semester, Assignment, Submission, AllowedStudent, Exam, ExamQuestion, ExamOption, ExamAttempt, ExamAnswer, ExamException, SemesterTranscript, TranscriptCourse } from './types';
 
 export const supabaseService = {
     // Auth
@@ -591,5 +591,541 @@ export const supabaseService = {
         const available = total - used;
 
         return { total, available, used };
+    },
+
+    // ============================================
+    // EXAM SYSTEM Methods
+    // ============================================
+
+    // --- Exams ---
+    async getExams() {
+        const { data, error } = await supabase.from('exams').select('*').order('created_at', { ascending: false });
+        if (error) throw error;
+        return (data || []).map(e => ({
+            id: e.id,
+            courseId: e.course_id,
+            semesterId: e.semester_id,
+            title: e.title,
+            startAt: e.start_at,
+            endAt: e.end_at,
+            totalMarks: e.total_marks,
+            isPublished: e.is_published,
+            isResultsReleased: e.is_results_released,
+            createdAt: e.created_at
+        })) as Exam[];
+    },
+
+    async upsertExam(exam: Exam) {
+        const payload: any = {
+            course_id: exam.courseId,
+            semester_id: exam.semesterId,
+            title: exam.title,
+            start_at: exam.startAt,
+            end_at: exam.endAt,
+            total_marks: exam.totalMarks || 50,
+            is_published: exam.isPublished || false,
+            is_results_released: exam.isResultsReleased || false
+        };
+        if (exam.id && /^[0-9a-f]{8}-/i.test(exam.id)) payload.id = exam.id;
+
+        const { data, error } = await supabase.from('exams').upsert(payload).select().single();
+        if (error) throw error;
+        return {
+            id: data.id,
+            courseId: data.course_id,
+            semesterId: data.semester_id,
+            title: data.title,
+            startAt: data.start_at,
+            endAt: data.end_at,
+            totalMarks: data.total_marks,
+            isPublished: data.is_published,
+            isResultsReleased: data.is_results_released,
+            createdAt: data.created_at
+        } as Exam;
+    },
+
+    async deleteExam(examId: string) {
+        const { error } = await supabase.from('exams').delete().eq('id', examId);
+        if (error) throw error;
+    },
+
+    async publishExam(examId: string, publish: boolean) {
+        const { error } = await supabase.from('exams').update({ is_published: publish }).eq('id', examId);
+        if (error) throw error;
+    },
+
+    async releaseExamResults(examId: string) {
+        const { error } = await supabase.from('exams').update({ is_results_released: true }).eq('id', examId);
+        if (error) throw error;
+    },
+
+    // --- Exam Questions ---
+    async getExamQuestions(examId: string) {
+        const { data, error } = await supabase
+            .from('exam_questions')
+            .select('*, exam_options(*)')
+            .eq('exam_id', examId)
+            .order('order_index', { ascending: true });
+        if (error) throw error;
+        return (data || []).map(q => ({
+            id: q.id,
+            examId: q.exam_id,
+            type: q.type,
+            questionText: q.question_text,
+            marks: q.marks,
+            orderIndex: q.order_index,
+            matrixRows: q.matrix_rows,
+            matrixAnswers: q.matrix_answers,
+            createdAt: q.created_at,
+            options: (q.exam_options || []).map((o: any) => ({
+                id: o.id,
+                questionId: o.question_id,
+                optionText: o.option_text,
+                isCorrect: o.is_correct,
+                orderIndex: o.order_index
+            })).sort((a: ExamOption, b: ExamOption) => a.orderIndex - b.orderIndex)
+        })) as ExamQuestion[];
+    },
+
+    async upsertExamQuestion(q: ExamQuestion) {
+        const payload: any = {
+            exam_id: q.examId,
+            type: q.type,
+            question_text: q.questionText,
+            marks: q.marks,
+            order_index: q.orderIndex || 0,
+            matrix_rows: q.matrixRows || null,
+            matrix_answers: q.matrixAnswers || null
+        };
+        if (q.id && /^[0-9a-f]{8}-/i.test(q.id)) payload.id = q.id;
+
+        const { data, error } = await supabase.from('exam_questions').upsert(payload).select().single();
+        if (error) throw error;
+        return { ...q, id: data.id } as ExamQuestion;
+    },
+
+    async deleteExamQuestion(questionId: string) {
+        const { error } = await supabase.from('exam_questions').delete().eq('id', questionId);
+        if (error) throw error;
+    },
+
+    // --- Exam Options ---
+    async upsertExamOption(opt: ExamOption) {
+        const payload: any = {
+            question_id: opt.questionId,
+            option_text: opt.optionText,
+            is_correct: opt.isCorrect,
+            order_index: opt.orderIndex || 0
+        };
+        if (opt.id && /^[0-9a-f]{8}-/i.test(opt.id)) payload.id = opt.id;
+
+        const { data, error } = await supabase.from('exam_options').upsert(payload).select().single();
+        if (error) throw error;
+        return { ...opt, id: data.id } as ExamOption;
+    },
+
+    async deleteExamOption(optionId: string) {
+        const { error } = await supabase.from('exam_options').delete().eq('id', optionId);
+        if (error) throw error;
+    },
+
+    async deleteExamOptionsByQuestion(questionId: string) {
+        const { error } = await supabase.from('exam_options').delete().eq('question_id', questionId);
+        if (error) throw error;
+    },
+
+    // --- Exam Attempts ---
+    async getExamAttempts(examId?: string) {
+        let query = supabase.from('exam_attempts').select('*');
+        if (examId) query = query.eq('exam_id', examId);
+        const { data, error } = await query;
+        if (error) throw error;
+        return (data || []).map(a => ({
+            id: a.id,
+            examId: a.exam_id,
+            studentId: a.student_id,
+            startedAt: a.started_at,
+            submittedAt: a.submitted_at,
+            totalScore: a.total_score,
+            isSubmitted: a.is_submitted,
+            createdAt: a.created_at
+        })) as ExamAttempt[];
+    },
+
+    async getStudentAttempt(examId: string, studentId: string) {
+        const { data, error } = await supabase
+            .from('exam_attempts')
+            .select('*')
+            .eq('exam_id', examId)
+            .eq('student_id', studentId)
+            .maybeSingle();
+        if (error) throw error;
+        if (!data) return null;
+        return {
+            id: data.id,
+            examId: data.exam_id,
+            studentId: data.student_id,
+            startedAt: data.started_at,
+            submittedAt: data.submitted_at,
+            totalScore: data.total_score,
+            isSubmitted: data.is_submitted,
+            createdAt: data.created_at
+        } as ExamAttempt;
+    },
+
+    async createExamAttempt(examId: string, studentId: string) {
+        const { data, error } = await supabase
+            .from('exam_attempts')
+            .insert({ exam_id: examId, student_id: studentId })
+            .select()
+            .single();
+        if (error) throw error;
+        return {
+            id: data.id,
+            examId: data.exam_id,
+            studentId: data.student_id,
+            startedAt: data.started_at,
+            submittedAt: data.submitted_at,
+            totalScore: data.total_score,
+            isSubmitted: data.is_submitted,
+            createdAt: data.created_at
+        } as ExamAttempt;
+    },
+
+    async submitExamAttempt(attemptId: string, totalScore?: number) {
+        const payload: any = {
+            is_submitted: true,
+            submitted_at: new Date().toISOString()
+        };
+        if (totalScore !== undefined) payload.total_score = totalScore;
+
+        const { error } = await supabase.from('exam_attempts').update(payload).eq('id', attemptId);
+        if (error) throw error;
+    },
+
+    async updateAttemptScore(attemptId: string, totalScore: number) {
+        const { error } = await supabase.from('exam_attempts').update({ total_score: totalScore }).eq('id', attemptId);
+        if (error) throw error;
+    },
+
+    // --- Exam Answers ---
+    async getExamAnswers(attemptId: string) {
+        const { data, error } = await supabase
+            .from('exam_answers')
+            .select('*')
+            .eq('attempt_id', attemptId);
+        if (error) throw error;
+        return (data || []).map(a => ({
+            id: a.id,
+            attemptId: a.attempt_id,
+            questionId: a.question_id,
+            selectedOptionId: a.selected_option_id,
+            essayAnswer: a.essay_answer,
+            matrixSelections: a.matrix_selections,
+            isCorrect: a.is_correct,
+            awardedMarks: a.awarded_marks,
+            createdAt: a.created_at
+        })) as ExamAnswer[];
+    },
+
+    async upsertExamAnswer(answer: ExamAnswer) {
+        const payload: any = {
+            attempt_id: answer.attemptId,
+            question_id: answer.questionId,
+            selected_option_id: answer.selectedOptionId || null,
+            essay_answer: answer.essayAnswer || null,
+            matrix_selections: answer.matrixSelections || null,
+            is_correct: answer.isCorrect ?? null,
+            awarded_marks: answer.awardedMarks ?? null
+        };
+        if (answer.id && /^[0-9a-f]{8}-/i.test(answer.id)) payload.id = answer.id;
+
+        const { data, error } = await supabase.from('exam_answers').upsert(payload).select().single();
+        if (error) throw error;
+        return { ...answer, id: data.id } as ExamAnswer;
+    },
+
+    async bulkUpsertExamAnswers(answers: ExamAnswer[]) {
+        const payloads = answers.map(a => ({
+            attempt_id: a.attemptId,
+            question_id: a.questionId,
+            selected_option_id: a.selectedOptionId || null,
+            essay_answer: a.essayAnswer || null,
+            matrix_selections: a.matrixSelections || null,
+            is_correct: a.isCorrect ?? null,
+            awarded_marks: a.awardedMarks ?? null,
+            ...(a.id && /^[0-9a-f]{8}-/i.test(a.id) ? { id: a.id } : {})
+        }));
+        const { error } = await supabase.from('exam_answers').upsert(payloads);
+        if (error) throw error;
+    },
+
+    async gradeExamAnswer(answerId: string, marks: number, isCorrect: boolean) {
+        const { error } = await supabase.from('exam_answers').update({
+            awarded_marks: marks,
+            is_correct: isCorrect
+        }).eq('id', answerId);
+        if (error) throw error;
+    },
+
+    // --- Exam Exceptions ---
+    async getExamExceptions(examId: string) {
+        const { data, error } = await supabase
+            .from('exam_exceptions')
+            .select('*')
+            .eq('exam_id', examId);
+        if (error) throw error;
+        return (data || []).map(e => ({
+            id: e.id,
+            examId: e.exam_id,
+            studentId: e.student_id,
+            extendedUntil: e.extended_until,
+            createdAt: e.created_at
+        })) as ExamException[];
+    },
+
+    async upsertExamException(exception: ExamException) {
+        const payload: any = {
+            exam_id: exception.examId,
+            student_id: exception.studentId,
+            extended_until: exception.extendedUntil
+        };
+        if (exception.id && /^[0-9a-f]{8}-/i.test(exception.id)) payload.id = exception.id;
+
+        const { error } = await supabase.from('exam_exceptions').upsert(payload, { onConflict: 'exam_id,student_id' });
+        if (error) throw error;
+    },
+
+    async deleteExamException(exceptionId: string) {
+        const { error } = await supabase.from('exam_exceptions').delete().eq('id', exceptionId);
+        if (error) throw error;
+    },
+
+    // ============================================
+    // TRANSCRIPT SYSTEM Methods
+    // ============================================
+
+    async getSemesterTranscripts(studentId?: string) {
+        let query = supabase.from('semester_transcripts').select('*').order('released_at', { ascending: true });
+        if (studentId) query = query.eq('student_id', studentId);
+        const { data, error } = await query;
+        if (error) throw error;
+        return (data || []).map(t => ({
+            id: t.id,
+            studentId: t.student_id,
+            semesterId: t.semester_id,
+            semesterNameSnapshot: t.semester_name_snapshot,
+            semesterAverage: t.semester_average ? parseFloat(t.semester_average) : undefined,
+            releasedAt: t.released_at,
+            createdAt: t.created_at
+        })) as SemesterTranscript[];
+    },
+
+    async getTranscriptCourses(transcriptId: string) {
+        const { data, error } = await supabase
+            .from('transcript_courses')
+            .select('*')
+            .eq('transcript_id', transcriptId);
+        if (error) throw error;
+        return (data || []).map(c => ({
+            id: c.id,
+            transcriptId: c.transcript_id,
+            courseId: c.course_id,
+            courseNameSnapshot: c.course_name_snapshot,
+            courseCodeSnapshot: c.course_code_snapshot,
+            attendanceScore: c.attendance_score,
+            participationScore: c.participation_score,
+            assignmentsScore: c.assignments_score,
+            examScore: c.exam_score,
+            finalScore: c.final_score,
+            percentage: c.percentage ? parseFloat(c.percentage as any) : 0,
+            createdAt: c.created_at
+        })) as TranscriptCourse[];
+    },
+
+    // Release semester: compute scores and create snapshots
+    async releaseSemester(semesterId: string, semesterName: string) {
+        // Get all students enrolled in courses for this semester
+        const { data: enrollments, error: enrollError } = await supabase
+            .from('enrollments')
+            .select('student_id, course_id')
+            .eq('semester_id', semesterId);
+        if (enrollError) throw enrollError;
+
+        // Group by student
+        const studentCourses: Record<string, string[]> = {};
+        (enrollments || []).forEach(e => {
+            if (!studentCourses[e.student_id]) studentCourses[e.student_id] = [];
+            studentCourses[e.student_id].push(e.course_id);
+        });
+
+        // Fetch all relevant data
+        const [attendanceRes, participationRes, submissionsRes, examsRes, attemptsRes, coursesRes] = await Promise.all([
+            supabase.from('attendance').select('*'),
+            supabase.from('participation').select('*'),
+            supabase.from('submissions').select('*'),
+            supabase.from('exams').select('*').eq('semester_id', semesterId).eq('is_results_released', true),
+            supabase.from('exam_attempts').select('*').eq('is_submitted', true),
+            supabase.from('courses').select('*')
+        ]);
+
+        const allAttendance = attendanceRes.data || [];
+        const allParticipation = participationRes.data || [];
+        const allSubmissions = submissionsRes.data || [];
+        const releasedExams = examsRes.data || [];
+        const allAttempts = attemptsRes.data || [];
+        const allCourses = coursesRes.data || [];
+
+        // Process each student
+        for (const [studentId, courseIds] of Object.entries(studentCourses)) {
+            // Check if transcript already exists
+            const existing = await supabase
+                .from('semester_transcripts')
+                .select('id')
+                .eq('student_id', studentId)
+                .eq('semester_id', semesterId)
+                .maybeSingle();
+
+            if (existing.data) {
+                // Delete existing transcript courses and re-create
+                await supabase.from('transcript_courses').delete().eq('transcript_id', existing.data.id);
+                await supabase.from('semester_transcripts').delete().eq('id', existing.data.id);
+            }
+
+            const courseScores: { courseId: string; name: string; code: string; att: number; part: number; assign: number; exam: number | null; final: number; pct: number }[] = [];
+
+            for (const courseId of courseIds) {
+                const course = allCourses.find(c => c.id === courseId);
+                if (!course) continue;
+
+                // Attendance score (out of 20)
+                const studentAttendance = allAttendance.filter(a => a.course_id === courseId && a.student_id === studentId);
+                const totalLectures = Math.max(
+                    ...allAttendance.filter(a => a.course_id === courseId).map(a => a.lecture_index + 1),
+                    1
+                );
+                const presentCount = studentAttendance.filter(a => a.status === true).length;
+                const attScore = totalLectures > 0 ? Math.round((presentCount / totalLectures) * 20) : 0;
+
+                // Participation score (out of 10)
+                const studentParticipation = allParticipation.filter(p => p.course_id === courseId && p.student_id === studentId);
+                const totalParticLectures = Math.max(
+                    ...allParticipation.filter(p => p.course_id === courseId).map(p => p.lecture_index + 1),
+                    1
+                );
+                const participatedCount = studentParticipation.filter(p => p.status === true).length;
+                const partScore = totalParticLectures > 0 ? Math.round((participatedCount / totalParticLectures) * 10) : 0;
+
+                // Assignments score (out of 20)
+                const studentSubmissions = allSubmissions.filter(s => s.course_id === courseId && s.student_id === studentId);
+                let assignScore = 0;
+                if (studentSubmissions.length > 0) {
+                    const grades = studentSubmissions.map(s => parseFloat(s.grade || '0'));
+                    const avgGrade = grades.reduce((a, b) => a + b, 0) / grades.length;
+                    assignScore = Math.round(Math.min(avgGrade, 100) / 100 * 20);
+                }
+
+                // Exam score (out of 50)
+                let examScore: number | null = null;
+                const courseExams = releasedExams.filter(ex => ex.course_id === courseId);
+                if (courseExams.length > 0) {
+                    const latestExam = courseExams[courseExams.length - 1];
+                    const attempt = allAttempts.find(a => a.exam_id === latestExam.id && a.student_id === studentId && a.is_submitted);
+                    if (attempt && attempt.total_score !== null && attempt.total_score !== undefined) {
+                        examScore = attempt.total_score;
+                    }
+                }
+
+                const finalScore = attScore + partScore + assignScore + (examScore ?? 0);
+                const pct = finalScore;
+
+                courseScores.push({
+                    courseId,
+                    name: course.title_ar || course.title,
+                    code: course.code,
+                    att: attScore,
+                    part: partScore,
+                    assign: assignScore,
+                    exam: examScore,
+                    final: finalScore,
+                    pct
+                });
+            }
+
+            // Calculate semester average
+            const semAvg = courseScores.length > 0
+                ? courseScores.reduce((sum, c) => sum + c.final, 0) / courseScores.length
+                : 0;
+
+            // Insert semester transcript
+            const { data: transcript, error: tErr } = await supabase
+                .from('semester_transcripts')
+                .insert({
+                    student_id: studentId,
+                    semester_id: semesterId,
+                    semester_name_snapshot: semesterName,
+                    semester_average: Math.round(semAvg * 100) / 100
+                })
+                .select()
+                .single();
+
+            if (tErr) {
+                console.error('Transcript insert error:', tErr);
+                continue;
+            }
+
+            // Insert transcript courses
+            if (courseScores.length > 0) {
+                const coursesPayload = courseScores.map(c => ({
+                    transcript_id: transcript.id,
+                    course_id: c.courseId,
+                    course_name_snapshot: c.name,
+                    course_code_snapshot: c.code,
+                    attendance_score: c.att,
+                    participation_score: c.part,
+                    assignments_score: c.assign,
+                    exam_score: c.exam,
+                    final_score: c.final,
+                    percentage: c.pct
+                }));
+                const { error: cErr } = await supabase.from('transcript_courses').insert(coursesPayload);
+                if (cErr) console.error('Transcript courses insert error:', cErr);
+            }
+        }
+    },
+
+    // Delete a released semester transcript
+    async deleteSemesterTranscript(semesterId: string) {
+        // Delete all transcripts for this semester (cascade will handle courses)
+        const { error } = await supabase
+            .from('semester_transcripts')
+            .delete()
+            .eq('semester_id', semesterId);
+        if (error) throw error;
+    },
+
+    // Check if a semester has been released
+    async isSemesterReleased(semesterId: string) {
+        const { data, error } = await supabase
+            .from('semester_transcripts')
+            .select('id')
+            .eq('semester_id', semesterId)
+            .limit(1);
+        if (error) return false;
+        return (data || []).length > 0;
+    },
+
+    // Get full transcript for a student (all released semesters)
+    async getFullTranscript(studentId: string) {
+        const transcripts = await this.getSemesterTranscripts(studentId);
+        const result: SemesterTranscript[] = [];
+
+        for (const t of transcripts) {
+            const courses = await this.getTranscriptCourses(t.id);
+            result.push({ ...t, courses });
+        }
+
+        return result;
     }
 };
+

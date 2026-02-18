@@ -18,6 +18,8 @@ import StudentProfile from './pages/student/Profile';
 import StudentAttendance from './pages/student/Attendance';
 import StudentAssignments from './pages/student/Assignments';
 import StudentAssignmentSubmission from './pages/student/AssignmentSubmission';
+import StudentExams from './pages/student/Exams';
+import StudentTranscript from './pages/student/Transcript';
 
 import AdminDashboard from './pages/admin/Dashboard';
 import AdminCourses from './pages/admin/Courses';
@@ -32,6 +34,8 @@ import AdminGrading from './pages/admin/Grading';
 import AdminManagement from './pages/admin/AdminManagement';
 import ChangePassword from './pages/admin/ChangePassword';
 import UniversityIdRegistry from './pages/admin/UniversityIdRegistry';
+import AdminExams from './pages/admin/Exams';
+import AdminTranscripts from './pages/admin/Transcripts';
 
 import MainLayout from './components/layout/MainLayout';
 
@@ -223,6 +227,8 @@ const App: React.FC = () => {
             <Route path="/student/attendance" element={<StudentAttendance />} />
             <Route path="/student/assignments" element={<StudentAssignments />} />
             <Route path="/student/assignments/:courseId" element={<StudentAssignmentSubmission />} />
+            <Route path="/student/exams" element={<StudentExams />} />
+            <Route path="/student/transcript" element={<StudentTranscript />} />
 
             {/* Admin Routes */}
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
@@ -235,6 +241,8 @@ const App: React.FC = () => {
             <Route path="/admin/grading" element={<AdminGrading />} />
             <Route path="/admin/export" element={<AdminExport />} />
             <Route path="/admin/site-settings" element={<AdminSiteSettings />} />
+            <Route path="/admin/exams" element={<AdminExams />} />
+            <Route path="/admin/transcripts" element={<AdminTranscripts />} />
             <Route path="/admin/admins" element={<AdminManagement />} />
             <Route path="/admin/change-password" element={<ChangePassword />} />
             <Route path="/admin/registry" element={

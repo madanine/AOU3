@@ -26,7 +26,9 @@ import {
   GraduationCap as GradIcon,
   Sun,
   Moon,
-  Globe
+  Globe,
+  FileEdit,
+  ScrollText
 } from 'lucide-react';
 
 const MainLayout: React.FC = () => {
@@ -71,6 +73,8 @@ const MainLayout: React.FC = () => {
         { label: t.enrollments, path: '/admin/enrollments', icon: Library, key: 'enrollments' },
         { label: t.export, path: '/admin/export', icon: FileSpreadsheet, key: 'exportData' },
         { label: t.settings, path: '/admin/site-settings', icon: Settings, key: 'siteSettings' },
+        { label: lang === 'AR' ? 'الامتحانات' : 'Exams', path: '/admin/exams', icon: FileEdit, key: 'exams' },
+        { label: lang === 'AR' ? 'السجلات الأكاديمية' : 'Transcripts', path: '/admin/transcripts', icon: ScrollText, key: 'transcripts' },
       ];
 
       // CRITICAL: Sub-admins only see what they are allowed
@@ -115,6 +119,8 @@ const MainLayout: React.FC = () => {
       { label: t.assignments, path: '/student/assignments', icon: ClipboardList, key: 'assignments' },
       { label: lang === 'AR' ? 'سجل الحضور' : 'Attendance History', path: '/student/attendance', icon: History, key: 'attendance' },
       { label: t.myTimetable, path: '/student/timetable', icon: Calendar, key: 'timetable' },
+      { label: lang === 'AR' ? 'الامتحانات' : 'Exams', path: '/student/exams', icon: FileEdit, key: 'exams' },
+      { label: lang === 'AR' ? 'السجل الأكاديمي' : 'Transcript', path: '/student/transcript', icon: ScrollText, key: 'transcript' },
       { label: t.profile, path: '/student/profile', icon: UserIcon, key: 'profile' },
     ];
   };
