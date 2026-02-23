@@ -1,0 +1,2 @@
+﻿pages/admin/Dashboard.tsx(6,128): error TS2300: Duplicate identifier 'BarChart'.
+pages/admin/Dashboard.tsx(11,3): error TS2300: Duplicate identifier 'BarChart'.
