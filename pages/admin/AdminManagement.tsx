@@ -31,7 +31,8 @@ const AdminManagement: React.FC = () => {
       students: true,
       enrollments: true,
       exportData: true,
-      siteSettings: true
+      siteSettings: true,
+      exams: true
     }
   });
 
@@ -44,6 +45,7 @@ const AdminManagement: React.FC = () => {
     enrollments: lang === 'AR' ? 'التسجيلات' : 'Enrollments',
     exportData: lang === 'AR' ? 'تصدير البيانات' : 'Export Data',
     siteSettings: lang === 'AR' ? 'إعدادات الموقع' : 'Site Settings',
+    exams: lang === 'AR' ? 'الامتحانات' : 'Exams',
     canAccessRegistry: t.registryAccess
   };
 
@@ -58,7 +60,7 @@ const AdminManagement: React.FC = () => {
       canAccessRegistry: false,
       permissions: {
         dashboard: true, courses: true, attendance: true, supervisors: true,
-        students: true, enrollments: true, exportData: true, siteSettings: true
+        students: true, enrollments: true, exportData: true, siteSettings: true, exams: true
       }
     });
     setIsModalOpen(true);
@@ -75,7 +77,7 @@ const AdminManagement: React.FC = () => {
       canAccessRegistry: adm.canAccessRegistry || false,
       permissions: {
         dashboard: true, courses: true, attendance: true, supervisors: true,
-        students: true, enrollments: true, exportData: true, siteSettings: true,
+        students: true, enrollments: true, exportData: true, siteSettings: true, exams: true,
         ...(adm.permissions || {})
       }
     });

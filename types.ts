@@ -33,6 +33,7 @@ export interface User {
     siteSettings: boolean;
     assignments?: boolean;
     grading?: boolean;
+    exams?: boolean;
   };
   fullAccess?: boolean;
   isDisabled?: boolean;
