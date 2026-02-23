@@ -214,8 +214,8 @@ export const TRANSLATIONS: Record<Language, any> = {
     usedRecords: "السجلات المستخدمة",
     // Exams & Transcript
     exams: "الامتحانات",
-    transcript: "السجل الأكاديمي",
-    transcripts: "السجلات الأكاديمية",
+    transcript: "كشف الدرجات",
+    transcripts: "كشوف الدرجات",
     examManagement: "إدارة الامتحانات",
     newExam: "امتحان جديد",
     examTitle: "عنوان الامتحان",
