@@ -121,7 +121,7 @@ const MainLayout: React.FC = () => {
       { label: t.registration, path: '/student/registration', icon: GraduationCap, key: 'registration' },
       { label: t.myCourses, path: '/student/my-courses', icon: BookOpen, key: 'myCourses' },
       { label: t.assignments, path: '/student/assignments', icon: ClipboardList, key: 'assignments' },
-      { label: lang === 'AR' ? 'سجل الحضور' : 'Attendance History', path: '/student/attendance', icon: History, key: 'attendance' },
+      { label: lang === 'AR' ? 'سجل الحضور والمشاركة' : 'Attendance History', path: '/student/attendance', icon: History, key: 'attendance' },
       { label: t.myTimetable, path: '/student/timetable', icon: Calendar, key: 'timetable' },
       { label: lang === 'AR' ? 'الامتحانات' : 'Exams', path: '/student/exams', icon: FileEdit, key: 'exams' },
       { label: lang === 'AR' ? 'كشف الدرجات' : 'Transcript', path: '/student/transcript', icon: ScrollText, key: 'transcript' },

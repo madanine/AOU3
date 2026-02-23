@@ -1,11 +1,10 @@
-
 import React, { useState } from 'react';
 import { useApp } from '../../App';
 import { storage } from '../../storage';
-import { BookMarked, ChevronRight, X, Check, Minus, Star } from 'lucide-react';
+import { BookMarked, ChevronRight, X, Calendar, CheckCircle2, XCircle, Clock, Star } from 'lucide-react';
 
 const Attendance: React.FC = () => {
-  const { user, t, translate, lang, settings } = useApp();
+  const { user, translate, lang, settings } = useApp();
   const [selectedCourse, setSelectedCourse] = useState<string | null>(null);
 
   const enrollments = storage.getEnrollments().filter(e => e.studentId === user?.id);
@@ -26,15 +25,11 @@ const Attendance: React.FC = () => {
     const unrecordedCount = 12 - recordedCount;
 
     // 20-point grading system: ONLY show final grade when ALL sessions are marked
-    // If ANY sessions are unmarked (unrecordedCount > 0), grade is null (pending)
-    // Grade is ONLY calculated when unrecordedCount === 0 (all 12 sessions marked)
     const attendanceGrade = unrecordedCount === 0 ? Math.max(0, 20 - (absentCount * 2)) : null;
 
     // Participation Logic
     const partRecords = (participation[course.id]?.[user?.id || '']) || Array(12).fill(null);
-    // Determine participation count: count all 'true' in the array
     const participationCount = partRecords.filter((r: boolean | null) => r === true).length;
-    // Cap at 10
     const participationGrade = Math.min(participationCount, 10);
 
     const percentage = recordedCount > 0 ? Math.round((presentCount / recordedCount) * 100) : 0;
@@ -76,87 +71,112 @@ const Attendance: React.FC = () => {
   });
 
   const activeCourse = myAttendance.find(a => a.course.id === selectedCourse);
+  const activeSemName = semesters.find(s => s.id === activeSemId)?.name;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 animate-in slide-in-from-bottom-4 duration-500 pb-20">
-      <div>
-        <h1 className="text-3xl font-black tracking-tight uppercase" style={{ color: 'var(--text-primary)' }}>
-          {lang === 'AR' ? 'سجل الحضور' : 'Attendance History'}
-        </h1>
-        <p className="font-black mt-1 uppercase text-xs" style={{ color: 'var(--text-secondary)' }}>
-          {t.welcome}, {user?.fullName}
-        </p>
+    <div className="max-w-5xl mx-auto space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">
+
+      {/* Header Section */}
+      <div className="bg-white p-6 md:p-8 rounded-3xl border border-gray-100 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative overflow-hidden">
+        <div className="absolute right-0 top-0 w-64 h-64 bg-emerald-50 rounded-full blur-3xl -mr-20 -mt-20 opacity-60 pointer-events-none" />
+        <div className="relative z-10">
+          <h1 className="text-3xl font-black tracking-tight text-gray-800">
+            {lang === 'AR' ? 'سجل الحضور والمشاركة' : 'Attendance & Participation'}
+          </h1>
+          {activeSemName && (
+            <p className="font-semibold text-emerald-600 mt-2 flex items-center gap-2 text-sm bg-emerald-50 px-3 py-1 rounded-full w-fit">
+              <Calendar size={16} />
+              {lang === 'AR' ? 'الفصل الحالي' : 'Current Semester'} — {activeSemName}
+            </p>
+          )}
+        </div>
       </div>
 
-      <div className="space-y-8">
+      <div className="space-y-10">
+
         {/* Current Semester */}
         {currentSemesterAttendance.length > 0 && (
           <div className="space-y-4">
-            <h2 className="text-sm font-black uppercase tracking-widest px-2" style={{ color: 'var(--text-secondary)' }}>
-              {lang === 'AR' ? 'الحضور - الفصل الحالي' : 'Current Semester Attendance'}
-              {activeSemId && ` — ${semesters.find(s => s.id === activeSemId)?.name || ''}`}
+            <h2 className="text-lg font-black text-gray-800 flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center">
+                <BookMarked size={16} />
+              </div>
+              {lang === 'AR' ? 'المواد الحالية' : 'Current Courses'}
             </h2>
-            {currentSemesterAttendance.map(({ course, presentCount, absentCount, unrecordedCount, recordedCount, attendanceGrade, participationGrade }) => (
-              <div key={course.id} className="bg-[var(--card-bg)] rounded-[2rem] p-6 border border-[var(--border-color)] shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all hover:shadow-xl group">
-                <div className="flex items-center gap-5">
-                  <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center text-black shadow-inner">
-                    <BookMarked size={28} />
+
+            <div className="grid grid-cols-1 gap-4">
+              {currentSemesterAttendance.map(({ course, presentCount, absentCount, unrecordedCount, recordedCount, attendanceGrade, participationGrade, percentage }, idx) => (
+                <div key={course.id} style={{ animationDelay: `${idx * 100}ms` }} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-shadow group flex flex-col md:flex-row md:items-center justify-between gap-6 animate-in slide-in-from-bottom-2 fill-mode-both">
+
+                  {/* Course Info */}
+                  <div className="flex-1">
+                    <h3 className="text-xl font-black text-gray-800">{translate(course, 'title')}</h3>
+                    <p className="text-sm font-bold text-gray-400 mt-1">{course.code}</p>
                   </div>
-                  <div>
-                    <h3 className="font-black text-lg leading-tight" style={{ color: 'var(--text-primary)' }}>
-                      {translate(course, 'title')}
-                    </h3>
-                    <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest mt-1" style={{ color: 'var(--text-secondary)' }}>
-                      <span className="font-bold" style={{ color: 'var(--text-primary)' }}>{course.code}</span>
-                      <span>•</span>
-                      <span className="text-emerald-600 font-bold">{presentCount} {lang === 'AR' ? 'حاضر' : 'Present'}</span>
-                      <span>•</span>
-                      <span className="text-red-600 font-bold">{absentCount} {lang === 'AR' ? 'غائب' : 'Absent'}</span>
-                      <span>•</span>
-                      <span className="text-gray-400 font-bold">— {unrecordedCount} {lang === 'AR' ? 'لم تُرصد' : 'Unrecorded'}</span>
+
+                  {/* Progress Bars */}
+                  <div className="flex-1 w-full space-y-4">
+                    {/* Attendance Bar */}
+                    <div>
+                      <div className="flex justify-between items-end mb-1">
+                        <span className="text-xs font-bold text-gray-500 uppercase">{lang === 'AR' ? 'الحضور' : 'Attendance'}</span>
+                        <span className="text-sm font-black text-emerald-600">{percentage}%</span>
+                      </div>
+                      <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
+                        <div className="bg-emerald-500 h-2.5 rounded-full transition-all duration-1000" style={{ width: `${percentage}%` }}></div>
+                      </div>
+                    </div>
+
+                    {/* Participation Bar */}
+                    <div>
+                      <div className="flex justify-between items-end mb-1">
+                        <span className="text-xs font-bold text-gray-500 uppercase">{lang === 'AR' ? 'المشاركة' : 'Participation'}</span>
+                        <span className="text-sm font-black text-amber-500">{participationGrade} / 10</span>
+                      </div>
+                      <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                        <div className="bg-amber-400 h-1.5 rounded-full transition-all duration-1000" style={{ width: `${(participationGrade / 10) * 100}%` }}></div>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="flex items-center gap-6">
-                  {/* Attendance Grade */}
-                  <div className="text-right">
-                    <p className="text-2xl font-black leading-none" style={{ color: attendanceGrade === null ? 'var(--text-secondary)' : 'var(--text-primary)' }}>
-                      {attendanceGrade !== null ? `${attendanceGrade}/20` : '—/20'}
-                    </p>
-                    <p className="text-[8px] font-black uppercase tracking-widest mt-1 opacity-50">
-                      {lang === 'AR' ? `الحضور (${attendanceGrade !== null ? 'نهاية' : `مسجل ${recordedCount}/12`})` : `Attendance (${attendanceGrade !== null ? 'Final' : `Marked ${recordedCount}/12`})`}
-                    </p>
+                  {/* Stats & Actions */}
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 shrink-0 border-t md:border-t-0 md:border-l border-gray-100 pt-4 md:pt-0 pl-0 md:pl-6">
+                    <div className="flex gap-4">
+                      <div className="text-center">
+                        <p className="text-lg font-black text-emerald-600 leading-none">{presentCount}</p>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase mt-1.5">{lang === 'AR' ? 'حاضر' : 'Present'}</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-lg font-black text-rose-500 leading-none">{absentCount}</p>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase mt-1.5">{lang === 'AR' ? 'غائب' : 'Absent'}</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-lg font-black text-gray-800 leading-none">{recordedCount}<span className="text-gray-400 text-sm">/12</span></p>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase mt-1.5">{lang === 'AR' ? 'مرصود' : 'Recorded'}</p>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => setSelectedCourse(course.id)}
+                      className="w-full sm:w-auto px-4 py-2.5 bg-gray-50 hover:bg-gray-100 text-gray-700 font-bold text-sm rounded-xl transition-colors flex items-center justify-center gap-2"
+                    >
+                      {lang === 'AR' ? 'التفاصيل' : 'Details'}
+                      <ChevronRight size={16} className={lang === 'AR' ? 'rotate-180 text-gray-400' : 'text-gray-400'} />
+                    </button>
                   </div>
-
-                  {/* Participation Grade */}
-                  <div className="hidden md:block w-px h-8 bg-gray-200" />
-                  <div className="text-right">
-                    <p className="text-2xl font-black leading-none text-amber-500">
-                      {participationGrade}/10
-                    </p>
-                    <p className="text-[8px] font-black uppercase tracking-widest mt-1 opacity-50">
-                      {lang === 'AR' ? 'المشاركة' : 'Part.'}
-                    </p>
-                  </div>
-
-                  <button
-                    onClick={() => setSelectedCourse(course.id)}
-                    className="p-3 bg-black/5 rounded-2xl border border-black/5 hover:bg-black/10 transition-all flex items-center gap-2"
-                  >
-                    <span className="text-[10px] font-black uppercase tracking-widest">{lang === 'AR' ? 'التفاصيل' : 'Details'}</span>
-                    <ChevronRight size={16} className={lang === 'AR' ? 'rotate-180' : ''} />
-                  </button>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         )}
 
         {/* Previous Semesters */}
         {sortedPreviousSemesters.length > 0 && (
           <div className="space-y-6">
-            <h2 className="text-sm font-black uppercase tracking-widest px-2" style={{ color: 'var(--text-secondary)' }}>
+            <h2 className="text-lg font-black text-gray-800 flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-gray-100 text-gray-500 flex items-center justify-center">
+                <Clock size={16} />
+              </div>
               {lang === 'AR' ? 'الفصول السابقة' : 'Previous Semesters'}
             </h2>
             {sortedPreviousSemesters.map(semId => {
@@ -165,63 +185,63 @@ const Attendance: React.FC = () => {
 
               return (
                 <div key={semId} className="space-y-4">
-                  <h3 className="text-xs font-black uppercase tracking-widest px-2 opacity-60" style={{ color: 'var(--text-secondary)' }}>
+                  <h3 className="text-sm font-bold text-gray-500 bg-gray-50 px-4 py-2 rounded-xl w-fit">
                     {semester?.name || semId}
                   </h3>
-                  {semesterAttendance.map(({ course, presentCount, absentCount, unrecordedCount, recordedCount, attendanceGrade, participationGrade }) => (
-                    <div key={course.id} className="bg-[var(--card-bg)] rounded-[2rem] p-6 border border-[var(--border-color)] shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all hover:shadow-xl group opacity-80">
-                      <div className="flex items-center gap-5">
-                        <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center text-black shadow-inner">
-                          <BookMarked size={28} />
+
+                  <div className="grid grid-cols-1 gap-4 opacity-80 filter saturate-50 hover:saturate-100 transition-all">
+                    {semesterAttendance.map(({ course, presentCount, absentCount, unrecordedCount, recordedCount, attendanceGrade, participationGrade, percentage }) => (
+                      <div key={course.id} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-shadow flex flex-col md:flex-row md:items-center justify-between gap-6">
+
+                        <div className="flex-1">
+                          <h3 className="text-xl font-black text-gray-800">{translate(course, 'title')}</h3>
+                          <p className="text-sm font-bold text-gray-400 mt-1">{course.code}</p>
                         </div>
-                        <div>
-                          <h3 className="font-black text-lg leading-tight" style={{ color: 'var(--text-primary)' }}>
-                            {translate(course, 'title')}
-                          </h3>
-                          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest mt-1" style={{ color: 'var(--text-secondary)' }}>
-                            <span className="font-bold" style={{ color: 'var(--text-primary)' }}>{course.code}</span>
-                            <span>•</span>
-                            <span className="text-emerald-600 font-bold">{presentCount} {lang === 'AR' ? 'حاضر' : 'Present'}</span>
-                            <span>•</span>
-                            <span className="text-red-600 font-bold">{absentCount} {lang === 'AR' ? 'غائب' : 'Absent'}</span>
-                            <span>•</span>
-                            <span className="text-gray-400 font-bold">— {unrecordedCount} {lang === 'AR' ? 'لم تُرصد' : 'Unrecorded'}</span>
+
+                        <div className="flex-1 w-full space-y-4">
+                          <div>
+                            <div className="flex justify-between items-end mb-1">
+                              <span className="text-xs font-bold text-gray-500 uppercase">{lang === 'AR' ? 'الحضور' : 'Attendance'}</span>
+                              <span className="text-sm font-black text-emerald-600">{percentage}%</span>
+                            </div>
+                            <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
+                              <div className="bg-emerald-500 h-2.5 rounded-full" style={{ width: `${percentage}%` }}></div>
+                            </div>
+                          </div>
+                          <div>
+                            <div className="flex justify-between items-end mb-1">
+                              <span className="text-xs font-bold text-gray-500 uppercase">{lang === 'AR' ? 'المشاركة' : 'Participation'}</span>
+                              <span className="text-sm font-black text-amber-500">{participationGrade} / 10</span>
+                            </div>
+                            <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                              <div className="bg-amber-400 h-1.5 rounded-full" style={{ width: `${(participationGrade / 10) * 100}%` }}></div>
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      <div className="flex items-center gap-6">
-                        {/* Attendance Grade */}
-                        <div className="text-right">
-                          <p className="text-2xl font-black leading-none" style={{ color: attendanceGrade === null ? 'var(--text-secondary)' : 'var(--text-primary)' }}>
-                            {attendanceGrade !== null ? `${attendanceGrade}/20` : '—/20'}
-                          </p>
-                          <p className="text-[8px] font-black uppercase tracking-widest mt-1 opacity-50">
-                            {lang === 'AR' ? `الحضور (${attendanceGrade !== null ? 'نهاية' : `مسجل ${recordedCount}/12`})` : `Attendance (${attendanceGrade !== null ? 'Final' : `Marked ${recordedCount}/12`})`}
-                          </p>
+                        <div className="flex items-center gap-6 shrink-0 border-t md:border-t-0 md:border-l border-gray-100 pt-4 md:pt-0 pl-0 md:pl-6">
+                          <div className="flex gap-4">
+                            <div className="text-center">
+                              <p className="text-lg font-black text-emerald-600 leading-none">{presentCount}</p>
+                              <p className="text-[10px] font-bold text-gray-400 uppercase mt-1.5">{lang === 'AR' ? 'حاضر' : 'Present'}</p>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-lg font-black text-rose-500 leading-none">{absentCount}</p>
+                              <p className="text-[10px] font-bold text-gray-400 uppercase mt-1.5">{lang === 'AR' ? 'غائب' : 'Absent'}</p>
+                            </div>
+                          </div>
+
+                          <button
+                            onClick={() => setSelectedCourse(course.id)}
+                            className="px-4 py-2.5 bg-gray-50 hover:bg-gray-100 text-gray-700 font-bold text-sm rounded-xl transition-colors flex items-center gap-2"
+                          >
+                            {lang === 'AR' ? 'التفاصيل' : 'Details'}
+                            <ChevronRight size={16} className={lang === 'AR' ? 'rotate-180 text-gray-400' : 'text-gray-400'} />
+                          </button>
                         </div>
-
-                        {/* Participation Grade */}
-                        <div className="hidden md:block w-px h-8 bg-gray-200" />
-                        <div className="text-right">
-                          <p className="text-2xl font-black leading-none text-amber-500">
-                            {participationGrade}/10
-                          </p>
-                          <p className="text-[8px] font-black uppercase tracking-widest mt-1 opacity-50">
-                            {lang === 'AR' ? 'المشاركة' : 'Part.'}
-                          </p>
-                        </div>
-
-                        <button
-                          onClick={() => setSelectedCourse(course.id)}
-                          className="p-3 bg-black/5 rounded-2xl border border-black/5 hover:bg-black/10 transition-all flex items-center gap-2"
-                        >
-                          <span className="text-[10px] font-black uppercase tracking-widest">{lang === 'AR' ? 'التفاصيل' : 'Details'}</span>
-                          <ChevronRight size={16} className={lang === 'AR' ? 'rotate-180' : ''} />
-                        </button>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               );
             })}
@@ -229,73 +249,103 @@ const Attendance: React.FC = () => {
         )}
 
         {myAttendance.length === 0 && (
-          <div className="text-center py-24 bg-[var(--card-bg)] rounded-[2.5rem] border border-dashed border-black/20">
-            <BookMarked className="mx-auto text-black/20 mb-6" size={64} />
-            <p className="font-black text-xs uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>{t.noData}</p>
+          <div className="text-center p-12 bg-gray-50 rounded-3xl border border-dashed border-gray-200">
+            <BookMarked className="mx-auto text-gray-300 mb-4" size={48} />
+            <p className="font-bold text-gray-500">{lang === 'AR' ? 'لا يوجد سجل حضور مسجل بعد' : 'No attendance records yet'}</p>
           </div>
         )}
       </div>
 
-      {/* Details Modal (View Only) */}
+      {/* Details Modal */}
       {selectedCourse && activeCourse && (
-        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white w-full max-w-lg rounded-t-[2.5rem] sm:rounded-[2.5rem] p-8 shadow-2xl animate-in slide-in-from-bottom duration-300">
-            <div className="flex items-center justify-between mb-8">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+
+            {/* Modal Header */}
+            <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
               <div>
-                <h3 className="text-xl font-black" style={{ color: 'var(--text-primary)' }}>{translate(activeCourse.course, 'title')}</h3>
-                <p className="text-[10px] font-black uppercase tracking-widest mt-1" style={{ color: 'var(--text-secondary)' }}>{activeCourse.course.code}</p>
+                <h3 className="text-xl font-black text-gray-800">{translate(activeCourse.course, 'title')}</h3>
+                <p className="text-sm font-bold text-gray-500 mt-1">{activeCourse.course.code}</p>
               </div>
-              <button onClick={() => setSelectedCourse(null)} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
-                <X size={24} />
+              <button onClick={() => setSelectedCourse(null)} className="w-10 h-10 bg-white border border-gray-200 text-gray-500 hover:bg-gray-100 hover:text-gray-800 rounded-full flex items-center justify-center transition-colors">
+                <X size={20} />
               </button>
             </div>
 
-            <div className="grid grid-cols-4 sm:grid-cols-6 gap-3 mb-8">
-              {Array.from({ length: 12 }).map((_, i) => {
-                const status = activeCourse.records[i];
-                const participationStatus = activeCourse.partRecords[i];
-                return (
-                  <div key={i} className="flex flex-col items-center gap-1.5 relative">
-                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border transition-all ${status === true ? 'bg-emerald-50 border-emerald-100 text-emerald-600' :
-                      status === false ? 'bg-red-50 border-red-100 text-red-600' :
-                        'bg-gray-50 border-gray-100 text-gray-300'
-                      }`}>
-                      {status === true ? <Check size={20} strokeWidth={3} /> :
-                        status === false ? <X size={20} strokeWidth={3} /> :
-                          <Minus size={20} strokeWidth={3} />}
-                    </div>
+            {/* Modal Body - Table Layout */}
+            <div className="p-0 overflow-y-auto">
+              <table className="w-full text-left border-collapse" dir={lang === 'AR' ? 'rtl' : 'ltr'}>
+                <thead className="bg-gray-50 sticky top-0 z-10">
+                  <tr>
+                    <th className="py-3 px-6 text-xs font-black text-gray-500 uppercase tracking-wider">{lang === 'AR' ? 'الجلسة' : 'Session'}</th>
+                    <th className="py-3 px-6 text-xs font-black text-gray-500 uppercase tracking-wider">{lang === 'AR' ? 'حالة الحضور' : 'Attendance'}</th>
+                    <th className="py-3 px-6 text-xs font-black text-gray-500 uppercase tracking-wider text-center">{lang === 'AR' ? 'المشاركة' : 'Participation'}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {Array.from({ length: 12 }).map((_, i) => {
+                    const status = activeCourse.records[i];
+                    const participationStatus = activeCourse.partRecords[i];
+                    return (
+                      <tr key={i} className="hover:bg-gray-50/50 transition-colors">
+                        <td className="py-4 px-6">
+                          <span className="font-bold text-gray-700">{lang === 'AR' ? `المحاضرة ${i + 1}` : `Session ${i + 1}`}</span>
+                        </td>
+                        <td className="py-4 px-6">
+                          {status === true ? (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-lg text-sm font-bold">
+                              <CheckCircle2 size={16} /> {lang === 'AR' ? 'حاضر' : 'Present'}
+                            </span>
+                          ) : status === false ? (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-rose-50 text-rose-700 border border-rose-100 rounded-lg text-sm font-bold">
+                              <XCircle size={16} /> {lang === 'AR' ? 'غائب' : 'Absent'}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-gray-50 text-gray-500 border border-gray-200 rounded-lg text-sm font-bold">
+                              <Clock size={16} /> {lang === 'AR' ? 'لم تُرصد' : 'Unrecorded'}
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-4 px-6 text-center">
+                          {participationStatus === true ? (
+                            <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-amber-50 text-amber-500 border border-amber-100" title={lang === 'AR' ? 'نقطة مشاركة مسجلة' : 'Participation recorded'}>
+                              <Star size={16} className="fill-current" />
+                            </div>
+                          ) : (
+                            <span className="text-gray-300">-</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
 
-                    {/* Participation Icon Overlay */}
-                    {participationStatus === true && (
-                      <div className="absolute -top-1 -right-1 w-5 h-5 bg-amber-100 rounded-full border border-amber-200 flex items-center justify-center text-amber-500 shadow-sm">
-                        <Star size={10} className="fill-amber-500" />
-                      </div>
-                    )}
-
-                    <span className="text-[9px] font-black uppercase" style={{ color: 'var(--text-secondary)' }}>م{i + 1}</span>
+            {/* Modal Footer (Summary) */}
+            <div className="p-6 bg-gray-50 border-t border-gray-200">
+              <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+                <div className="flex items-center gap-6">
+                  <div>
+                    <span className="block text-xs font-bold text-gray-500 mb-1">{lang === 'AR' ? 'إجمالي الحضور' : 'Total Attendance'}</span>
+                    <span className="text-lg font-black text-emerald-600">{activeCourse.presentCount} <span className="text-sm text-gray-400 font-bold">/ {activeCourse.recordedCount}</span></span>
                   </div>
-                );
-              })}
+                  <div className="w-px h-8 bg-gray-200"></div>
+                  <div>
+                    <span className="block text-xs font-bold text-gray-500 mb-1">{lang === 'AR' ? 'إجمالي المشاركة' : 'Total Participation'}</span>
+                    <span className="text-lg font-black text-amber-500">{activeCourse.participationGrade} <span className="text-sm text-gray-400 font-bold">/ 10</span></span>
+                  </div>
+                </div>
+
+                <div className="bg-white px-4 py-2 rounded-xl border border-gray-200 shadow-sm">
+                  <span className="text-xs font-bold text-gray-500 ml-2">{lang === 'AR' ? 'درجة الحضور' : 'Attendance Grade'}:</span>
+                  <span className="text-lg font-black text-gray-800">
+                    {activeCourse.attendanceGrade !== null ? `${activeCourse.attendanceGrade}/20` : (lang === 'AR' ? 'قيد التقييم' : 'Pending')}
+                  </span>
+                </div>
+              </div>
             </div>
 
-            <div className="bg-gray-50 rounded-2xl p-4 flex justify-between items-center border border-gray-100">
-              <div className="text-center flex-1 border-r">
-                <p className="text-lg font-black text-emerald-600">{activeCourse.presentCount}</p>
-                <p className="text-[8px] font-black uppercase text-gray-400">{lang === 'AR' ? 'حاضر' : 'Present'}</p>
-              </div>
-              <div className="text-center flex-1 border-r">
-                <p className="text-lg font-black text-red-600">{activeCourse.absentCount}</p>
-                <p className="text-[8px] font-black uppercase text-gray-400">{lang === 'AR' ? 'غائب' : 'Absent'}</p>
-              </div>
-              <div className="text-center flex-1 border-r">
-                <p className="text-lg font-black text-gray-400">{activeCourse.unrecordedCount}</p>
-                <p className="text-[8px] font-black uppercase text-gray-400">{lang === 'AR' ? 'لم تُرصد' : 'Unrecorded'}</p>
-              </div>
-              <div className="text-center flex-1">
-                <p className="text-lg font-black text-blue-600">{activeCourse.percentage}%</p>
-                <p className="text-[8px] font-black uppercase text-gray-400">{lang === 'AR' ? 'النسبة' : 'Rate'}</p>
-              </div>
-            </div>
           </div>
         </div>
       )}

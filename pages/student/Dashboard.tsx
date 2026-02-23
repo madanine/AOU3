@@ -127,7 +127,7 @@ const StudentDashboard: React.FC = () => {
         { title: t.registration, to: '/student/registration', icon: GraduationCap, colorClass: 'bg-blue-500' },
         { title: t.myCourses, to: '/student/my-courses', icon: BookOpen, colorClass: 'bg-amber-500' },
         { title: t.assignments, to: '/student/assignments', icon: ClipboardList, colorClass: 'bg-emerald-500' },
-        { title: lang === 'AR' ? 'سجل الحضور' : 'Attendance', to: '/student/attendance', icon: History, colorClass: 'bg-pink-500' },
+        { title: lang === 'AR' ? 'سجل الحضور والمشاركة' : 'Attendance', to: '/student/attendance', icon: History, colorClass: 'bg-pink-500' },
         { title: t.myTimetable, to: '/student/timetable', icon: Calendar, colorClass: 'bg-purple-500' },
         { title: lang === 'AR' ? 'الامتحانات' : 'Exams', to: '/student/exams', icon: FileEdit, colorClass: 'bg-orange-500' }
     ];
