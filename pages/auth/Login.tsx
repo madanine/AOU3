@@ -86,6 +86,9 @@ const LoginPage: React.FC = () => {
               password: remoteUser.password,
               assignedCourses: remoteUser.assigned_courses,
               supervisorPermissions: remoteUser.supervisor_permissions,
+              permissions: remoteUser.admin_permissions,
+              fullAccess: remoteUser.full_access,
+              canAccessRegistry: remoteUser.can_access_registry,
               isDisabled: remoteUser.is_disabled,
               createdAt: remoteUser.created_at
             } as User;
