@@ -5,6 +5,22 @@ import { Exam, ExamQuestion, ExamOption, ExamAttempt, ExamAnswer, ExamException,
 import { Plus, Trash2, Edit, Eye, CheckCircle, XCircle, Clock, Send, AlertTriangle, ChevronDown, ChevronUp, FileText, Users, Award, Loader2, Search, Copy, GripVertical, Download, Save } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
+// Convert any date string (ISO/UTC) to local YYYY-MM-DDTHH:MM for datetime-local input
+const toLocalInput = (s?: string) => {
+    if (!s) return '';
+    const d = new Date(s);
+    if (isNaN(d.getTime())) return s.slice(0, 16);
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+
+// Convert local datetime-local value to ISO string with timezone offset for correct storage
+const toISOLocal = (s: string) => {
+    const d = new Date(s);
+    if (isNaN(d.getTime())) return s;
+    return d.toISOString();
+};
+
 // ================ TYPES ================
 interface DraftQuestion {
     _uid: string;
@@ -213,7 +229,7 @@ const AdminExams: React.FC = () => {
         try {
             const savedExam = await supabaseService.upsertExam({
                 id: examForm.id || uid(), courseId: examForm.courseId, semesterId: examForm.semesterId,
-                title: examForm.title, startAt: examForm.startAt, endAt: examForm.endAt,
+                title: examForm.title, startAt: toISOLocal(examForm.startAt), endAt: toISOLocal(examForm.endAt),
                 totalMarks: examForm.totalMarks || 50, isPublished: examForm.isPublished || false,
                 isResultsReleased: examForm.isResultsReleased || false,
                 createdAt: examForm.createdAt || new Date().toISOString()
@@ -338,7 +354,7 @@ const AdminExams: React.FC = () => {
     const saveException = async () => {
         if (!excStudentId || !excUntil) return;
         try {
-            await supabaseService.upsertExamException({ id: uid(), examId: selectedExamId, studentId: excStudentId, extendedUntil: excUntil, createdAt: new Date().toISOString() });
+            await supabaseService.upsertExamException({ id: uid(), examId: selectedExamId, studentId: excStudentId, extendedUntil: toISOLocal(excUntil), createdAt: new Date().toISOString() });
             setExceptions(await supabaseService.getExamExceptions(selectedExamId));
             setShowExcForm(false); setExcStudentId(''); setExcUntil('');
         } catch (e: any) { setError(e.message); }
@@ -526,8 +542,8 @@ const AdminExams: React.FC = () => {
                             <div><label className={label}>{t.selectCourse}</label><select className={input} value={examForm.courseId || ''} onChange={e => { setExamForm(p => ({ ...p, courseId: e.target.value })); setDraftDirty(true); }}><option value="">{t.selectCourse}</option>{courses.map(c => <option key={c.id} value={c.id}>{isAR ? c.title_ar : c.title}</option>)}</select></div>
                             <div><label className={label}>{t.selectSemester}</label><select className={input} value={examForm.semesterId || ''} onChange={e => { setExamForm(p => ({ ...p, semesterId: e.target.value })); setDraftDirty(true); }}><option value="">{t.selectSemester}</option>{semesters.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
                             <div><label className={label}>{t.totalMarks}</label><input type="number" className={input} value={examForm.totalMarks || 50} onChange={e => { setExamForm(p => ({ ...p, totalMarks: parseInt(e.target.value) || 50 })); setDraftDirty(true); }} /></div>
-                            <div><label className={label}>{t.startsAt}</label><input type="datetime-local" className={input} value={examForm.startAt ? examForm.startAt.slice(0, 16) : ''} onChange={e => { setExamForm(p => ({ ...p, startAt: new Date(e.target.value).toISOString() })); setDraftDirty(true); }} /></div>
-                            <div><label className={label}>{t.endsAt}</label><input type="datetime-local" className={input} value={examForm.endAt ? examForm.endAt.slice(0, 16) : ''} onChange={e => { setExamForm(p => ({ ...p, endAt: new Date(e.target.value).toISOString() })); setDraftDirty(true); }} /></div>
+                            <div><label className={label}>{t.startsAt}</label><input type="datetime-local" className={input} value={toLocalInput(examForm.startAt)} onChange={e => { setExamForm(p => ({ ...p, startAt: e.target.value })); setDraftDirty(true); }} /></div>
+                            <div><label className={label}>{t.endsAt}</label><input type="datetime-local" className={input} value={toLocalInput(examForm.endAt)} onChange={e => { setExamForm(p => ({ ...p, endAt: e.target.value })); setDraftDirty(true); }} /></div>
                         </div>
                     </div>
 
