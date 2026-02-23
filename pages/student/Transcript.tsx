@@ -68,7 +68,7 @@ const StudentTranscript: React.FC = () => {
         <div className="max-w-5xl mx-auto p-4 space-y-6" dir={isAR ? 'rtl' : 'ltr'}>
             <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-black flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
-                    <GraduationCap size={28} /> {isAR ? 'السجل الأكاديمي' : 'Academic Transcript'}
+                    <GraduationCap size={28} /> {isAR ? 'كشف الدرجات' : 'Academic Transcript'}
                 </h1>
                 {transcripts.length > 0 && (
                     <button onClick={exportPDF} disabled={exporting} className="px-4 py-2 rounded-xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 transition-all flex items-center gap-2">
@@ -82,7 +82,7 @@ const StudentTranscript: React.FC = () => {
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center">
                     <GraduationCap size={48} className="mx-auto text-gray-300 mb-4" />
                     <p className="text-gray-500 text-lg">{isAR ? 'لا توجد فصول دراسية معتمدة بعد' : 'No approved semesters yet'}</p>
-                    <p className="text-gray-400 text-sm mt-2">{isAR ? 'سيظهر السجل الأكاديمي بعد اعتماد الفصل من قبل الإدارة' : 'Transcript will appear after semester approval by administration'}</p>
+                    <p className="text-gray-400 text-sm mt-2">{isAR ? 'سيظهر كشف الدرجات بعد اعتماد الفصل من قبل الإدارة' : 'Transcript will appear after semester approval by administration'}</p>
                 </div>
             ) : (
                 <div ref={transcriptRef} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden" style={{ direction: 'rtl', fontFamily: 'Tajawal, Arial, sans-serif' }}>
@@ -97,7 +97,7 @@ const StudentTranscript: React.FC = () => {
                                 </div>
                             </div>
                             <div className="text-left text-sm">
-                                <p className="font-bold text-lg">السجل الأكاديمي</p>
+                                <p className="font-bold text-lg">كشف الدرجات</p>
                                 <p className="text-blue-200">Academic Transcript</p>
                             </div>
                         </div>
