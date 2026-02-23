@@ -205,7 +205,7 @@ export interface ExamQuestion {
   marks: number;
   orderIndex: number;
   matrixRows?: string[];      // For matrix: row labels
-  matrixAnswers?: Record<string, string>; // For matrix: { rowIndex: correctOptionId }
+  matrixAnswers?: Record<string, string[]>; // For matrix: { rowIndex: [correctOptionIds] }
   createdAt: string;
   options?: ExamOption[];      // Populated when fetched with options
 }
@@ -235,7 +235,7 @@ export interface ExamAnswer {
   questionId: string;
   selectedOptionId?: string;
   essayAnswer?: string;
-  matrixSelections?: Record<string, string>; // { rowIndex: selectedOptionId }
+  matrixSelections?: Record<string, string[]>; // { rowIndex: [selectedOptionIds] }
   isCorrect?: boolean;
   awardedMarks?: number;
   createdAt: string;

@@ -7,9 +7,10 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
 const StudentTranscript: React.FC = () => {
-    const { user, lang, settings } = useApp();
+    const { user, lang, settings, t } = useApp();
     const isAR = lang === 'AR';
     const transcriptRef = useRef<HTMLDivElement>(null);
+    const getMajorLabel = (key: string) => (t as any).majorList?.[key] || key;
 
     const [transcripts, setTranscripts] = useState<SemesterTranscript[]>([]);
     const [loading, setLoading] = useState(true);
@@ -107,7 +108,7 @@ const StudentTranscript: React.FC = () => {
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                             <div><span className="text-gray-500 block">اسم الطالب</span><span className="font-bold">{user?.fullName}</span></div>
                             <div><span className="text-gray-500 block">الرقم الجامعي</span><span className="font-bold">{user?.universityId}</span></div>
-                            <div><span className="text-gray-500 block">التخصص</span><span className="font-bold">{user?.major || '-'}</span></div>
+                            <div><span className="text-gray-500 block">التخصص</span><span className="font-bold">{user?.major ? getMajorLabel(user.major) : '-'}</span></div>
                             <div><span className="text-gray-500 block">المعدل التراكمي</span><span className="font-black text-lg text-blue-700">{cumulativeGPA}%</span></div>
                         </div>
                         <p className="text-xs text-gray-400 mt-3">تاريخ الطباعة: {new Date().toLocaleDateString('ar-SA')}</p>

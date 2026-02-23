@@ -13,7 +13,7 @@ interface DraftQuestion {
     marks: number;
     orderIndex: number;
     matrixRows?: string[];
-    matrixAnswers?: Record<string, string>;
+    matrixAnswers?: Record<string, string[]>;
     options: DraftOption[];
     existingId?: string; // for edits
 }
@@ -50,6 +50,7 @@ const AdminExams: React.FC = () => {
     const [expandedQ, setExpandedQ] = useState<string | null>(null);
     const [draftDirty, setDraftDirty] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
+    const [answerKeyQIdx, setAnswerKeyQIdx] = useState<number | null>(null);
 
     // Attempts & Grading
     const [selectedExamId, setSelectedExamId] = useState('');
@@ -88,6 +89,7 @@ const AdminExams: React.FC = () => {
     const getSemName = (id: string) => semesters.find(x => x.id === id)?.name || id;
     const getStudentName = (id: string) => students.find(x => x.id === id)?.fullName || id;
     const getStudentUniId = (id: string) => students.find(x => x.id === id)?.universityId || '';
+    const getMajorLabel = (key: string) => (t as any).majorList?.[key] || key;
 
     // ================ BUILDER HELPERS ================
     const totalDraftMarks = draftQuestions.reduce((s, q) => s + q.marks, 0);
@@ -283,10 +285,16 @@ const AdminExams: React.FC = () => {
                     } else if (q.type === 'matrix') {
                         if (q.matrixAnswers && a.matrixSelections) {
                             const rows = Object.keys(q.matrixAnswers);
-                            let correctRows = 0;
-                            rows.forEach(r => { if (a.matrixSelections![r] === q.matrixAnswers![r]) correctRows++; });
-                            const marks = rows.length > 0 ? Math.round((correctRows / rows.length) * q.marks) : 0;
-                            await supabaseService.gradeExamAnswer(a.id, marks, correctRows === rows.length);
+                            let totalCorrect = 0;
+                            let totalCells = 0;
+                            rows.forEach(r => {
+                                const correctSet = new Set(q.matrixAnswers![r] || []);
+                                const selectedSet = new Set(a.matrixSelections![r] || []);
+                                totalCells += correctSet.size;
+                                correctSet.forEach(c => { if (selectedSet.has(c)) totalCorrect++; });
+                            });
+                            const marks = totalCells > 0 ? Math.round((totalCorrect / totalCells) * q.marks) : 0;
+                            await supabaseService.gradeExamAnswer(a.id, marks, totalCorrect === totalCells);
                             total += marks;
                         }
                     } else if (q.type === 'essay') {
@@ -354,7 +362,7 @@ const AdminExams: React.FC = () => {
                 return {
                     [isAR ? 'الرقم الجامعي' : 'University ID']: st?.universityId || '',
                     [isAR ? 'اسم الطالب' : 'Student Name']: st?.fullName || '',
-                    [isAR ? 'التخصص' : 'Major']: st?.major || '',
+                    [isAR ? 'التخصص' : 'Major']: st?.major ? getMajorLabel(st.major) : '',
                     [isAR ? 'درجة الامتحان' : 'Exam Score']: att?.totalScore ?? 0,
                 };
             });
@@ -388,7 +396,7 @@ const AdminExams: React.FC = () => {
                     return {
                         [isAR ? 'الرقم الجامعي' : 'University ID']: st?.universityId || '',
                         [isAR ? 'اسم الطالب' : 'Student Name']: st?.fullName || '',
-                        [isAR ? 'التخصص' : 'Major']: st?.major || '',
+                        [isAR ? 'التخصص' : 'Major']: st?.major ? getMajorLabel(st.major) : '',
                         [isAR ? 'درجة الامتحان' : 'Exam Score']: att?.totalScore ?? 0,
                     };
                 });
@@ -592,26 +600,92 @@ const AdminExams: React.FC = () => {
                                                 </div>
                                             )}
 
-                                            {/* Matrix */}
+                                            {/* Matrix (Google Forms Tick Box Grid style) */}
                                             {q.type === 'matrix' && (
                                                 <div className="space-y-3">
-                                                    <div><label className={label}>{isAR ? 'أعمدة (خيارات)' : 'Columns (Options)'}</label>
-                                                        {q.options.map((opt, oi) => (
-                                                            <div key={opt._uid} className="flex items-center gap-2 mb-2">
-                                                                <input className={`${input} flex-1`} value={opt.optionText} onChange={e => updateQOption(idx, oi, { optionText: e.target.value })} />
-                                                                <button onClick={() => removeOption(idx, oi)} className="text-red-400 hover:text-red-600"><Trash2 size={14} /></button>
-                                                            </div>
-                                                        ))}
-                                                        <button className="text-blue-600 text-sm font-bold flex items-center gap-1" onClick={() => addOptionToQ(idx)}><Plus size={14} />{isAR ? 'إضافة عمود' : 'Add Column'}</button>
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <div>
+                                                            <label className={label}>{isAR ? 'صفوف' : 'Rows'}</label>
+                                                            {q.matrixRows?.map((row, ri) => (
+                                                                <div key={ri} className="flex items-center gap-2 mb-2">
+                                                                    <span className="text-xs text-gray-400 w-5">{ri + 1}.</span>
+                                                                    <input className={`${input} flex-1`} value={row} onChange={e => { const newRows = [...(q.matrixRows || [])]; newRows[ri] = e.target.value; updateQ(idx, { matrixRows: newRows }); }} />
+                                                                    <button onClick={() => updateQ(idx, { matrixRows: q.matrixRows?.filter((_, i) => i !== ri) })} className="text-red-400 hover:text-red-600"><Trash2 size={14} /></button>
+                                                                </div>
+                                                            ))}
+                                                            <button className="text-blue-600 text-sm font-bold flex items-center gap-1" onClick={() => updateQ(idx, { matrixRows: [...(q.matrixRows || []), ''] })}><Plus size={14} />{isAR ? 'إضافة صف' : 'Add Row'}</button>
+                                                        </div>
+                                                        <div>
+                                                            <label className={label}>{isAR ? 'أعمدة' : 'Columns'}</label>
+                                                            {q.options.map((opt, oi) => (
+                                                                <div key={opt._uid} className="flex items-center gap-2 mb-2">
+                                                                    <input className={`${input} flex-1`} value={opt.optionText} onChange={e => updateQOption(idx, oi, { optionText: e.target.value })} />
+                                                                    <button onClick={() => removeOption(idx, oi)} className="text-red-400 hover:text-red-600"><Trash2 size={14} /></button>
+                                                                </div>
+                                                            ))}
+                                                            <button className="text-blue-600 text-sm font-bold flex items-center gap-1" onClick={() => addOptionToQ(idx)}><Plus size={14} />{isAR ? 'إضافة عمود' : 'Add Column'}</button>
+                                                        </div>
                                                     </div>
-                                                    <div><label className={label}>{isAR ? 'صفوف' : 'Rows'}</label>
-                                                        {q.matrixRows?.map((row, ri) => (
-                                                            <div key={ri} className="flex items-center gap-2 mb-2">
-                                                                <input className={`${input} flex-1`} value={row} onChange={e => { const newRows = [...(q.matrixRows || [])]; newRows[ri] = e.target.value; updateQ(idx, { matrixRows: newRows }); }} />
-                                                                <button onClick={() => updateQ(idx, { matrixRows: q.matrixRows?.filter((_, i) => i !== ri) })} className="text-red-400 hover:text-red-600"><Trash2 size={14} /></button>
-                                                            </div>
-                                                        ))}
-                                                        <button className="text-blue-600 text-sm font-bold flex items-center gap-1" onClick={() => updateQ(idx, { matrixRows: [...(q.matrixRows || []), ''] })}><Plus size={14} />{isAR ? 'إضافة صف' : 'Add Row'}</button>
+                                                    {/* Answer Key button */}
+                                                    <div className="flex items-center gap-3 pt-2 border-t border-gray-100">
+                                                        <button className="text-blue-600 text-sm font-bold flex items-center gap-1.5 hover:underline" onClick={() => setAnswerKeyQIdx(idx)}>
+                                                            <CheckCircle size={16} />{isAR ? 'مفتاح الإجابة' : 'Answer Key'}
+                                                        </button>
+                                                        <span className="text-xs text-gray-400">({q.marks} {t.marks})</span>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Answer Key Modal for Matrix */}
+                                            {q.type === 'matrix' && answerKeyQIdx === idx && (
+                                                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setAnswerKeyQIdx(null)}>
+                                                    <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-auto" onClick={e => e.stopPropagation()}>
+                                                        <div className="flex items-center gap-2 mb-4">
+                                                            <CheckCircle size={20} className="text-blue-600" />
+                                                            <h3 className="text-lg font-bold">{isAR ? 'اختر الإجابات الصحيحة:' : 'Choose correct answers:'}</h3>
+                                                        </div>
+                                                        <table className="w-full text-sm border-collapse">
+                                                            <thead>
+                                                                <tr>
+                                                                    <th className="border p-3 bg-gray-50 text-left">{isAR ? 'السؤال' : 'Question'}</th>
+                                                                    {q.options.map(opt => <th key={opt._uid} className="border p-3 bg-gray-50 text-center min-w-[80px]">{opt.optionText}</th>)}
+                                                                    <th className="border p-3 bg-gray-50 text-center min-w-[70px]">{isAR ? 'النقاط' : 'Points'}</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                {q.matrixRows?.map((row, ri) => {
+                                                                    const rowAnswers = q.matrixAnswers?.[ri.toString()] || [];
+                                                                    return (
+                                                                        <tr key={ri} className="hover:bg-blue-50/30">
+                                                                            <td className="border p-3 font-medium">{row}</td>
+                                                                            {q.options.map(opt => {
+                                                                                const isChecked = rowAnswers.includes(opt._uid);
+                                                                                return (
+                                                                                    <td key={opt._uid} className="border p-3 text-center">
+                                                                                        <input type="checkbox" checked={isChecked}
+                                                                                            className="w-5 h-5 accent-blue-600 cursor-pointer"
+                                                                                            onChange={() => {
+                                                                                                const newAnswers = { ...(q.matrixAnswers || {}) };
+                                                                                                const current = newAnswers[ri.toString()] || [];
+                                                                                                newAnswers[ri.toString()] = isChecked
+                                                                                                    ? current.filter(id => id !== opt._uid)
+                                                                                                    : [...current, opt._uid];
+                                                                                                updateQ(idx, { matrixAnswers: newAnswers });
+                                                                                            }} />
+                                                                                    </td>
+                                                                                );
+                                                                            })}
+                                                                            <td className="border p-3 text-center">
+                                                                                <span className="text-sm font-bold text-gray-600">{rowAnswers.length > 0 ? '✓' : '0'}</span>
+                                                                            </td>
+                                                                        </tr>
+                                                                    );
+                                                                })}
+                                                            </tbody>
+                                                        </table>
+                                                        <div className="flex justify-end mt-4">
+                                                            <button className="px-6 py-2 rounded-xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-700" onClick={() => setAnswerKeyQIdx(null)}>{isAR ? 'تم' : 'Done'}</button>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             )}
@@ -742,9 +816,11 @@ const AdminExams: React.FC = () => {
                                         <div className="ml-10 overflow-x-auto">
                                             <table className="text-sm border"><thead><tr><th className="border p-2"></th>{q.options?.map(o => <th key={o.id} className="border p-2 text-center">{o.optionText}</th>)}</tr></thead>
                                                 <tbody>{q.matrixRows?.map((row, ri) => (<tr key={ri}><td className="border p-2 font-bold">{row}</td>{q.options?.map(o => {
-                                                    const sel = ans.matrixSelections![ri.toString()] === o.id;
-                                                    const correct = q.matrixAnswers?.[ri.toString()] === o.id;
-                                                    return <td key={o.id} className={`border p-2 text-center ${sel && correct ? 'bg-green-100' : sel ? 'bg-red-100' : correct ? 'bg-green-50' : ''}`}>{sel ? '●' : ''}</td>;
+                                                    const selectedArr = ans.matrixSelections![ri.toString()] || [];
+                                                    const correctArr = q.matrixAnswers?.[ri.toString()] || [];
+                                                    const sel = selectedArr.includes(o.id);
+                                                    const correct = correctArr.includes(o.id);
+                                                    return <td key={o.id} className={`border p-2 text-center ${sel && correct ? 'bg-green-100' : sel ? 'bg-red-100' : correct ? 'bg-green-50' : ''}`}>{sel ? '☑' : correct ? '☐' : ''}</td>;
                                                 })}</tr>))}</tbody>
                                             </table>
                                         </div>

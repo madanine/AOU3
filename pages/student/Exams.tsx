@@ -202,16 +202,27 @@ const StudentExams: React.FC = () => {
                                     <div className="ml-11 overflow-x-auto">
                                         <table className="text-sm border">
                                             <thead><tr><th className="border p-2"></th>{q.options?.map(o => <th key={o.id} className="border p-2 text-center text-xs">{o.optionText}</th>)}</tr></thead>
-                                            <tbody>{q.matrixRows?.map((row, ri) => (
-                                                <tr key={ri}>
-                                                    <td className="border p-2 font-bold text-xs">{row}</td>
-                                                    {q.options?.map(o => (
-                                                        <td key={o.id} className="border p-2 text-center">
-                                                            <input type="radio" name={`matrix-${q.id}-${ri}`} checked={(draftAnswers[q.id] || {})[ri.toString()] === o.id} onChange={() => updateAnswer(q.id, { ...(draftAnswers[q.id] || {}), [ri.toString()]: o.id })} className="accent-blue-600" />
-                                                        </td>
-                                                    ))}
-                                                </tr>
-                                            ))}</tbody>
+                                            <tbody>{q.matrixRows?.map((row, ri) => {
+                                                const rowSelections: string[] = (draftAnswers[q.id] || {})[ri.toString()] || [];
+                                                return (
+                                                    <tr key={ri}>
+                                                        <td className="border p-2 font-bold text-xs">{row}</td>
+                                                        {q.options?.map(o => {
+                                                            const isChecked = rowSelections.includes(o.id);
+                                                            return (
+                                                                <td key={o.id} className="border p-2 text-center">
+                                                                    <input type="checkbox" checked={isChecked} className="accent-blue-600 w-4 h-4 cursor-pointer" onChange={() => {
+                                                                        const prev = { ...(draftAnswers[q.id] || {}) };
+                                                                        const current: string[] = prev[ri.toString()] || [];
+                                                                        prev[ri.toString()] = isChecked ? current.filter(id => id !== o.id) : [...current, o.id];
+                                                                        updateAnswer(q.id, prev);
+                                                                    }} />
+                                                                </td>
+                                                            );
+                                                        })}
+                                                    </tr>
+                                                );
+                                            })}</tbody>
                                         </table>
                                     </div>
                                 )}
