@@ -88,8 +88,8 @@ const MainLayout: React.FC = () => {
         filtered.push({ label: t.universityIdRegistry, path: '/admin/registry', icon: FileSpreadsheet, key: 'registry' });
       }
 
-      // ONLY Primary Admin can see Admin Management
-      if (isPrimaryAdmin) {
+      // Admin Management (Primary Admin or granted permission)
+      if (isPrimaryAdmin || user.permissions?.manageAdmins) {
         filtered.push({ label: lang === 'AR' ? 'إدارة المسؤولين' : 'Admin Management', path: '/admin/admins', icon: Lock, key: 'adminManagement' });
       } else {
         filtered.push({ label: lang === 'AR' ? 'تغيير كلمة المرور' : 'Change Password', path: '/admin/change-password', icon: Key, key: 'changePassword' });
@@ -111,9 +111,13 @@ const MainLayout: React.FC = () => {
         items.push({ label: t.grading, path: '/supervisor/grading', icon: GradIcon, key: 'grading' });
       }
 
+      // Add Supervisor Dashboard
+      items.unshift({ label: t.dashboard, path: '/supervisor/dashboard', icon: LayoutDashboard, key: 'dashboard' });
+
       return items;
     }
     return [
+      { label: t.dashboard, path: '/student/dashboard', icon: LayoutDashboard, key: 'dashboard' },
       { label: t.registration, path: '/student/registration', icon: GraduationCap, key: 'registration' },
       { label: t.myCourses, path: '/student/my-courses', icon: BookOpen, key: 'myCourses' },
       { label: t.assignments, path: '/student/assignments', icon: ClipboardList, key: 'assignments' },

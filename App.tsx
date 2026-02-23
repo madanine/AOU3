@@ -11,6 +11,7 @@ import './src/print-styles.css';
 // Pages
 import LoginPage from './pages/auth/Login';
 import SignupPage from './pages/auth/Signup';
+import StudentDashboard from './pages/student/Dashboard';
 import StudentRegistration from './pages/student/Registration';
 import StudentMyCourses from './pages/student/MyCourses';
 import StudentTimetable from './pages/student/Timetable';
@@ -215,11 +216,12 @@ const App: React.FC = () => {
     }}>
       <Router>
         <Routes>
-          <Route path="/auth/login" element={!user ? <LoginPage /> : <Navigate to={user.role === 'admin' ? "/admin/dashboard" : (user.role === 'supervisor' ? "/supervisor/attendance" : "/student/registration")} />} />
-          <Route path="/auth/signup" element={!user ? <SignupPage /> : <Navigate to="/student/registration" />} />
+          <Route path="/auth/login" element={!user ? <LoginPage /> : <Navigate to={user.role === 'admin' ? "/admin/dashboard" : (user.role === 'supervisor' ? "/supervisor/dashboard" : "/student/dashboard")} />} />
+          <Route path="/auth/signup" element={!user ? <SignupPage /> : <Navigate to="/student/dashboard" />} />
 
           <Route element={user ? <MainLayout /> : <Navigate to="/auth/login" />}>
             {/* Student Routes */}
+            <Route path="/student/dashboard" element={<StudentDashboard />} />
             <Route path="/student/registration" element={<StudentRegistration />} />
             <Route path="/student/my-courses" element={<StudentMyCourses />} />
             <Route path="/student/timetable" element={<StudentTimetable />} />
@@ -252,6 +254,7 @@ const App: React.FC = () => {
             } />
 
             {/* Supervisor Routes */}
+            <Route path="/supervisor/dashboard" element={<AdminDashboard />} />
             <Route path="/supervisor/attendance" element={<AdminAttendance />} />
             <Route path="/supervisor/assignments" element={<AdminAssignments />} />
             <Route path="/supervisor/grading" element={<AdminGrading />} />

@@ -34,6 +34,7 @@ export interface User {
     assignments?: boolean;
     grading?: boolean;
     exams?: boolean;
+    manageAdmins?: boolean;
   };
   fullAccess?: boolean;
   isDisabled?: boolean;

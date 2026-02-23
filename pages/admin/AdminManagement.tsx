@@ -32,12 +32,13 @@ const AdminManagement: React.FC = () => {
       enrollments: true,
       exportData: true,
       siteSettings: true,
-      exams: true
+      exams: true,
+      manageAdmins: false
     }
   });
 
   const permissionLabels: Record<string, string> = {
-    dashboard: lang === 'AR' ? 'لوحة التحكم' : 'Dashboard',
+    dashboard: lang === 'AR' ? 'لوحة المعلومات' : 'Dashboard',
     courses: lang === 'AR' ? 'المواد' : 'Courses',
     attendance: lang === 'AR' ? 'الحضور والمشاركة' : 'Attendance & Participation',
     supervisors: lang === 'AR' ? 'المشرفين' : 'Supervisors',
@@ -46,6 +47,7 @@ const AdminManagement: React.FC = () => {
     exportData: lang === 'AR' ? 'تصدير البيانات' : 'Export Data',
     siteSettings: lang === 'AR' ? 'إعدادات الموقع' : 'Site Settings',
     exams: lang === 'AR' ? 'الامتحانات' : 'Exams',
+    manageAdmins: lang === 'AR' ? 'إدارة المسؤولين' : 'Manage Admins',
     canAccessRegistry: t.registryAccess
   };
 
@@ -60,7 +62,7 @@ const AdminManagement: React.FC = () => {
       canAccessRegistry: false,
       permissions: {
         dashboard: true, courses: true, attendance: true, supervisors: true,
-        students: true, enrollments: true, exportData: true, siteSettings: true, exams: true
+        students: true, enrollments: true, exportData: true, siteSettings: true, exams: true, manageAdmins: false
       }
     });
     setIsModalOpen(true);
@@ -77,7 +79,7 @@ const AdminManagement: React.FC = () => {
       canAccessRegistry: adm.canAccessRegistry || false,
       permissions: {
         dashboard: true, courses: true, attendance: true, supervisors: true,
-        students: true, enrollments: true, exportData: true, siteSettings: true, exams: true,
+        students: true, enrollments: true, exportData: true, siteSettings: true, exams: true, manageAdmins: false,
         ...(adm.permissions || {})
       }
     });
@@ -87,6 +89,11 @@ const AdminManagement: React.FC = () => {
   const handleDeleteTrigger = (id: string) => {
     if (currentUser?.id === id) {
       setShowToast({ show: true, msg: lang === 'AR' ? 'لا يمكنك حذف حسابك الحالي' : 'You cannot delete your current account', type: 'error' });
+      setTimeout(() => setShowToast({ ...showToast, show: false }), 3000);
+      return;
+    }
+    if (id === 'aouadmin' || users.find(u => u.id === id)?.universityId === 'aouadmin') {
+      setShowToast({ show: true, msg: lang === 'AR' ? 'لا يمكنك حذف الأدمن الرئيسي' : 'You cannot delete the primary admin', type: 'error' });
       setTimeout(() => setShowToast({ ...showToast, show: false }), 3000);
       return;
     }
@@ -146,14 +153,14 @@ const AdminManagement: React.FC = () => {
     }
   };
 
-  if (currentUser?.universityId !== 'aouadmin') {
+  if (currentUser?.universityId !== 'aouadmin' && !currentUser?.permissions?.manageAdmins) {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] text-center space-y-4">
         <div className="w-20 h-20 bg-red-50 text-red-500 rounded-3xl flex items-center justify-center animate-bounce">
           <Lock size={40} />
         </div>
         <h2 className="text-2xl font-black uppercase tracking-widest">{lang === 'AR' ? 'غير مصرح لك' : 'UNAUTHORIZED'}</h2>
-        <p className="text-gray-400 font-bold">{lang === 'AR' ? 'هذه الصفحة مخصصة للأدمن الرئيسي فقط' : 'This page is for the primary admin only'}</p>
+        <p className="text-gray-400 font-bold">{lang === 'AR' ? 'هذه الصفحة مخصصة للأدمن الرئيسي أو من يملك صلاحية إدارة المسؤولين' : 'This page requires valid management permissions'}</p>
       </div>
     );
   }

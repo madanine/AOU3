@@ -59,7 +59,7 @@ export const TRANSLATIONS: Record<Language, any> = {
     ageError: 'يجب أن يكون العمر 18 سنة على الأقل لإنشاء حساب',
     selectNationality: 'اختر الجنسية',
     logout: 'تسجيل الخروج',
-    dashboard: 'لوحة التحكم',
+    dashboard: 'لوحة المعلومات',
     registration: 'التسجيل',
     myCourses: 'موادي',
     myTimetable: 'جدولي الدراسي',
