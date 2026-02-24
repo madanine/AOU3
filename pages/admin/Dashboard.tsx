@@ -3,10 +3,9 @@ import { useApp } from '../../App';
 import { storage } from '../../storage';
 import { supabaseService } from '../../supabaseService';
 import { Link } from 'react-router-dom';
-import { Users, BookOpen, Library, CheckSquare, ShieldCheck, Settings, Lock, FileEdit, ClipboardList, GraduationCap, Calendar, BarChart as BarChartIcon, HardDrive, Clock, Activity, PieChart as PieChartIcon, TrendingUp } from 'lucide-react';
+import { Users, BookOpen, Library, CheckSquare, ShieldCheck, Settings, Lock, FileEdit, ClipboardList, GraduationCap, Calendar, BarChart as BarChartIcon, HardDrive, Activity, PieChart as PieChartIcon, TrendingUp } from 'lucide-react';
 import { StatCard } from '../../components/dashboard/StatCard';
 import { ChartBlock } from '../../components/dashboard/ChartBlock';
-import { EmptyState } from '../../components/dashboard/EmptyState';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend
 } from 'recharts';
@@ -58,11 +57,8 @@ const AdminDashboard: React.FC = () => {
   const perms = user?.permissions || {};
   const fullAccess = user?.fullAccess !== false;
 
-  // Active Semester Filtering
-  // Super Admins usually want to see across the board, but we'll apply settings for consistency if available
   const activeSemesterId = settings.activeSemesterId;
 
-  // Data Aggregation
   const students = data.users.filter(u => u.role === 'student');
   const admins = data.users.filter(u => u.role === 'admin' && u.universityId !== 'aouadmin');
   const supervisors = data.users.filter(u => u.role === 'supervisor');
@@ -73,9 +69,9 @@ const AdminDashboard: React.FC = () => {
 
   // --- CHART DATA (SUPER ADMIN / ADMIN) ---
   const userDistributionData = [
-    { name: lang === 'AR' ? 'الطلاب' : 'Students', value: students.length, color: '#3b82f6' },
-    { name: lang === 'AR' ? 'المشرفين' : 'Supervisors', value: supervisors.length, color: '#10b981' },
-    { name: lang === 'AR' ? 'المسؤولين' : 'Admins', value: admins.length, color: '#6366f1' }
+    { name: lang === 'AR' ? 'الطلاب' : 'Students', value: students.length, color: '#C6A54A' }, // Primary Gold
+    { name: lang === 'AR' ? 'المشرفين' : 'Supervisors', value: supervisors.length, color: '#3F6F4E' }, // Success Green
+    { name: lang === 'AR' ? 'المسؤولين' : 'Admins', value: admins.length, color: '#1F1F1F' } // Neutral
   ].filter(d => d.value > 0);
 
   // Top 5 Enrollments per Course
@@ -94,7 +90,7 @@ const AdminDashboard: React.FC = () => {
         };
       })
       .sort((a, b) => b.students - a.students)
-      .slice(0, 5); // top 5
+      .slice(0, 5);
   }, [activeEnrollments, data.courses, lang]);
 
 
@@ -115,11 +111,11 @@ const AdminDashboard: React.FC = () => {
 
   // --- UI RENDER HELPERS ---
   const QuickLink = ({ title, to, icon: Icon, colorClass }: any) => (
-    <Link to={to} className="flex flex-col items-center justify-center bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all group">
-      <div className={`w-16 h-16 rounded-[20px] ${colorClass} bg-opacity-10 shadow-inner flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
-        <Icon size={32} className={colorClass.replace('bg-', 'text-').replace('-500', '-600').replace('-50', '-600')} />
+    <Link to={to} className="flex flex-col items-center justify-center bg-card p-6 rounded-3xl border border-border shadow-sm hover:shadow-premium-hover hover:-translate-y-1 transition-all group">
+      <div className={`w-16 h-16 rounded-[20px] ${colorClass} text-white shadow-premium flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
+        <Icon size={32} />
       </div>
-      <h3 className="text-sm font-black text-gray-800 text-center">{title}</h3>
+      <h3 className="text-sm font-black text-text-primary text-center">{title}</h3>
     </Link>
   );
 
@@ -130,37 +126,37 @@ const AdminDashboard: React.FC = () => {
   if (role === 'admin') {
     if (isPrimaryAdmin || fullAccess) {
       statsCards = [
-        { title: lang === 'AR' ? 'إجمالي الطلاب' : 'Total Students', value: students.length, icon: Users, colorClass: 'bg-blue-500' },
-        { title: lang === 'AR' ? 'مسؤولي النظام' : 'Total Admins', value: admins.length, icon: ShieldCheck, colorClass: 'bg-indigo-500' },
-        { title: lang === 'AR' ? 'المشرفين' : 'Supervisors', value: supervisors.length, icon: CheckSquare, colorClass: 'bg-emerald-500' },
-        { title: lang === 'AR' ? 'المواد الدراسية' : 'Courses', value: activeCourses.length, icon: BookOpen, colorClass: 'bg-amber-500' },
-        { title: lang === 'AR' ? 'الفصول الدراسية' : 'Semesters', value: data.semesters.length, icon: Calendar, colorClass: 'bg-purple-500' },
-        { title: lang === 'AR' ? 'الامتحانات' : 'Total Exams', value: activeExams.length, icon: FileEdit, colorClass: 'bg-pink-500' },
+        { title: lang === 'AR' ? 'إجمالي الطلاب' : 'Total Students', value: students.length, icon: Users, colorClass: 'bg-gold-gradient' },
+        { title: lang === 'AR' ? 'مسؤولي النظام' : 'Total Admins', value: admins.length, icon: ShieldCheck, colorClass: 'bg-primary' },
+        { title: lang === 'AR' ? 'المشرفين' : 'Supervisors', value: supervisors.length, icon: CheckSquare, colorClass: 'bg-success' },
+        { title: lang === 'AR' ? 'المواد الدراسية' : 'Courses', value: activeCourses.length, icon: BookOpen, colorClass: 'bg-gold-gradient' },
+        { title: lang === 'AR' ? 'الفصول الدراسية' : 'Semesters', value: data.semesters.length, icon: Calendar, colorClass: 'bg-background text-text-primary border border-border' },
+        { title: lang === 'AR' ? 'الامتحانات' : 'Total Exams', value: activeExams.length, icon: FileEdit, colorClass: 'bg-card text-text-primary border border-border' },
       ];
 
       quickLinks = [
-        { title: t.students, to: '/admin/students', icon: Users, colorClass: 'bg-blue-500' },
-        { title: t.courses, to: '/admin/courses', icon: BookOpen, colorClass: 'bg-amber-500' },
-        { title: t.enrollments, to: '/admin/enrollments', icon: Library, colorClass: 'bg-emerald-500' },
-        { title: lang === 'AR' ? 'الامتحانات' : 'Exams', to: '/admin/exams', icon: FileEdit, colorClass: 'bg-pink-500' },
-        { title: t.settings, to: '/admin/site-settings', icon: Settings, colorClass: 'bg-gray-500' },
-        { title: lang === 'AR' ? 'إدارة المسؤولين' : 'Admin Management', to: '/admin/admins', icon: Lock, colorClass: 'bg-rose-500' },
+        { title: t.students, to: '/admin/students', icon: Users, colorClass: 'bg-gold-gradient' },
+        { title: t.courses, to: '/admin/courses', icon: BookOpen, colorClass: 'bg-gold-gradient' },
+        { title: t.enrollments, to: '/admin/enrollments', icon: Library, colorClass: 'bg-success' },
+        { title: lang === 'AR' ? 'الامتحانات' : 'Exams', to: '/admin/exams', icon: FileEdit, colorClass: 'bg-gold-gradient' },
+        { title: t.settings, to: '/admin/site-settings', icon: Settings, colorClass: 'bg-card border border-border !text-text-primary' },
+        { title: lang === 'AR' ? 'إدارة المسؤولين' : 'Admin Management', to: '/admin/admins', icon: Lock, colorClass: 'bg-red-500' },
       ];
     } else {
-      if (perms.students) statsCards.push({ title: lang === 'AR' ? 'الطلاب' : 'Total Students', value: students.length, icon: Users, colorClass: 'bg-blue-500' });
-      if (perms.courses) statsCards.push({ title: lang === 'AR' ? 'المواد الدراسية' : 'Courses', value: activeCourses.length, icon: BookOpen, colorClass: 'bg-amber-500' });
-      if (perms.exams) statsCards.push({ title: lang === 'AR' ? 'الامتحانات' : 'Exams', value: activeExams.length, icon: FileEdit, colorClass: 'bg-pink-500' });
+      if (perms.students) statsCards.push({ title: lang === 'AR' ? 'الطلاب' : 'Total Students', value: students.length, icon: Users, colorClass: 'bg-gold-gradient' });
+      if (perms.courses) statsCards.push({ title: lang === 'AR' ? 'المواد الدراسية' : 'Courses', value: activeCourses.length, icon: BookOpen, colorClass: 'bg-gold-gradient' });
+      if (perms.exams) statsCards.push({ title: lang === 'AR' ? 'الامتحانات' : 'Exams', value: activeExams.length, icon: FileEdit, colorClass: 'bg-background text-text-primary border border-border' });
       if (perms.attendance) {
         const attendanceRecords = Object.values(data.attendances).flatMap(courseRec => Object.values(courseRec).flatMap(studentRec => studentRec.filter(v => v === true))).length;
-        statsCards.push({ title: lang === 'AR' ? 'إجمالي الحضور' : 'Total Attendance', value: attendanceRecords, icon: CheckSquare, colorClass: 'bg-emerald-500' });
+        statsCards.push({ title: lang === 'AR' ? 'إجمالي الحضور' : 'Total Attendance', value: attendanceRecords, icon: CheckSquare, colorClass: 'bg-success' });
       }
 
-      if (perms.students) quickLinks.push({ title: t.students, to: '/admin/students', icon: Users, colorClass: 'bg-blue-500' });
-      if (perms.courses) quickLinks.push({ title: t.courses, to: '/admin/courses', icon: BookOpen, colorClass: 'bg-amber-500' });
-      if (perms.enrollments) quickLinks.push({ title: t.enrollments, to: '/admin/enrollments', icon: Library, colorClass: 'bg-emerald-500' });
-      if (perms.exams) quickLinks.push({ title: lang === 'AR' ? 'الامتحانات' : 'Exams', to: '/admin/exams', icon: FileEdit, colorClass: 'bg-pink-500' });
-      if (user?.canAccessRegistry) quickLinks.push({ title: t.universityIdRegistry, to: '/admin/registry', icon: HardDrive, colorClass: 'bg-gray-500' });
-      if (perms.exportData) quickLinks.push({ title: t.export, to: '/admin/export', icon: BarChartIcon, colorClass: 'bg-indigo-500' });
+      if (perms.students) quickLinks.push({ title: t.students, to: '/admin/students', icon: Users, colorClass: 'bg-gold-gradient' });
+      if (perms.courses) quickLinks.push({ title: t.courses, to: '/admin/courses', icon: BookOpen, colorClass: 'bg-gold-gradient' });
+      if (perms.enrollments) quickLinks.push({ title: t.enrollments, to: '/admin/enrollments', icon: Library, colorClass: 'bg-success' });
+      if (perms.exams) quickLinks.push({ title: lang === 'AR' ? 'الامتحانات' : 'Exams', to: '/admin/exams', icon: FileEdit, colorClass: 'bg-gold-gradient' });
+      if (user?.canAccessRegistry) quickLinks.push({ title: t.universityIdRegistry, to: '/admin/registry', icon: HardDrive, colorClass: 'bg-card border border-border !text-text-primary' });
+      if (perms.exportData) quickLinks.push({ title: t.export, to: '/admin/export', icon: BarChartIcon, colorClass: 'bg-card border border-border !text-text-primary' });
     }
   } else if (role === 'supervisor') {
     statsCards = [
@@ -168,14 +164,14 @@ const AdminDashboard: React.FC = () => {
         title: lang === 'AR' ? 'المواد المسندة' : 'Assigned Courses',
         value: supervisorCourses.length,
         icon: BookOpen,
-        colorClass: 'bg-amber-500'
+        colorClass: 'bg-gold-gradient'
       }
     ];
 
     const supPerms = user?.supervisorPermissions || { attendance: true, assignments: false, grading: false };
-    if (supPerms.attendance) quickLinks.push({ title: lang === 'AR' ? 'الحضور والمشاركة' : 'Attendance', to: '/supervisor/attendance', icon: CheckSquare, colorClass: 'bg-emerald-500' });
-    if (supPerms.assignments) quickLinks.push({ title: t.assignments, to: '/supervisor/assignments', icon: ClipboardList, colorClass: 'bg-blue-500' });
-    if (supPerms.grading) quickLinks.push({ title: t.grading, to: '/supervisor/grading', icon: GraduationCap, colorClass: 'bg-purple-500' });
+    if (supPerms.attendance) quickLinks.push({ title: lang === 'AR' ? 'الحضور والمشاركة' : 'Attendance', to: '/supervisor/attendance', icon: CheckSquare, colorClass: 'bg-success' });
+    if (supPerms.assignments) quickLinks.push({ title: t.assignments, to: '/supervisor/assignments', icon: ClipboardList, colorClass: 'bg-gold-gradient' });
+    if (supPerms.grading) quickLinks.push({ title: t.grading, to: '/supervisor/grading', icon: GraduationCap, colorClass: 'bg-gold-gradient' });
   }
 
   // Common Header
@@ -185,20 +181,20 @@ const AdminDashboard: React.FC = () => {
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 max-w-7xl mx-auto pb-10">
 
       {/* Header & Filter Indicator */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-8 rounded-3xl border border-gray-100 shadow-sm relative overflow-hidden">
-        <div className="absolute right-0 top-0 w-64 h-64 bg-emerald-50 rounded-full blur-3xl -mr-20 -mt-20 opacity-60 pointer-events-none" />
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-card p-8 rounded-3xl border border-border shadow-sm relative overflow-hidden">
+        <div className="absolute right-0 top-0 w-64 h-64 bg-premium-radial blur-3xl -mr-20 -mt-20 pointer-events-none" />
         <div className="relative z-10">
-          <h1 className="text-3xl font-black tracking-tight text-gray-800">
+          <h1 className="text-title">
             {lang === 'AR' ? 'لوحة المعلومات' : 'Dashboard'}
           </h1>
-          <p className="font-medium text-gray-500 mt-2 flex items-center gap-2">
+          <p className="font-medium text-text-secondary mt-2 flex items-center gap-2">
             <span>{lang === 'AR' ? 'مرحباً بك،' : 'Welcome back,'}</span>
-            <span className="text-[var(--primary)] font-bold">{user?.fullName}</span>
+            <span className="text-primary font-bold">{user?.fullName}</span>
           </p>
         </div>
-        <div className="relative z-10 flex items-center gap-2 bg-gray-50 px-4 py-2 rounded-2xl border border-gray-100 shadow-inner">
-          <Calendar size={18} className="text-gray-400" />
-          <span className="text-sm font-bold text-gray-700">{activeSemName}</span>
+        <div className="relative z-10 flex items-center gap-2 bg-surface px-4 py-2 rounded-2xl border border-border shadow-inner">
+          <Calendar size={18} className="text-text-secondary" />
+          <span className="text-sm font-bold text-text-primary">{activeSemName}</span>
         </div>
       </div>
 
@@ -240,10 +236,10 @@ const AdminDashboard: React.FC = () => {
                 ))}
               </Pie>
               <Tooltip
-                contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
+                contentStyle={{ borderRadius: '16px', border: '1px solid var(--border-color)', backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)', boxShadow: 'var(--premium-shadow)' }}
                 itemStyle={{ fontWeight: 'bold' }}
               />
-              <Legend verticalAlign="bottom" height={36} iconType="circle" />
+              <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ color: 'var(--text-secondary)' }} />
             </PieChart>
           </ChartBlock>
 
@@ -257,14 +253,14 @@ const AdminDashboard: React.FC = () => {
             emptyMessage={lang === 'AR' ? 'لا توجد تسجيلات' : 'No enrollments found'}
           >
             <BarChart data={enrollmentsByCourse} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6B7280' }} />
-              <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fill: '#6B7280' }} />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" />
+              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--text-secondary)' }} />
+              <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fill: 'var(--text-secondary)' }} />
               <Tooltip
-                cursor={{ fill: '#F3F4F6' }}
-                contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
+                cursor={{ fill: 'var(--surface-bg)' }}
+                contentStyle={{ borderRadius: '16px', border: '1px solid var(--border-color)', backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)', boxShadow: 'var(--premium-shadow)' }}
               />
-              <Bar dataKey="students" fill="#8b5cf6" radius={[6, 6, 0, 0]} name={lang === 'AR' ? 'الطلاب' : 'Students'} barSize={40} />
+              <Bar dataKey="students" fill="var(--primary)" radius={[6, 6, 0, 0]} name={lang === 'AR' ? 'الطلاب' : 'Students'} barSize={40} />
             </BarChart>
           </ChartBlock>
         </div>
@@ -282,14 +278,14 @@ const AdminDashboard: React.FC = () => {
             emptyMessage={lang === 'AR' ? 'لا توجد بيانات ليتم عرضها' : 'No chart data available'}
           >
             <BarChart data={supervisorAssignmentsData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6B7280' }} />
-              <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fill: '#6B7280' }} />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" />
+              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--text-secondary)' }} />
+              <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fill: 'var(--text-secondary)' }} />
               <Tooltip
-                cursor={{ fill: '#F3F4F6' }}
-                contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
+                cursor={{ fill: 'var(--surface-bg)' }}
+                contentStyle={{ borderRadius: '16px', border: '1px solid var(--border-color)', backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)', boxShadow: 'var(--premium-shadow)' }}
               />
-              <Bar dataKey="assignments" fill="#f59e0b" radius={[6, 6, 0, 0]} name={lang === 'AR' ? 'الواجبات' : 'Assignments'} barSize={40} />
+              <Bar dataKey="assignments" fill="var(--primary)" radius={[6, 6, 0, 0]} name={lang === 'AR' ? 'الواجبات' : 'Assignments'} barSize={40} />
             </BarChart>
           </ChartBlock>
         </div>
@@ -298,8 +294,8 @@ const AdminDashboard: React.FC = () => {
       {/* Quick Access Links */}
       {quickLinks.length > 0 && (
         <div className="pt-4">
-          <h2 className="text-xl font-black text-gray-800 mb-6 flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center">
+          <h2 className="text-section mb-6 flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full bg-surface text-primary border border-border flex items-center justify-center">
               <Activity size={16} />
             </div>
             {lang === 'AR' ? 'إجراءات سريعة' : 'Quick Actions'}

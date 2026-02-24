@@ -84,8 +84,8 @@ const StudentDashboard: React.FC = () => {
         if (present === 0 && absent === 0) return [];
 
         return [
-            { name: lang === 'AR' ? 'حاضر' : 'Present', value: present, color: '#10b981' }, // emerald-500
-            { name: lang === 'AR' ? 'غائب' : 'Absent', value: absent, color: '#f43f5e' } // rose-500
+            { name: lang === 'AR' ? 'حاضر' : 'Present', value: present, color: '#3F6F4E' }, // Success Green
+            { name: lang === 'AR' ? 'غائب' : 'Absent', value: absent, color: '#f43f5e' } // Rose Red (Semantic Error)
         ];
     }, [data.attendances, myCourses, user?.id, lang]);
 
@@ -109,40 +109,40 @@ const StudentDashboard: React.FC = () => {
 
     // --- UI RENDER HELPERS ---
     const QuickLink = ({ title, to, icon: Icon, colorClass }: any) => (
-        <Link to={to} className="flex flex-col items-center justify-center bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all group">
-            <div className={`w-16 h-16 rounded-[20px] ${colorClass} bg-opacity-10 shadow-inner flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
-                <Icon size={32} className={colorClass.replace('bg-', 'text-').replace('-500', '-600').replace('-50', '-600')} />
+        <Link to={to} className="flex flex-col items-center justify-center bg-card p-6 rounded-3xl border border-border shadow-sm hover:shadow-premium-hover hover:-translate-y-1 transition-all group">
+            <div className={`w-16 h-16 rounded-[20px] ${colorClass} text-white shadow-premium flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
+                <Icon size={32} />
             </div>
-            <h3 className="text-sm font-black text-gray-800 text-center">{title}</h3>
+            <h3 className="text-sm font-black text-text-primary text-center">{title}</h3>
         </Link>
     );
 
     const statsCards = [
-        { title: lang === 'AR' ? 'المواد الحالية' : 'Current Courses', value: myCourses.length, icon: BookOpen, colorClass: 'bg-blue-500' },
-        { title: lang === 'AR' ? 'واجبات معلقة' : 'Pending Assignments', value: pendingAssignmentsCount, icon: Clock, colorClass: 'bg-amber-500' },
-        { title: lang === 'AR' ? 'امتحانات قادمة' : 'Upcoming Exams', value: upcomingExamsCount, icon: FileEdit, colorClass: 'bg-rose-500' },
+        { title: lang === 'AR' ? 'المواد الحالية' : 'Current Courses', value: myCourses.length, icon: BookOpen, colorClass: 'bg-gold-gradient' },
+        { title: lang === 'AR' ? 'واجبات معلقة' : 'Pending Assignments', value: pendingAssignmentsCount, icon: Clock, colorClass: 'bg-card border border-border text-text-primary' },
+        { title: lang === 'AR' ? 'امتحانات قادمة' : 'Upcoming Exams', value: upcomingExamsCount, icon: FileEdit, colorClass: 'bg-background border border-border text-text-primary' },
     ];
 
     const quickLinks = [
-        { title: t.registration, to: '/student/registration', icon: GraduationCap, colorClass: 'bg-blue-500' },
-        { title: t.myCourses, to: '/student/my-courses', icon: BookOpen, colorClass: 'bg-amber-500' },
-        { title: t.assignments, to: '/student/assignments', icon: ClipboardList, colorClass: 'bg-emerald-500' },
-        { title: lang === 'AR' ? 'سجل الحضور والمشاركة' : 'Attendance', to: '/student/attendance', icon: History, colorClass: 'bg-pink-500' },
-        { title: t.myTimetable, to: '/student/timetable', icon: Calendar, colorClass: 'bg-purple-500' },
-        { title: lang === 'AR' ? 'الامتحانات' : 'Exams', to: '/student/exams', icon: FileEdit, colorClass: 'bg-orange-500' }
+        { title: t.registration, to: '/student/registration', icon: GraduationCap, colorClass: 'bg-gold-gradient' },
+        { title: t.myCourses, to: '/student/my-courses', icon: BookOpen, colorClass: 'bg-gold-gradient' },
+        { title: t.assignments, to: '/student/assignments', icon: ClipboardList, colorClass: 'bg-card border border-border !text-text-primary' },
+        { title: lang === 'AR' ? 'سجل الحضور والمشاركة' : 'Attendance', to: '/student/attendance', icon: History, colorClass: 'bg-success' },
+        { title: t.myTimetable, to: '/student/timetable', icon: Calendar, colorClass: 'bg-card border border-border !text-text-primary' },
+        { title: lang === 'AR' ? 'الامتحانات' : 'Exams', to: '/student/exams', icon: FileEdit, colorClass: 'bg-gold-gradient' }
     ];
 
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 max-w-7xl mx-auto pb-10">
 
             {/* Header Container */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-8 rounded-3xl border border-gray-100 shadow-sm relative overflow-hidden">
-                <div className="absolute right-0 top-0 w-64 h-64 bg-blue-50 rounded-full blur-3xl -mr-20 -mt-20 opacity-60 pointer-events-none" />
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-card p-8 rounded-3xl border border-border shadow-sm relative overflow-hidden">
+                <div className="absolute right-0 top-0 w-64 h-64 bg-premium-radial blur-3xl -mr-20 -mt-20 pointer-events-none" />
                 <div className="relative z-10">
-                    <h1 className="text-3xl font-black tracking-tight text-gray-800">{lang === 'AR' ? 'لوحة المعلومات' : 'Dashboard'}</h1>
-                    <p className="font-medium text-gray-500 mt-2 flex items-center gap-2">
+                    <h1 className="text-title">{lang === 'AR' ? 'لوحة المعلومات' : 'Dashboard'}</h1>
+                    <p className="font-medium text-text-secondary mt-2 flex items-center gap-2">
                         <span>{lang === 'AR' ? 'مرحباً،' : 'Hello,'}</span>
-                        <span className="text-[var(--primary)] font-bold">{user?.fullName}</span>
+                        <span className="text-primary font-bold">{user?.fullName}</span>
                     </p>
                 </div>
             </div>
@@ -187,10 +187,10 @@ const StudentDashboard: React.FC = () => {
                             ))}
                         </Pie>
                         <Tooltip
-                            contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
+                            contentStyle={{ borderRadius: '16px', border: '1px solid var(--border-color)', backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)', boxShadow: 'var(--premium-shadow)' }}
                             itemStyle={{ fontWeight: 'bold' }}
                         />
-                        <Legend verticalAlign="bottom" height={36} iconType="circle" />
+                        <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ color: 'var(--text-secondary)' }} />
                     </PieChart>
                 </ChartBlock>
 
@@ -204,18 +204,18 @@ const StudentDashboard: React.FC = () => {
                     emptyMessage={lang === 'AR' ? 'لا توجد واجبات مصححة' : 'No graded assignments yet'}
                 >
                     <BarChart data={gradesData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6B7280' }} />
-                        <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fill: '#6B7280' }} />
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" />
+                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--text-secondary)' }} />
+                        <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fill: 'var(--text-secondary)' }} />
                         <Tooltip
-                            cursor={{ fill: '#F3F4F6' }}
-                            contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
+                            cursor={{ fill: 'var(--surface-bg)' }}
+                            contentStyle={{ borderRadius: '16px', border: '1px solid var(--border-color)', backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)', boxShadow: 'var(--premium-shadow)' }}
                             formatter={(value, name, props) => [`${value} / ${props.payload.maxGrade}`, lang === 'AR' ? 'الدرجة' : 'Score']}
-                            labelFormatter={(label) => <span className="font-bold text-gray-800">{label}</span>}
+                            labelFormatter={(label) => <span className="font-bold">{label}</span>}
                         />
-                        <Bar dataKey="grade" fill="#8b5cf6" radius={[6, 6, 0, 0]} barSize={40}>
+                        <Bar dataKey="grade" fill="var(--primary)" radius={[6, 6, 0, 0]} barSize={40}>
                             {gradesData.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={entry.grade / entry.maxGrade >= 0.5 ? '#10b981' : '#f43f5e'} />
+                                <Cell key={`cell-${index}`} fill={entry.grade / entry.maxGrade >= 0.5 ? 'var(--success)' : '#f43f5e'} />
                             ))}
                         </Bar>
                     </BarChart>
@@ -225,8 +225,8 @@ const StudentDashboard: React.FC = () => {
 
             {/* Quick Links */}
             <div className="pt-4 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300 fill-mode-both">
-                <h2 className="text-xl font-black text-gray-800 mb-6 flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-indigo-50 text-indigo-500 flex items-center justify-center">
+                <h2 className="text-section mb-6 flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-surface text-primary border border-border flex items-center justify-center">
                         <History size={16} />
                     </div>
                     {lang === 'AR' ? 'الوصول السريع' : 'Quick Access'}
