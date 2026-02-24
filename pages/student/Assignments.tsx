@@ -64,13 +64,13 @@ const StudentAssignments: React.FC = () => {
 
             <div className="flex items-center justify-between pt-4 border-t border-gray-50">
               <div className="flex items-center gap-2">
-                <ClipboardList size={16} className="text-gray-400" />
-                <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">
+                <ClipboardList size={16} className="text-text-secondary" />
+                <span className="text-[10px] font-black uppercase tracking-widest text-text-secondary">
                   {item.assignments.length} {t.assignments}
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-lg ${item.completedCount === item.assignments.length && item.assignments.length > 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-100 text-gray-500'}`}>
+                <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-lg ${item.completedCount === item.assignments.length && item.assignments.length > 0 ? 'bg-success/10 text-success' : 'bg-surface text-text-secondary'}`}>
                   {item.completedCount} / {item.assignments.length} {lang === 'AR' ? 'تم تسليمه' : 'Completed'}
                 </span>
                 <ChevronRight size={16} className={`text-gray-300 transition-transform group-hover:translate-x-1 ${lang === 'AR' ? 'rotate-180 group-hover:-translate-x-1' : ''}`} />

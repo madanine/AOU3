@@ -60,7 +60,7 @@ const StudentTranscript: React.FC = () => {
         setExporting(false);
     };
 
-    if (loading) return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="animate-spin w-8 h-8 text-blue-600" /></div>;
+    if (loading) return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="animate-spin w-8 h-8 text-primary" /></div>;
 
     const logoSrc = settings.branding.logo || settings.branding.logoBase64 || '/assets/logo.png';
 
@@ -71,7 +71,7 @@ const StudentTranscript: React.FC = () => {
                     <GraduationCap size={28} /> {isAR ? 'كشف الدرجات' : 'Academic Transcript'}
                 </h1>
                 {transcripts.length > 0 && (
-                    <button onClick={exportPDF} disabled={exporting} className="px-4 py-2 rounded-xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 transition-all flex items-center gap-2">
+                    <button onClick={exportPDF} disabled={exporting} className="px-4 py-2 rounded-xl bg-primary text-white font-bold text-sm hover:bg-primary/80 transition-all flex items-center gap-2">
                         {exporting ? <Loader2 className="animate-spin" size={16} /> : <Download size={16} />}
                         {isAR ? 'تحميل PDF' : 'Export PDF'}
                     </button>
@@ -79,13 +79,13 @@ const StudentTranscript: React.FC = () => {
             </div>
 
             {transcripts.length === 0 ? (
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center">
+                <div className="bg-card rounded-2xl shadow-sm border border-border p-12 text-center">
                     <GraduationCap size={48} className="mx-auto text-gray-300 mb-4" />
-                    <p className="text-gray-500 text-lg">{isAR ? 'لا توجد فصول دراسية معتمدة بعد' : 'No approved semesters yet'}</p>
-                    <p className="text-gray-400 text-sm mt-2">{isAR ? 'سيظهر كشف الدرجات بعد اعتماد الفصل من قبل الإدارة' : 'Transcript will appear after semester approval by administration'}</p>
+                    <p className="text-text-secondary text-lg">{isAR ? 'لا توجد فصول دراسية معتمدة بعد' : 'No approved semesters yet'}</p>
+                    <p className="text-text-secondary text-sm mt-2">{isAR ? 'سيظهر كشف الدرجات بعد اعتماد الفصل من قبل الإدارة' : 'Transcript will appear after semester approval by administration'}</p>
                 </div>
             ) : (
-                <div ref={transcriptRef} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden" style={{ direction: 'rtl', fontFamily: 'Tajawal, Arial, sans-serif' }}>
+                <div ref={transcriptRef} className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden" style={{ direction: 'rtl', fontFamily: 'Tajawal, Arial, sans-serif' }}>
                     {/* HEADER */}
                     <div className="bg-gradient-to-l from-blue-900 to-blue-700 text-white p-6">
                         <div className="flex items-center justify-between">
@@ -93,25 +93,25 @@ const StudentTranscript: React.FC = () => {
                                 <img src={logoSrc} alt="Logo" className="h-16 w-auto object-contain" crossOrigin="anonymous" onError={e => { (e.target as HTMLImageElement).src = '/assets/logo.png'; }} />
                                 <div>
                                     <h2 className="text-xl font-black">{settings.branding.siteNameAr || 'الجامعة الأمريكية المفتوحة'}</h2>
-                                    <p className="text-blue-200 text-sm">{settings.branding.siteNameEn || 'American Open University'}</p>
+                                    <p className="text-text-secondary text-sm">{settings.branding.siteNameEn || 'American Open University'}</p>
                                 </div>
                             </div>
                             <div className="text-left text-sm">
                                 <p className="font-bold text-lg">كشف الدرجات</p>
-                                <p className="text-blue-200">Academic Transcript</p>
+                                <p className="text-text-secondary">Academic Transcript</p>
                             </div>
                         </div>
                     </div>
 
                     {/* STUDENT INFO */}
-                    <div className="p-6 border-b border-gray-200 bg-gray-50">
+                    <div className="p-6 border-b border-border bg-surface">
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                            <div><span className="text-gray-500 block">اسم الطالب</span><span className="font-bold">{user?.fullName}</span></div>
-                            <div><span className="text-gray-500 block">الرقم الجامعي</span><span className="font-bold">{user?.universityId}</span></div>
-                            <div><span className="text-gray-500 block">التخصص</span><span className="font-bold">{user?.major ? getMajorLabel(user.major) : '-'}</span></div>
-                            <div><span className="text-gray-500 block">المعدل التراكمي</span><span className="font-black text-lg text-blue-700">{cumulativeGPA}%</span></div>
+                            <div><span className="text-text-secondary block">اسم الطالب</span><span className="font-bold">{user?.fullName}</span></div>
+                            <div><span className="text-text-secondary block">الرقم الجامعي</span><span className="font-bold">{user?.universityId}</span></div>
+                            <div><span className="text-text-secondary block">التخصص</span><span className="font-bold">{user?.major ? getMajorLabel(user.major) : '-'}</span></div>
+                            <div><span className="text-text-secondary block">المعدل التراكمي</span><span className="font-black text-lg text-primary">{cumulativeGPA}%</span></div>
                         </div>
-                        <p className="text-xs text-gray-400 mt-3">تاريخ الطباعة: {new Date().toLocaleDateString('ar-SA')}</p>
+                        <p className="text-xs text-text-secondary mt-3">تاريخ الطباعة: {new Date().toLocaleDateString('ar-SA')}</p>
                     </div>
 
                     {/* WATERMARK CONTAINER */}
@@ -125,36 +125,36 @@ const StudentTranscript: React.FC = () => {
                             {transcripts.map((semester, sIdx) => (
                                 <div key={semester.id}>
                                     <div className="flex items-center gap-3 mb-3">
-                                        <div className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-bold">{semester.semesterNameSnapshot}</div>
-                                        <div className="flex-1 h-px bg-gray-200"></div>
-                                        <span className="text-sm text-gray-500">معدل الفصل: <strong className="text-blue-700">{semester.semesterAverage?.toFixed(2) || '0.00'}%</strong></span>
+                                        <div className="bg-primary/20 text-primary px-3 py-1 rounded-full text-sm font-bold">{semester.semesterNameSnapshot}</div>
+                                        <div className="flex-1 h-px bg-border"></div>
+                                        <span className="text-sm text-text-secondary">معدل الفصل: <strong className="text-primary">{semester.semesterAverage?.toFixed(2) || '0.00'}%</strong></span>
                                     </div>
 
                                     <table className="w-full border-collapse text-sm">
                                         <thead>
-                                            <tr className="bg-gray-100">
-                                                <th className="border border-gray-200 px-3 py-2 text-right">المادة</th>
-                                                <th className="border border-gray-200 px-3 py-2 text-center w-16">الحضور<br /><span className="text-[10px] text-gray-400">20</span></th>
-                                                <th className="border border-gray-200 px-3 py-2 text-center w-16">المشاركة<br /><span className="text-[10px] text-gray-400">10</span></th>
-                                                <th className="border border-gray-200 px-3 py-2 text-center w-16">الواجبات<br /><span className="text-[10px] text-gray-400">20</span></th>
-                                                <th className="border border-gray-200 px-3 py-2 text-center w-16">الامتحان<br /><span className="text-[10px] text-gray-400">50</span></th>
-                                                <th className="border border-gray-200 px-3 py-2 text-center w-16">المجموع<br /><span className="text-[10px] text-gray-400">100</span></th>
-                                                <th className="border border-gray-200 px-3 py-2 text-center w-16">النسبة</th>
+                                            <tr className="bg-surface">
+                                                <th className="border border-border px-3 py-2 text-right">المادة</th>
+                                                <th className="border border-border px-3 py-2 text-center w-16">الحضور<br /><span className="text-[10px] text-text-secondary">20</span></th>
+                                                <th className="border border-border px-3 py-2 text-center w-16">المشاركة<br /><span className="text-[10px] text-text-secondary">10</span></th>
+                                                <th className="border border-border px-3 py-2 text-center w-16">الواجبات<br /><span className="text-[10px] text-text-secondary">20</span></th>
+                                                <th className="border border-border px-3 py-2 text-center w-16">الامتحان<br /><span className="text-[10px] text-text-secondary">50</span></th>
+                                                <th className="border border-border px-3 py-2 text-center w-16">المجموع<br /><span className="text-[10px] text-text-secondary">100</span></th>
+                                                <th className="border border-border px-3 py-2 text-center w-16">النسبة</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {(semester.courses || []).map(course => (
-                                                <tr key={course.id} className="hover:bg-gray-50">
-                                                    <td className="border border-gray-200 px-3 py-2 font-bold">
+                                                <tr key={course.id} className="hover:bg-surface">
+                                                    <td className="border border-border px-3 py-2 font-bold">
                                                         {course.courseNameSnapshot}
-                                                        {course.courseCodeSnapshot && <span className="text-gray-400 text-xs mr-2">({course.courseCodeSnapshot})</span>}
+                                                        {course.courseCodeSnapshot && <span className="text-text-secondary text-xs mr-2">({course.courseCodeSnapshot})</span>}
                                                     </td>
-                                                    <td className="border border-gray-200 px-3 py-2 text-center">{course.attendanceScore}</td>
-                                                    <td className="border border-gray-200 px-3 py-2 text-center">{course.participationScore}</td>
-                                                    <td className="border border-gray-200 px-3 py-2 text-center">{course.assignmentsScore}</td>
-                                                    <td className="border border-gray-200 px-3 py-2 text-center">{course.examScore ?? '-'}</td>
-                                                    <td className="border border-gray-200 px-3 py-2 text-center font-bold">{course.finalScore}</td>
-                                                    <td className="border border-gray-200 px-3 py-2 text-center">{course.percentage}%</td>
+                                                    <td className="border border-border px-3 py-2 text-center">{course.attendanceScore}</td>
+                                                    <td className="border border-border px-3 py-2 text-center">{course.participationScore}</td>
+                                                    <td className="border border-border px-3 py-2 text-center">{course.assignmentsScore}</td>
+                                                    <td className="border border-border px-3 py-2 text-center">{course.examScore ?? '-'}</td>
+                                                    <td className="border border-border px-3 py-2 text-center font-bold">{course.finalScore}</td>
+                                                    <td className="border border-border px-3 py-2 text-center">{course.percentage}%</td>
                                                 </tr>
                                             ))}
                                         </tbody>
@@ -164,7 +164,7 @@ const StudentTranscript: React.FC = () => {
                         </div>
 
                         {/* FOOTER */}
-                        <div className="border-t border-gray-200 p-4 bg-gray-50 text-center text-xs text-gray-400">
+                        <div className="border-t border-border p-4 bg-surface text-center text-xs text-text-secondary">
                             <p>هذه الوثيقة صادرة إلكترونياً من نظام {settings.branding.siteNameAr || 'الجامعة الأمريكية المفتوحة'}</p>
                             <p className="mt-1">{settings.branding.footerText}</p>
                         </div>

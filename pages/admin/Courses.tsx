@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../../App';
 import { storage } from '../../storage';
 import { Course } from '../../types';
-import { Plus, Edit2, Trash2, X, BookOpen, Save, ToggleLeft, ToggleRight, Clock, User as DocIcon, MessageCircle, Video } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, BookOpen, Save, ToggleLeft, ToggleRight, Clock, User as DocIcon, MessageCircle, Video, Link } from 'lucide-react';
 import SemesterControls from '../../components/admin/SemesterControls';
 
 const AdminCourses: React.FC = () => {
@@ -236,7 +236,7 @@ const AdminCourses: React.FC = () => {
 
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black uppercase tracking-widest ml-1 flex items-center gap-2 text-text-secondary">
-                    <MessageCircle size={14} className="text-blue-500" />
+                    <MessageCircle size={14} className="text-primary" />
                     {lang === 'AR' ? 'رابط مجموعة التيليجرام' : 'Telegram Group Link'}
                   </label>
                   <input

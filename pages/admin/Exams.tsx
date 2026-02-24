@@ -452,14 +452,14 @@ const AdminExams: React.FC = () => {
     });
 
     // ================ STYLES ================
-    const card = "bg-white rounded-2xl shadow-sm border border-gray-100 p-6";
-    const btn = "px-4 py-2 rounded-xl text-sm font-bold transition-all duration-200 flex items-center gap-2 cursor-pointer";
-    const btnPrimary = `${btn} bg-blue-600 text-white hover:bg-blue-700`;
-    const btnDanger = `${btn} bg-red-50 text-red-600 hover:bg-red-100`;
-    const btnGreen = `${btn} bg-emerald-600 text-white hover:bg-emerald-700`;
-    const btnGray = `${btn} bg-gray-100 text-gray-700 hover:bg-gray-200`;
-    const input = "w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm outline-none";
-    const label = "block text-sm font-bold text-gray-700 mb-1";
+    const card = "bg-card rounded-[2.5rem] shadow-sm border border-border p-6 md:p-8 xl:p-10";
+    const btn = "px-6 py-3 rounded-2xl text-xs uppercase tracking-widest font-black transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-95";
+    const btnPrimary = `${btn} bg-gold-gradient text-white shadow-premium hover:shadow-premium-hover`;
+    const btnDanger = `${btn} bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white border border-transparent hover:border-red-500/20`;
+    const btnGreen = `${btn} bg-success text-white hover:bg-emerald-600`;
+    const btnGray = `${btn} bg-surface text-text-primary border border-border hover:border-primary/50 hover:bg-card`;
+    const input = "w-full px-4 py-3 rounded-xl border border-border bg-surface focus:ring-2 focus:ring-primary focus:border-primary text-sm font-bold text-text-primary outline-none shadow-sm transition-all";
+    const label = "block text-[10px] font-black uppercase tracking-widest text-text-secondary ml-1 mb-1.5";
 
     const qTypeLabel: Record<ExamQuestionType, string> = {
         mcq: isAR ? 'اختياري' : 'MCQ',
@@ -468,12 +468,12 @@ const AdminExams: React.FC = () => {
         matrix: isAR ? 'مصفوفة' : 'Matrix'
     };
 
-    if (loading) return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="animate-spin w-8 h-8 text-blue-600" /></div>;
+    if (loading) return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="animate-spin w-8 h-8 text-primary" /></div>;
 
     return (
         <div className="max-w-7xl mx-auto p-4 space-y-6" dir={isAR ? 'rtl' : 'ltr'} ref={containerRef}>
-            {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl flex items-center gap-2"><AlertTriangle size={18} />{error}<button onClick={() => setError('')} className="ml-auto font-bold">×</button></div>}
-            {success && <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl flex items-center gap-2"><CheckCircle size={18} />{success}</div>}
+            {error && <div className="bg-red-500/10 border border-red-500/20 text-red-500 px-4 py-3 rounded-2xl flex items-center gap-2"><AlertTriangle size={18} />{error}<button onClick={() => setError('')} className="ml-auto font-bold">×</button></div>}
+            {success && <div className="bg-success/10 border border-success/20 text-success px-4 py-3 rounded-2xl flex items-center gap-2"><CheckCircle size={18} />{success}</div>}
 
             {/* HEADER */}
             <div className="flex flex-wrap items-center justify-between gap-4">
@@ -506,11 +506,11 @@ const AdminExams: React.FC = () => {
                                             <h3 className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>{exam.title}</h3>
                                             <p className="text-sm text-gray-500">{getCourseName(exam.courseId)} • {getSemName(exam.semesterId)}</p>
                                             <div className="flex flex-wrap gap-2 mt-2">
-                                                <span className={`px-2 py-1 rounded-full text-xs font-bold ${exam.isPublished ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                                                <span className={`px-2 py-1 rounded-lg text-[10px] uppercase tracking-widest font-black ${exam.isPublished ? 'bg-success/10 text-success border border-success/20' : 'bg-amber-500/10 text-amber-500 border border-amber-500/20'}`}>
                                                     {exam.isPublished ? t.published : t.draft}
                                                 </span>
-                                                {exam.isResultsReleased && <span className="px-2 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-700">{t.resultsReleased}</span>}
-                                                <span className="text-xs text-gray-400"><Clock size={12} className="inline mr-1" />{new Date(exam.startAt).toLocaleDateString()} - {new Date(exam.endAt).toLocaleDateString()}</span>
+                                                {exam.isResultsReleased && <span className="px-2 py-1 rounded-lg text-[10px] uppercase tracking-widest font-black bg-primary/10 text-primary border border-primary/20">{t.resultsReleased}</span>}
+                                                <span className="text-[10px] uppercase tracking-widest font-black text-text-secondary flex items-center"><Clock size={12} className="mr-1" />{new Date(exam.startAt).toLocaleDateString()} - {new Date(exam.endAt).toLocaleDateString()}</span>
                                             </div>
                                         </div>
                                         <div className="flex flex-wrap gap-2">
@@ -571,7 +571,7 @@ const AdminExams: React.FC = () => {
                                             <p className="text-xs text-gray-400">{qTypeLabel[q.type]} • {q.marks} {t.marks}</p>
                                         </div>
                                         <div className="flex gap-1 shrink-0" onClick={e => e.stopPropagation()}>
-                                            <button onClick={() => duplicateQuestion(idx)} className="text-gray-400 hover:text-blue-600 p-1.5 rounded-lg hover:bg-blue-50" title={t.duplicateQuestion}><Copy size={15} /></button>
+                                            <button onClick={() => duplicateQuestion(idx)} className="text-gray-400 hover:text-primary p-1.5 rounded-lg hover:bg-blue-50" title={t.duplicateQuestion}><Copy size={15} /></button>
                                             <button onClick={() => removeQuestion(idx)} className="text-gray-400 hover:text-red-600 p-1.5 rounded-lg hover:bg-red-50"><Trash2 size={15} /></button>
                                             <button onClick={() => setExpandedQ(isExpanded ? null : q._uid)} className="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-100">
                                                 {isExpanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
@@ -612,7 +612,7 @@ const AdminExams: React.FC = () => {
                                                             {q.type === 'mcq' && q.options.length > 2 && <button onClick={() => removeOption(idx, oi)} className="text-red-400 hover:text-red-600 p-1"><Trash2 size={14} /></button>}
                                                         </div>
                                                     ))}
-                                                    {q.type === 'mcq' && <button className="text-blue-600 text-sm font-bold flex items-center gap-1 mt-1" onClick={() => addOptionToQ(idx)}><Plus size={14} />{t.addOption}</button>}
+                                                    {q.type === 'mcq' && <button className="text-primary text-sm font-bold flex items-center gap-1 mt-1" onClick={() => addOptionToQ(idx)}><Plus size={14} />{t.addOption}</button>}
                                                 </div>
                                             )}
 
@@ -629,7 +629,7 @@ const AdminExams: React.FC = () => {
                                                                     <button onClick={() => updateQ(idx, { matrixRows: q.matrixRows?.filter((_, i) => i !== ri) })} className="text-red-400 hover:text-red-600"><Trash2 size={14} /></button>
                                                                 </div>
                                                             ))}
-                                                            <button className="text-blue-600 text-sm font-bold flex items-center gap-1" onClick={() => updateQ(idx, { matrixRows: [...(q.matrixRows || []), ''] })}><Plus size={14} />{isAR ? 'إضافة صف' : 'Add Row'}</button>
+                                                            <button className="text-primary text-sm font-bold flex items-center gap-1" onClick={() => updateQ(idx, { matrixRows: [...(q.matrixRows || []), ''] })}><Plus size={14} />{isAR ? 'إضافة صف' : 'Add Row'}</button>
                                                         </div>
                                                         <div>
                                                             <label className={label}>{isAR ? 'أعمدة' : 'Columns'}</label>
@@ -639,12 +639,12 @@ const AdminExams: React.FC = () => {
                                                                     <button onClick={() => removeOption(idx, oi)} className="text-red-400 hover:text-red-600"><Trash2 size={14} /></button>
                                                                 </div>
                                                             ))}
-                                                            <button className="text-blue-600 text-sm font-bold flex items-center gap-1" onClick={() => addOptionToQ(idx)}><Plus size={14} />{isAR ? 'إضافة عمود' : 'Add Column'}</button>
+                                                            <button className="text-primary text-sm font-bold flex items-center gap-1" onClick={() => addOptionToQ(idx)}><Plus size={14} />{isAR ? 'إضافة عمود' : 'Add Column'}</button>
                                                         </div>
                                                     </div>
                                                     {/* Answer Key button */}
                                                     <div className="flex items-center gap-3 pt-2 border-t border-gray-100">
-                                                        <button className="text-blue-600 text-sm font-bold flex items-center gap-1.5 hover:underline" onClick={() => setAnswerKeyQIdx(idx)}>
+                                                        <button className="text-primary text-sm font-bold flex items-center gap-1.5 hover:underline" onClick={() => setAnswerKeyQIdx(idx)}>
                                                             <CheckCircle size={16} />{isAR ? 'مفتاح الإجابة' : 'Answer Key'}
                                                         </button>
                                                         <span className="text-xs text-gray-400">({q.marks} {t.marks})</span>
@@ -657,7 +657,7 @@ const AdminExams: React.FC = () => {
                                                 <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setAnswerKeyQIdx(null)}>
                                                     <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-auto" onClick={e => e.stopPropagation()}>
                                                         <div className="flex items-center gap-2 mb-4">
-                                                            <CheckCircle size={20} className="text-blue-600" />
+                                                            <CheckCircle size={20} className="text-primary" />
                                                             <h3 className="text-lg font-bold">{isAR ? 'اختر الإجابات الصحيحة:' : 'Choose correct answers:'}</h3>
                                                         </div>
                                                         <table className="w-full text-sm border-collapse">
@@ -717,7 +717,7 @@ const AdminExams: React.FC = () => {
                     {/* Add question buttons */}
                     <div className="flex flex-wrap gap-2 justify-center py-4">
                         {(['mcq', 'true_false', 'essay', 'matrix'] as ExamQuestionType[]).map(type => (
-                            <button key={type} className={`${btn} bg-white border-2 border-dashed border-gray-300 text-gray-600 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50`} onClick={() => addQuestion(type)}>
+                            <button key={type} className={`${btn} bg-white border-2 border-dashed border-gray-300 text-gray-600 hover:border-blue-400 hover:text-primary hover:bg-blue-50`} onClick={() => addQuestion(type)}>
                                 <Plus size={16} />{qTypeLabel[type]}
                             </button>
                         ))}
@@ -751,16 +751,16 @@ const AdminExams: React.FC = () => {
                     </div>
 
                     {showExcForm && (
-                        <div className="bg-yellow-50 rounded-xl p-4 mb-4 space-y-3">
-                            <h3 className="font-bold">{isAR ? 'تمديد وقت لطالب' : 'Grant Time Extension'}</h3>
+                        <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-6 mb-4 space-y-4">
+                            <h3 className="font-black text-amber-600">{isAR ? 'تمديد وقت لطالب' : 'Grant Time Extension'}</h3>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                                 <select className={input} value={excStudentId} onChange={e => setExcStudentId(e.target.value)}><option value="">{t.selectStudent}</option>{students.map(s => <option key={s.id} value={s.id}>{s.fullName}</option>)}</select>
                                 <input type="datetime-local" className={input} value={excUntil} onChange={e => setExcUntil(e.target.value)} />
                                 <button className={btnPrimary} onClick={saveException}>{t.save}</button>
                             </div>
                             {exceptions.length > 0 && (
-                                <div className="mt-2 space-y-1">{exceptions.map(ex => (
-                                    <div key={ex.id} className="flex items-center justify-between bg-white rounded-lg px-3 py-2 text-sm">
+                                <div className="mt-2 space-y-2">{exceptions.map(ex => (
+                                    <div key={ex.id} className="flex items-center justify-between border border-border bg-card rounded-xl px-4 py-3 text-sm font-bold shadow-sm">
                                         <span>{getStudentName(ex.studentId)} → {new Date(ex.extendedUntil).toLocaleString()}</span>
                                         <button onClick={async () => { await supabaseService.deleteExamException(ex.id); setExceptions(await supabaseService.getExamExceptions(selectedExamId)); }} className="text-red-500"><Trash2 size={14} /></button>
                                     </div>
@@ -776,12 +776,12 @@ const AdminExams: React.FC = () => {
                             <table className="w-full text-sm">
                                 <thead><tr className="border-b"><th className="py-2 px-3 text-left">{isAR ? 'الطالب' : 'Student'}</th><th className="py-2 px-3">{isAR ? 'الحالة' : 'Status'}</th><th className="py-2 px-3">{t.score}</th><th className="py-2 px-3">{isAR ? 'التاريخ' : 'Date'}</th><th className="py-2 px-3"></th></tr></thead>
                                 <tbody>{attempts.map(a => (
-                                    <tr key={a.id} className="border-b hover:bg-gray-50">
-                                        <td className="py-2 px-3"><span className="font-bold">{getStudentName(a.studentId)}</span><br /><span className="text-xs text-gray-400">{getStudentUniId(a.studentId)}</span></td>
-                                        <td className="py-2 px-3 text-center"><span className={`px-2 py-1 rounded-full text-xs font-bold ${a.isSubmitted ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>{a.isSubmitted ? (isAR ? 'مسلّم' : 'Submitted') : (isAR ? 'قيد التقدم' : 'In Progress')}</span></td>
-                                        <td className="py-2 px-3 text-center font-bold">{a.totalScore ?? '-'}/50</td>
-                                        <td className="py-2 px-3 text-center text-gray-500">{a.submittedAt ? new Date(a.submittedAt).toLocaleString() : '-'}</td>
-                                        <td className="py-2 px-3"><button className={btnGray} onClick={() => openGrading(a)}><Eye size={14} />{isAR ? 'تصحيح' : 'Grade'}</button></td>
+                                    <tr key={a.id} className="border-b border-border/50 hover:bg-surface/50 transition-colors">
+                                        <td className="py-3 px-4"><span className="font-black text-text-primary">{getStudentName(a.studentId)}</span><br /><span className="text-[10px] uppercase font-bold text-text-secondary">{getStudentUniId(a.studentId)}</span></td>
+                                        <td className="py-3 px-4 text-center"><span className={`px-2 py-1 rounded-lg text-[10px] uppercase tracking-widest font-black ${a.isSubmitted ? 'bg-success/10 text-success border border-success/20' : 'bg-amber-500/10 text-amber-500 border border-amber-500/20'}`}>{a.isSubmitted ? (isAR ? 'مسلّم' : 'Submitted') : (isAR ? 'قيد التقدم' : 'In Progress')}</span></td>
+                                        <td className="py-3 px-4 text-center font-black text-primary">{a.totalScore ?? '-'}/50</td>
+                                        <td className="py-3 px-4 text-center text-xs font-bold text-text-secondary">{a.submittedAt ? new Date(a.submittedAt).toLocaleString() : '-'}</td>
+                                        <td className="py-3 px-4"><button className={btnGray} onClick={() => openGrading(a)}><Eye size={14} />{isAR ? 'تصحيح' : 'Grade'}</button></td>
                                     </tr>
                                 ))}</tbody>
                             </table>
@@ -798,21 +798,21 @@ const AdminExams: React.FC = () => {
                         {gradingQ.map((q, i) => {
                             const ans = answers.find(a => a.questionId === q.id);
                             return (
-                                <div key={q.id} className="border rounded-xl p-4">
-                                    <div className="flex items-start gap-3 mb-2">
-                                        <span className="bg-blue-100 text-blue-700 rounded-full w-7 h-7 flex items-center justify-center text-xs font-bold shrink-0">{i + 1}</span>
+                                <div key={q.id} className="border border-border rounded-2xl p-6 bg-surface shadow-sm hover:border-primary/30 transition-colors">
+                                    <div className="flex items-start gap-4 mb-4">
+                                        <span className="bg-primary border border-primary/20 text-white rounded-xl w-8 h-8 flex items-center justify-center font-black shrink-0 shadow-sm">{i + 1}</span>
                                         <div className="flex-1">
-                                            <p className="font-bold">{q.questionText}</p>
-                                            <p className="text-xs text-gray-500">{q.marks} {t.marks} • {qTypeLabel[q.type]}</p>
+                                            <p className="font-bold text-text-primary text-sm">{q.questionText}</p>
+                                            <p className="text-[10px] uppercase font-black text-text-secondary mt-1">{q.marks} {t.marks} • {qTypeLabel[q.type]}</p>
                                         </div>
-                                        {ans && <span className={`px-2 py-1 rounded-full text-xs font-bold ${ans.isCorrect ? 'bg-green-100 text-green-700' : ans.isCorrect === false ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-500'}`}>{ans.awardedMarks ?? '?'}/{q.marks}</span>}
+                                        {ans && <span className={`px-3 py-1.5 rounded-xl text-xs font-black shadow-sm ${ans.isCorrect ? 'bg-success/10 text-success border border-success/20' : ans.isCorrect === false ? 'bg-red-500/10 text-red-500 border border-red-500/20' : 'bg-surface border-border text-text-secondary'}`}>{ans.awardedMarks ?? '?'}/{q.marks}</span>}
                                     </div>
                                     {(q.type === 'mcq' || q.type === 'true_false') && (
-                                        <div className="ml-10 space-y-1">
+                                        <div className="ml-12 space-y-2">
                                             {q.options?.map(o => {
                                                 const selected = ans?.selectedOptionId === o.id;
-                                                return (<div key={o.id} className={`px-3 py-2 rounded-lg text-sm ${o.isCorrect ? 'bg-green-50 border border-green-300' : selected ? 'bg-red-50 border border-red-300' : 'bg-gray-50'}`}>
-                                                    {selected && (o.isCorrect ? <CheckCircle size={14} className="inline mr-1 text-green-600" /> : <XCircle size={14} className="inline mr-1 text-red-600" />)}
+                                                return (<div key={o.id} className={`px-4 py-3 rounded-xl text-xs font-bold transition-all shadow-sm ${o.isCorrect ? 'bg-success/10 border border-success/30 text-text-primary' : selected ? 'bg-red-500/10 border border-red-500/30 text-text-primary' : 'bg-card border border-border text-text-secondary'}`}>
+                                                    {selected && (o.isCorrect ? <CheckCircle size={16} className="inline mr-2 text-success" /> : <XCircle size={16} className="inline mr-2 text-red-500" />)}
                                                     {o.optionText}
                                                 </div>);
                                             })}
@@ -836,7 +836,7 @@ const AdminExams: React.FC = () => {
                                                     const correctArr = q.matrixAnswers?.[ri.toString()] || [];
                                                     const sel = selectedArr.includes(o.id);
                                                     const correct = correctArr.includes(o.id);
-                                                    return <td key={o.id} className={`border p-2 text-center ${sel && correct ? 'bg-green-100' : sel ? 'bg-red-100' : correct ? 'bg-green-50' : ''}`}>{sel ? '☑' : correct ? '☐' : ''}</td>;
+                                                    return <td key={o.id} className={`border border-border p-3 text-center ${sel && correct ? 'bg-success/10 text-success' : sel ? 'bg-red-500/10 text-red-500' : correct ? 'bg-success/5 text-success/50' : ''}`}>{sel ? '☑' : correct ? '☐' : ''}</td>;
                                                 })}</tr>))}</tbody>
                                             </table>
                                         </div>

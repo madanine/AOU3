@@ -108,7 +108,7 @@ const Profile: React.FC = () => {
       </div>
 
       {message && (
-        <div className={`p-4 rounded-2xl border font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 animate-in slide-in-from-top-4 ${message.type === 'success' ? 'bg-green-50 text-green-600 border-green-100' : 'bg-red-50 text-red-600 border-red-100'}`}>
+        <div className={`p-4 rounded-2xl border font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 animate-in slide-in-from-top-4 ${message.type === 'success' ? 'bg-green-50 text-green-600 border-green-100' : 'bg-red-500/10 text-red-500 border-red-500/20'}`}>
           {message.type === 'success' ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
           {message.text}
         </div>
@@ -120,8 +120,8 @@ const Profile: React.FC = () => {
             <div className="rounded-[2.5rem] shadow-xl border overflow-hidden" style={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)' }}>
               <div className="h-24 bg-[var(--primary)] opacity-90 relative">
                 <div className={`absolute -bottom-10 ${lang === 'AR' ? 'right-10' : 'left-10'}`}>
-                  <div className="w-20 h-20 rounded-2xl bg-white p-1 shadow-lg" style={{ backgroundColor: 'var(--card-bg)' }}>
-                    <div className="w-full h-full rounded-xl bg-gray-50 flex items-center justify-center text-[var(--primary)] font-black text-2xl overflow-hidden">
+                  <div className="w-20 h-20 rounded-2xl bg-card p-1 shadow-lg" style={{ backgroundColor: 'var(--card-bg)' }}>
+                    <div className="w-full h-full rounded-xl bg-surface flex items-center justify-center text-[var(--primary)] font-black text-2xl overflow-hidden">
                       {settings.branding.logoBase64 ? (
                         <img src={settings.branding.logoBase64} alt="Avatar Logo" className="w-full h-full object-contain" />
                       ) : (
@@ -143,7 +143,7 @@ const Profile: React.FC = () => {
                         value={formData.universityId}
                         readOnly
                         disabled
-                        className="w-full pl-10 pr-4 py-3 bg-gray-100 border border-gray-200 rounded-xl outline-none text-sm font-bold text-gray-500 cursor-not-allowed"
+                        className="w-full pl-10 pr-4 py-3 bg-surface border border-border rounded-xl outline-none text-sm font-bold text-text-secondary cursor-not-allowed"
                       />
                     </div>
                   </div>
@@ -157,7 +157,7 @@ const Profile: React.FC = () => {
                         type="email"
                         value={formData.email}
                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        className="w-full pl-10 pr-4 py-3 bg-gray-50/50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none transition-all text-sm font-bold text-gray-700"
+                        className="w-full pl-10 pr-4 py-3 bg-surface/50 border border-border rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none transition-all text-sm font-bold text-text-primary"
                       />
                     </div>
                   </div>
@@ -168,7 +168,7 @@ const Profile: React.FC = () => {
                       required
                       value={formData.fullName}
                       onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                      className="w-full px-5 py-3 bg-gray-50/50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none transition-all text-sm font-bold text-gray-700"
+                      className="w-full px-5 py-3 bg-surface/50 border border-border rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none transition-all text-sm font-bold text-text-primary"
                     />
                   </div>
 
@@ -179,7 +179,7 @@ const Profile: React.FC = () => {
                       <input
                         value={formData.phone}
                         onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                        className="w-full pl-10 pr-4 py-3 bg-gray-50/50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none transition-all text-sm font-bold text-gray-700"
+                        className="w-full pl-10 pr-4 py-3 bg-surface/50 border border-border rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none transition-all text-sm font-bold text-text-primary"
                       />
                     </div>
                   </div>
@@ -191,7 +191,7 @@ const Profile: React.FC = () => {
                         required
                         value={formData.major}
                         disabled
-                        className={`w-full py-3 bg-gray-100 border border-gray-200 rounded-xl outline-none text-sm font-bold text-gray-500 cursor-not-allowed appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23cbd5e1%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C/polyline%3E%3C/svg%3E')] bg-[length:18px] bg-no-repeat ${lang === 'AR' ? 'bg-[left_1rem_center] pl-10 pr-5' : 'bg-[right_1rem_center] pr-10 pl-5'
+                        className={`w-full py-3 bg-surface border border-border rounded-xl outline-none text-sm font-bold text-text-secondary cursor-not-allowed appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23cbd5e1%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C/polyline%3E%3C/svg%3E')] bg-[length:18px] bg-no-repeat ${lang === 'AR' ? 'bg-[left_1rem_center] pl-10 pr-5' : 'bg-[right_1rem_center] pr-10 pl-5'
                           }`}
                       >
                         <option value="">{t.selectMajor}</option>
@@ -224,12 +224,12 @@ const Profile: React.FC = () => {
                         onFocus={() => setShowNationalityDropdown(true)}
                         placeholder={t.selectNationality}
                         autoComplete="off"
-                        className="w-full pl-10 pr-4 py-3 bg-gray-50/50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none transition-all text-sm font-bold text-gray-700"
+                        className="w-full pl-10 pr-4 py-3 bg-surface/50 border border-border rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none transition-all text-sm font-bold text-text-primary"
                       />
                       {showNationalityDropdown && (
                         <>
                           <div className="fixed inset-0 z-20" onClick={() => setShowNationalityDropdown(false)} />
-                          <div className="absolute z-30 w-full mt-2 max-h-60 overflow-y-auto bg-white dark:bg-gray-800 border border-gray-200 rounded-xl shadow-2xl">
+                          <div className="absolute z-30 w-full mt-2 max-h-60 overflow-y-auto bg-card dark:bg-gray-800 border border-border rounded-xl shadow-2xl">
                             {COUNTRIES.filter(country => {
                               const displayName = lang === 'AR' ? country.name_ar : country.name_en;
                               return displayName.toLowerCase().includes(nationalitySearch.toLowerCase());
@@ -244,7 +244,7 @@ const Profile: React.FC = () => {
                                     setNationalitySearch(displayName);
                                     setShowNationalityDropdown(false);
                                   }}
-                                  className="w-full text-left px-4 py-3 hover:bg-blue-50 dark:hover:bg-gray-700 text-sm font-bold text-gray-700 dark:text-gray-200 transition-colors border-b border-gray-100 dark:border-gray-700 last:border-0"
+                                  className="w-full text-left px-4 py-3 hover:bg-primary/10 dark:hover:bg-gray-700 text-sm font-bold text-text-primary dark:text-gray-200 transition-colors border-b border-border dark:border-gray-700 last:border-0"
                                 >
                                   {displayName}
                                 </button>
@@ -267,7 +267,7 @@ const Profile: React.FC = () => {
                         value={formData.passportNumber}
                         onChange={(e) => setFormData({ ...formData, passportNumber: e.target.value })}
                         placeholder={lang === 'AR' ? 'A12345678' : 'A12345678'}
-                        className="w-full pl-10 pr-4 py-3 bg-gray-50/50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none transition-all text-sm font-bold text-gray-700"
+                        className="w-full pl-10 pr-4 py-3 bg-surface/50 border border-border rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none transition-all text-sm font-bold text-text-primary"
                       />
                     </div>
                   </div>
@@ -283,7 +283,7 @@ const Profile: React.FC = () => {
                         value={formData.dateOfBirth}
                         max={new Date().toISOString().split('T')[0]}
                         onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
-                        className="w-full pl-10 pr-4 py-3 bg-gray-50/50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none transition-all text-sm font-bold text-gray-700"
+                        className="w-full pl-10 pr-4 py-3 bg-surface/50 border border-border rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none transition-all text-sm font-bold text-text-primary"
                       />
                     </div>
                   </div>
@@ -320,7 +320,7 @@ const Profile: React.FC = () => {
                     required
                     value={passwordData.currentPassword}
                     onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
-                    className="w-full pl-10 pr-4 py-3 bg-gray-50/50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none text-sm font-bold"
+                    className="w-full pl-10 pr-4 py-3 bg-surface/50 border border-border rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none text-sm font-bold"
                   />
                 </div>
               </div>
@@ -334,7 +334,7 @@ const Profile: React.FC = () => {
                     required
                     value={passwordData.newPassword}
                     onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-                    className="w-full pl-10 pr-4 py-3 bg-gray-50/50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none text-sm font-bold"
+                    className="w-full pl-10 pr-4 py-3 bg-surface/50 border border-border rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none text-sm font-bold"
                   />
                 </div>
               </div>
@@ -348,7 +348,7 @@ const Profile: React.FC = () => {
                     required
                     value={passwordData.confirmNewPassword}
                     onChange={(e) => setPasswordData({ ...passwordData, confirmNewPassword: e.target.value })}
-                    className="w-full pl-10 pr-4 py-3 bg-gray-50/50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none text-sm font-bold"
+                    className="w-full pl-10 pr-4 py-3 bg-surface/50 border border-border rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none text-sm font-bold"
                   />
                 </div>
               </div>

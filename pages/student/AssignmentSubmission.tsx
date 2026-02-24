@@ -156,10 +156,10 @@ const StudentAssignmentSubmission: React.FC = () => {
               <div
                 key={a.id}
                 onClick={() => setSelectedAssignment(a)}
-                className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-xl transition-all cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-4 group"
+                className="bg-card p-6 rounded-[2rem] border border-border shadow-sm hover:shadow-xl transition-all cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-4 group"
               >
                 <div className="flex items-center gap-5">
-                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${sub ? 'bg-emerald-50 text-emerald-500' : 'bg-slate-50 text-slate-400'}`}>
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${sub ? 'bg-success/10 text-success' : 'bg-slate-50 text-slate-400'}`}>
                     {sub ? <CheckCircle2 size={24} /> : <ClipboardList size={24} />}
                   </div>
                   <div>
@@ -181,7 +181,7 @@ const StudentAssignmentSubmission: React.FC = () => {
                         // Before deadline: no grades shown
                         if (!isPastDeadline) {
                           return (
-                            <span className="text-[10px] font-black uppercase text-emerald-600 bg-emerald-50 px-3 py-1 rounded-lg">
+                            <span className="text-[10px] font-black uppercase text-success bg-success/10 px-3 py-1 rounded-lg">
                               {t.submitted}
                             </span>
                           );
@@ -195,9 +195,9 @@ const StudentAssignmentSubmission: React.FC = () => {
                               <>
                                 <div className="flex flex-col items-end">
                                   <span className="text-[8px] font-black uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>{t.grade}</span>
-                                  <span className="text-sm font-black text-emerald-600">{sub.grade}</span>
+                                  <span className="text-sm font-black text-success">{sub.grade}</span>
                                 </div>
-                                <span className="text-[10px] font-black uppercase text-emerald-600 bg-emerald-50 px-3 py-1 rounded-lg">
+                                <span className="text-[10px] font-black uppercase text-success bg-success/10 px-3 py-1 rounded-lg">
                                   {t.submitted}
                                 </span>
                               </>
@@ -210,9 +210,9 @@ const StudentAssignmentSubmission: React.FC = () => {
                               <>
                                 <div className="flex flex-col items-end">
                                   <span className="text-[8px] font-black uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>{t.grade}</span>
-                                  <span className="text-sm font-black text-emerald-600">{sub.grade}</span>
+                                  <span className="text-sm font-black text-success">{sub.grade}</span>
                                 </div>
-                                <span className="text-[10px] font-black uppercase text-emerald-600 bg-emerald-50 px-3 py-1 rounded-lg">
+                                <span className="text-[10px] font-black uppercase text-success bg-success/10 px-3 py-1 rounded-lg">
                                   {t.submitted}
                                 </span>
                               </>
@@ -231,7 +231,7 @@ const StudentAssignmentSubmission: React.FC = () => {
 
                         // Default: just submitted
                         return (
-                          <span className="text-[10px] font-black uppercase text-emerald-600 bg-emerald-50 px-3 py-1 rounded-lg">
+                          <span className="text-[10px] font-black uppercase text-success bg-success/10 px-3 py-1 rounded-lg">
                             {t.submitted}
                           </span>
                         );
@@ -246,22 +246,22 @@ const StudentAssignmentSubmission: React.FC = () => {
           })}
 
           {assignments.length === 0 && (
-            <div className="text-center py-24 bg-white rounded-[2.5rem] border border-dashed border-gray-200">
+            <div className="text-center py-24 bg-card rounded-[2.5rem] border border-dashed border-border">
               <AlertCircle className="mx-auto text-gray-200 mb-4" size={48} />
-              <p className="text-gray-400 font-black text-xs uppercase tracking-widest">{t.noData}</p>
+              <p className="text-text-secondary font-black text-xs uppercase tracking-widest">{t.noData}</p>
             </div>
           )}
         </div>
       ) : (
-        <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
-          <div className="p-8 border-b border-gray-100 flex justify-between items-start">
+        <div className="bg-card rounded-[2.5rem] border border-border shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+          <div className="p-8 border-b border-border flex justify-between items-start">
             <div>
               <h2 className="text-2xl font-black" style={{ color: 'var(--text-primary)' }}>{selectedAssignment.title}</h2>
               <p className="text-sm font-medium mt-1" style={{ color: 'var(--text-secondary)' }}>{selectedAssignment.subtitle}</p>
             </div>
             <button
               onClick={() => setSelectedAssignment(null)}
-              className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+              className="p-2 text-text-secondary hover:text-text-primary transition-colors"
             >
               <X size={24} />
             </button>
@@ -281,7 +281,7 @@ const StudentAssignmentSubmission: React.FC = () => {
             if (!isPastDeadline) {
               return (
                 <div className="p-20 text-center space-y-4">
-                  <CheckCircle2 size={64} className="mx-auto text-emerald-500" />
+                  <CheckCircle2 size={64} className="mx-auto text-success" />
                   <h2 className="text-xl font-black" style={{ color: 'var(--text-primary)' }}>
                     {lang === 'AR' ? 'تم تسليم التكليف بنجاح' : 'Assignment Submitted Successfully'}
                   </h2>
@@ -298,13 +298,13 @@ const StudentAssignmentSubmission: React.FC = () => {
             if (isPastDeadline && selectedAssignment.type === 'mcq' && submission.grade) {
               return (
                 <div className="p-8 space-y-8 animate-in fade-in duration-500">
-                  <div className="flex flex-col items-center justify-center p-8 bg-emerald-50 rounded-[2rem] border border-emerald-100 text-center gap-4">
-                    <Trophy className="text-emerald-500" size={64} />
+                  <div className="flex flex-col items-center justify-center p-8 bg-success/10 rounded-[2rem] border border-success/20 text-center gap-4">
+                    <Trophy className="text-success" size={64} />
                     <div>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600">{t.grade}</p>
-                      <h2 className="text-4xl font-black text-emerald-700">{submission.grade}</h2>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-success">{t.grade}</p>
+                      <h2 className="text-4xl font-black text-success">{submission.grade}</h2>
                     </div>
-                    <p className="text-xs font-bold text-emerald-600/70">
+                    <p className="text-xs font-bold text-success/70">
                       {lang === 'AR' ? 'تم تصحيح إجاباتك تلقائياً' : 'Your answers have been auto-graded'}
                     </p>
                   </div>
@@ -315,29 +315,29 @@ const StudentAssignmentSubmission: React.FC = () => {
                       const isCorrect = studentAnswer === q.correctAnswer;
 
                       return (
-                        <div key={q.id} className={`p-6 rounded-3xl border ${isCorrect ? 'bg-emerald-50/30 border-emerald-100' : 'bg-red-50/30 border-red-100'}`}>
+                        <div key={q.id} className={`p-6 rounded-3xl border ${isCorrect ? 'bg-success/10/30 border-success/20' : 'bg-red-500/10/30 border-red-500/20'}`}>
                           <div className="flex gap-4">
-                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black flex-shrink-0 ${isCorrect ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'}`}>
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black flex-shrink-0 ${isCorrect ? 'bg-success text-white' : 'bg-red-500/100 text-white'}`}>
                               {idx + 1}
                             </div>
                             <div className="flex-1">
                               <p className="text-lg font-bold text-gray-900">{q.text}</p>
                               <div className="mt-4 space-y-2">
                                 <div className="flex items-center gap-2">
-                                  <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest">
+                                  <span className="text-[10px] font-black uppercase text-text-secondary tracking-widest">
                                     {lang === 'AR' ? 'إجابتك' : 'Your Answer'}:
                                   </span>
-                                  <span className={`text-sm font-black ${isCorrect ? 'text-emerald-600' : 'text-red-600'}`}>
+                                  <span className={`text-sm font-black ${isCorrect ? 'text-success' : 'text-red-500'}`}>
                                     {studentAnswer || '—'}
                                   </span>
-                                  {isCorrect ? <CheckCircle2 size={16} className="text-emerald-500" /> : <XCircle size={16} className="text-red-500" />}
+                                  {isCorrect ? <CheckCircle2 size={16} className="text-success" /> : <XCircle size={16} className="text-red-500" />}
                                 </div>
                                 {!isCorrect && (
                                   <div className="flex items-center gap-2">
-                                    <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest">
+                                    <span className="text-[10px] font-black uppercase text-text-secondary tracking-widest">
                                       {lang === 'AR' ? 'الإجابة الصحيحة' : 'Correct Answer'}:
                                     </span>
-                                    <span className="text-sm font-black text-emerald-600">{q.correctAnswer}</span>
+                                    <span className="text-sm font-black text-success">{q.correctAnswer}</span>
                                   </div>
                                 )}
                               </div>
@@ -355,12 +355,12 @@ const StudentAssignmentSubmission: React.FC = () => {
             if (isPastDeadline && (selectedAssignment.type === 'essay' || selectedAssignment.type === 'file') && submission.grade) {
               return (
                 <div className="p-20 text-center space-y-4">
-                  <Trophy size={64} className="mx-auto text-emerald-500" />
+                  <Trophy size={64} className="mx-auto text-success" />
                   <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600">{t.grade}</p>
-                    <h2 className="text-4xl font-black text-emerald-700">{submission.grade}</h2>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-success">{t.grade}</p>
+                    <h2 className="text-4xl font-black text-success">{submission.grade}</h2>
                   </div>
-                  <p className="text-xs font-bold text-gray-400">
+                  <p className="text-xs font-bold text-text-secondary">
                     {lang === 'AR' ? 'تم رصد الدرجة من قبل الدكتور' : 'Graded by instructor'}
                   </p>
                 </div>
@@ -391,20 +391,20 @@ const StudentAssignmentSubmission: React.FC = () => {
           {!getSubmissionForAssignment(selectedAssignment.id) && (
             new Date() > new Date(selectedAssignment.deadline) ? (
               <div className="flex flex-col items-center justify-center py-24 px-8 text-center space-y-6 animate-in fade-in slide-in-from-bottom-4">
-                <div className="w-24 h-24 bg-red-50 rounded-[2rem] flex items-center justify-center text-red-500 shadow-sm border border-red-100">
+                <div className="w-24 h-24 bg-red-500/10 rounded-[2rem] flex items-center justify-center text-red-500 shadow-sm border border-red-500/20">
                   <Clock size={48} />
                 </div>
                 <div className="space-y-2">
-                  <h3 className="text-2xl font-black text-red-600 uppercase tracking-tight">
+                  <h3 className="text-2xl font-black text-red-500 uppercase tracking-tight">
                     {lang === 'AR' ? 'انتهى وقت التسليم' : 'Deadline has passed'}
                   </h3>
-                  <p className="text-gray-500 font-bold max-w-md mx-auto leading-relaxed">
+                  <p className="text-text-secondary font-bold max-w-md mx-auto leading-relaxed">
                     {lang === 'AR'
                       ? 'انتهى وقت تسليم التكليف ولا يمكن التسليم الآن.'
                       : 'Submission is closed. You can no longer submit this assignment.'}
                   </p>
                 </div>
-                <div className="px-6 py-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-black uppercase text-gray-500 tracking-widest flex items-center gap-2">
+                <div className="px-6 py-3 bg-surface border border-border rounded-xl text-xs font-black uppercase text-text-secondary tracking-widest flex items-center gap-2">
                   <Clock size={14} />
                   {t.deadline}: {new Date(selectedAssignment.deadline).toLocaleString(lang === 'AR' ? 'ar-SA' : 'en-US')}
                 </div>
@@ -415,8 +415,8 @@ const StudentAssignmentSubmission: React.FC = () => {
                 {selectedAssignment.type === 'file' && (
                   <div className="space-y-4">
                     <label className="block w-full cursor-pointer group">
-                      <div className="border-4 border-dashed border-gray-100 rounded-[2rem] p-12 flex flex-col items-center justify-center gap-4 group-hover:border-[var(--primary)] group-hover:bg-blue-50/30 transition-all">
-                        <div className="w-20 h-20 bg-gray-50 rounded-3xl flex items-center justify-center text-gray-300 group-hover:text-[var(--primary)] group-hover:bg-white transition-all shadow-sm">
+                      <div className="border-4 border-dashed border-border rounded-[2rem] p-12 flex flex-col items-center justify-center gap-4 group-hover:border-[var(--primary)] group-hover:bg-primary/10/30 transition-all">
+                        <div className="w-20 h-20 bg-surface rounded-3xl flex items-center justify-center text-gray-300 group-hover:text-[var(--primary)] group-hover:bg-card transition-all shadow-sm">
                           <Upload size={40} />
                         </div>
                         <div className="text-center">
@@ -434,7 +434,7 @@ const StudentAssignmentSubmission: React.FC = () => {
                     {selectedAssignment.questions.map((q, idx) => (
                       <div key={q.id} className="space-y-4">
                         <div className="flex gap-4">
-                          <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-black flex-shrink-0">
+                          <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-black flex-shrink-0">
                             {idx + 1}
                           </div>
                           <p className="text-lg font-bold pt-1" style={{ color: 'var(--text-primary)' }}>{q.text}</p>
@@ -450,8 +450,8 @@ const StudentAssignmentSubmission: React.FC = () => {
                                 setMcqAnswers(next);
                               }}
                               className={`p-4 rounded-2xl border text-left font-bold text-sm transition-all flex items-center justify-between ${mcqAnswers[idx] === opt
-                                ? 'bg-purple-50 border-purple-200 text-purple-700 ring-2 ring-purple-100'
-                                : 'bg-white border-gray-100 hover:border-gray-300 text-gray-600'
+                                ? 'bg-primary/10 border-primary/20 text-primary ring-2 ring-primary/10'
+                                : 'bg-card border-border hover:border-border text-text-primary'
                                 }`}
                             >
                               {opt}
@@ -483,14 +483,14 @@ const StudentAssignmentSubmission: React.FC = () => {
                             next[idx] = e.target.value;
                             setEssayAnswers(next);
                           }}
-                          className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-amber-500/10 focus:bg-white transition-all text-sm font-bold min-h-[150px]"
+                          className="w-full px-6 py-4 bg-surface border border-border rounded-2xl outline-none focus:ring-2 focus:ring-amber-500/10 focus:bg-card transition-all text-sm font-bold min-h-[150px]"
                         />
                       </div>
                     ))}
                   </div>
                 )}
 
-                <div className="pt-8 border-t border-gray-100 flex flex-col md:flex-row gap-4 items-center justify-center">
+                <div className="pt-8 border-t border-border flex flex-col md:flex-row gap-4 items-center justify-center">
                   <button
                     type="submit"
                     disabled={isSubmitting || success}

@@ -77,7 +77,7 @@ const MyCourses: React.FC = () => {
             {storage.getLanguage() === 'AR' ? 'مواد الفصل الحالي' : 'Current Semester Courses'}
           </h2>
           {settings.activeSemesterId && (
-            <span className="px-3 py-1 bg-blue-50 text-blue-600 text-[10px] font-black rounded-full">
+            <span className="px-3 py-1 bg-primary/10 text-primary text-[10px] font-black rounded-full">
               {storage.getSemesters().find(s => s.id === settings.activeSemesterId)?.name}
             </span>
           )}
@@ -87,7 +87,7 @@ const MyCourses: React.FC = () => {
           {groupedCourses.current.map(course => (
             <div key={course.id} className="bg-[var(--card-bg)] rounded-[2rem] p-6 border border-[var(--border-color)] shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all hover:shadow-xl group">
               <div className="flex items-center gap-5">
-                <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center text-black shadow-inner">
+                <div className="w-14 h-14 rounded-2xl bg-card/20 flex items-center justify-center text-black shadow-inner">
                   <BookMarked size={28} />
                 </div>
                 <div>
@@ -127,7 +127,7 @@ const MyCourses: React.FC = () => {
 
               {/* Course Notes Section */}
               {course.notes && (
-                <div className="mt-4 pt-4 border-t border-gray-100 dark:border-white/5">
+                <div className="mt-4 pt-4 border-t border-border dark:border-white/5">
                   <h4 className="text-[10px] font-black uppercase tracking-widest text-[var(--text-secondary)] mb-2">
                     {storage.getLanguage() === 'AR' ? 'ملاحظات' : 'Notes'}
                   </h4>
@@ -140,7 +140,7 @@ const MyCourses: React.FC = () => {
                             href={part}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-blue-500 hover:text-blue-600 underline break-all"
+                            className="text-primary hover:text-primary underline break-all"
                           >
                             {part}
                           </a>
@@ -166,7 +166,7 @@ const MyCourses: React.FC = () => {
       {/* Previous Semesters History */}
       {
         groupedCourses.previous.length > 0 && (
-          <div className="pt-8 border-t border-gray-100 dark:border-white/5 space-y-8 animate-in slide-in-from-bottom-8 duration-700 delay-200">
+          <div className="pt-8 border-t border-border dark:border-white/5 space-y-8 animate-in slide-in-from-bottom-8 duration-700 delay-200">
             <div className="flex items-center gap-2 opacity-60">
               <Calendar size={18} />
               <h2 className="text-sm font-black uppercase tracking-widest">{storage.getLanguage() === 'AR' ? 'الفصول السابقة' : 'Previous Semesters'}</h2>
@@ -186,7 +186,7 @@ const MyCourses: React.FC = () => {
                           {course.code} • {translate(course, 'doctor')}
                         </p>
                       </div>
-                      <span className="px-3 py-1 bg-gray-200 dark:bg-black/20 rounded-lg text-[10px] font-black text-gray-500">
+                      <span className="px-3 py-1 bg-border dark:bg-black/20 rounded-lg text-[10px] font-black text-text-secondary">
                         {storage.getLanguage() === 'AR' ? 'مكتمل' : 'COMPLETED'}
                       </span>
                     </div>

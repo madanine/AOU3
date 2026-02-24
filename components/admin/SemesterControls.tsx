@@ -133,7 +133,7 @@ const SemesterControls: React.FC = () => {
     <div className="flex items-center gap-2 bg-white p-1 rounded-2xl border border-gray-100 shadow-sm">
       {showToast.show && (
         <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[999] animate-in slide-in-from-top-4">
-          <div className="bg-emerald-500 text-white px-4 py-2 rounded-xl shadow-lg text-[10px] font-black uppercase flex items-center gap-2">
+          <div className="bg-success text-white px-4 py-2 rounded-xl shadow-lg text-[10px] font-black uppercase flex items-center gap-2">
             <CheckCircle size={14} />
             {showToast.msg}
           </div>
@@ -180,7 +180,7 @@ const SemesterControls: React.FC = () => {
             setCopySourceId(settings.activeSemesterId || '');
             setIsCopyModalOpen(true);
           }}
-          className="p-2 text-gray-400 hover:text-emerald-500 hover:bg-gray-50 rounded-xl transition-all"
+          className="p-2 text-gray-400 hover:text-success hover:bg-gray-50 rounded-xl transition-all"
           title={lang === 'AR' ? 'نسخ المواد' : 'Copy Courses'}
         >
           <Copy size={16} />
@@ -265,7 +265,7 @@ const SemesterControls: React.FC = () => {
               </div>
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setIsCopyModalOpen(false)} className="flex-1 py-3 bg-gray-50 text-gray-400 font-black rounded-xl uppercase text-[10px] tracking-widest">{t.cancel}</button>
-                <button type="submit" disabled={!copyTargetId || copySourceId === copyTargetId} className="flex-1 py-3 bg-emerald-500 text-white font-black rounded-xl uppercase text-[10px] tracking-widest shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"><Copy size={14} />{lang === 'AR' ? 'نسخ' : 'Copy'}</button>
+                <button type="submit" disabled={!copyTargetId || copySourceId === copyTargetId} className="flex-1 py-3 bg-success text-white font-black rounded-xl uppercase text-[10px] tracking-widest shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"><Copy size={14} />{lang === 'AR' ? 'نسخ' : 'Copy'}</button>
               </div>
             </form>
           </div>

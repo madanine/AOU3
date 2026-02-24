@@ -175,7 +175,7 @@ const AdminGrading: React.FC = () => {
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-10">
       {showToast && (
-        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[300] bg-emerald-500 text-white px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-2 animate-in slide-in-from-top-4">
+        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[300] bg-success text-white px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-2 animate-in slide-in-from-top-4">
           <CheckCircle size={18} />
           <span className="font-black text-xs uppercase tracking-widest">{t.changesApplied}</span>
         </div>
@@ -235,7 +235,7 @@ const AdminGrading: React.FC = () => {
           {/* Bulk Grading Controls */}
           {selectedSubmissions.size > 0 && (
             <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 flex flex-wrap items-center gap-4">
-              <span className="text-sm font-black text-blue-700">
+              <span className="text-sm font-black text-primary">
                 {selectedSubmissions.size} {lang === 'AR' ? 'محدد' : 'selected'}
               </span>
               <input
@@ -275,7 +275,7 @@ const AdminGrading: React.FC = () => {
               {selectedAssignment?.type === 'mcq' && (
                 <button
                   onClick={autoGradeMCQ}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-purple-50 text-purple-600 rounded-xl font-black text-[10px] uppercase border border-purple-100 hover:bg-purple-100 transition-all"
+                  className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 text-primary rounded-xl font-black text-[10px] uppercase border border-purple-100 hover:bg-purple-100 transition-all"
                 >
                   <Sparkles size={14} />
                   {lang === 'AR' ? 'تصحيح تلقائي للكل' : 'Auto-grade All'}
@@ -383,13 +383,13 @@ const AdminGrading: React.FC = () => {
                 {selectedAssignment?.type === 'file' && (
                   <div className="p-6 bg-blue-50/50 border border-blue-100 rounded-3xl flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-blue-500 shadow-sm"><FileText size={24} /></div>
+                      <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-primary shadow-sm"><FileText size={24} /></div>
                       <p className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>{gradingModal.fileName || (lang === 'AR' ? 'ملف مرفق' : 'Attached File')}</p>
                     </div>
                     <div className="flex gap-2">
                       <button
                         onClick={() => handleViewFile(gradingModal.fileBase64 || gradingModal.fileUrl)}
-                        className="px-6 py-2 bg-white border border-blue-200 text-blue-600 font-black rounded-xl text-[10px] uppercase tracking-widest hover:bg-blue-50 transition-all flex items-center gap-2"
+                        className="px-6 py-2 bg-white border border-blue-200 text-primary font-black rounded-xl text-[10px] uppercase tracking-widest hover:bg-blue-50 transition-all flex items-center gap-2"
                       >
                         <Eye size={14} /> {lang === 'AR' ? 'عرض' : 'View'}
                       </button>
@@ -416,7 +416,7 @@ const AdminGrading: React.FC = () => {
                             {gradingModal.answers?.[idx] || (lang === 'AR' ? 'لم يتم تقديم إجابة' : 'No answer provided')}
                           </div>
                           {selectedAssignment.type === 'mcq' && q.correctAnswer && (
-                            <p className={`text-[10px] font-black uppercase tracking-widest mt-2 ${gradingModal.answers?.[idx] === q.correctAnswer ? 'text-emerald-500' : 'text-red-500'}`}>
+                            <p className={`text-[10px] font-black uppercase tracking-widest mt-2 ${gradingModal.answers?.[idx] === q.correctAnswer ? 'text-success' : 'text-red-500'}`}>
                               {lang === 'AR' ? 'الإجابة الصحيحة' : 'Correct'}: {q.correctAnswer}
                             </p>
                           )}

@@ -77,14 +77,14 @@ const Attendance: React.FC = () => {
     <div className="max-w-5xl mx-auto space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">
 
       {/* Header Section */}
-      <div className="bg-white p-6 md:p-8 rounded-3xl border border-gray-100 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative overflow-hidden">
-        <div className="absolute right-0 top-0 w-64 h-64 bg-emerald-50 rounded-full blur-3xl -mr-20 -mt-20 opacity-60 pointer-events-none" />
+      <div className="bg-card p-6 md:p-8 rounded-3xl border border-border shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative overflow-hidden">
+        <div className="absolute right-0 top-0 w-64 h-64 bg-success/10 rounded-full blur-3xl -mr-20 -mt-20 opacity-60 pointer-events-none" />
         <div className="relative z-10">
-          <h1 className="text-3xl font-black tracking-tight text-gray-800">
+          <h1 className="text-3xl font-black tracking-tight text-text-primary">
             {lang === 'AR' ? 'سجل الحضور والمشاركة' : 'Attendance & Participation'}
           </h1>
           {activeSemName && (
-            <p className="font-semibold text-emerald-600 mt-2 flex items-center gap-2 text-sm bg-emerald-50 px-3 py-1 rounded-full w-fit">
+            <p className="font-semibold text-success mt-2 flex items-center gap-2 text-sm bg-success/10 px-3 py-1 rounded-full w-fit">
               <Calendar size={16} />
               {lang === 'AR' ? 'الفصل الحالي' : 'Current Semester'} — {activeSemName}
             </p>
@@ -97,8 +97,8 @@ const Attendance: React.FC = () => {
         {/* Current Semester */}
         {currentSemesterAttendance.length > 0 && (
           <div className="space-y-4">
-            <h2 className="text-lg font-black text-gray-800 flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center">
+            <h2 className="text-lg font-black text-text-primary flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
                 <BookMarked size={16} />
               </div>
               {lang === 'AR' ? 'المواد الحالية' : 'Current Courses'}
@@ -106,12 +106,12 @@ const Attendance: React.FC = () => {
 
             <div className="grid grid-cols-1 gap-4">
               {currentSemesterAttendance.map(({ course, presentCount, absentCount, unrecordedCount, recordedCount, attendanceGrade, participationGrade, percentage }, idx) => (
-                <div key={course.id} style={{ animationDelay: `${idx * 100}ms` }} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-shadow group flex flex-col md:flex-row md:items-center justify-between gap-6 animate-in slide-in-from-bottom-2 fill-mode-both">
+                <div key={course.id} style={{ animationDelay: `${idx * 100}ms` }} className="bg-card rounded-2xl p-6 border border-border shadow-sm hover:shadow-md transition-shadow group flex flex-col md:flex-row md:items-center justify-between gap-6 animate-in slide-in-from-bottom-2 fill-mode-both">
 
                   {/* Course Info */}
                   <div className="flex-1">
-                    <h3 className="text-xl font-black text-gray-800">{translate(course, 'title')}</h3>
-                    <p className="text-sm font-bold text-gray-400 mt-1">{course.code}</p>
+                    <h3 className="text-xl font-black text-text-primary">{translate(course, 'title')}</h3>
+                    <p className="text-sm font-bold text-text-secondary mt-1">{course.code}</p>
                   </div>
 
                   {/* Progress Bars */}
@@ -119,49 +119,49 @@ const Attendance: React.FC = () => {
                     {/* Attendance Bar */}
                     <div>
                       <div className="flex justify-between items-end mb-1">
-                        <span className="text-xs font-bold text-gray-500 uppercase">{lang === 'AR' ? 'الحضور' : 'Attendance'}</span>
-                        <span className="text-sm font-black text-emerald-600">{percentage}%</span>
+                        <span className="text-xs font-bold text-text-secondary uppercase">{lang === 'AR' ? 'الحضور' : 'Attendance'}</span>
+                        <span className="text-sm font-black text-success">{percentage}%</span>
                       </div>
-                      <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
-                        <div className="bg-emerald-500 h-2.5 rounded-full transition-all duration-1000" style={{ width: `${percentage}%` }}></div>
+                      <div className="w-full bg-surface rounded-full h-2.5 overflow-hidden">
+                        <div className="bg-success h-2.5 rounded-full transition-all duration-1000" style={{ width: `${percentage}%` }}></div>
                       </div>
                     </div>
 
                     {/* Participation Bar */}
                     <div>
                       <div className="flex justify-between items-end mb-1">
-                        <span className="text-xs font-bold text-gray-500 uppercase">{lang === 'AR' ? 'المشاركة' : 'Participation'}</span>
+                        <span className="text-xs font-bold text-text-secondary uppercase">{lang === 'AR' ? 'المشاركة' : 'Participation'}</span>
                         <span className="text-sm font-black text-amber-500">{participationGrade} / 10</span>
                       </div>
-                      <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                      <div className="w-full bg-surface rounded-full h-1.5 overflow-hidden">
                         <div className="bg-amber-400 h-1.5 rounded-full transition-all duration-1000" style={{ width: `${(participationGrade / 10) * 100}%` }}></div>
                       </div>
                     </div>
                   </div>
 
                   {/* Stats & Actions */}
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 shrink-0 border-t md:border-t-0 md:border-l border-gray-100 pt-4 md:pt-0 pl-0 md:pl-6">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 shrink-0 border-t md:border-t-0 md:border-l border-border pt-4 md:pt-0 pl-0 md:pl-6">
                     <div className="flex gap-4">
                       <div className="text-center">
-                        <p className="text-lg font-black text-emerald-600 leading-none">{presentCount}</p>
-                        <p className="text-[10px] font-bold text-gray-400 uppercase mt-1.5">{lang === 'AR' ? 'حاضر' : 'Present'}</p>
+                        <p className="text-lg font-black text-success leading-none">{presentCount}</p>
+                        <p className="text-[10px] font-bold text-text-secondary uppercase mt-1.5">{lang === 'AR' ? 'حاضر' : 'Present'}</p>
                       </div>
                       <div className="text-center">
-                        <p className="text-lg font-black text-rose-500 leading-none">{absentCount}</p>
-                        <p className="text-[10px] font-bold text-gray-400 uppercase mt-1.5">{lang === 'AR' ? 'غائب' : 'Absent'}</p>
+                        <p className="text-lg font-black text-red-500 leading-none">{absentCount}</p>
+                        <p className="text-[10px] font-bold text-text-secondary uppercase mt-1.5">{lang === 'AR' ? 'غائب' : 'Absent'}</p>
                       </div>
                       <div className="text-center">
-                        <p className="text-lg font-black text-gray-800 leading-none">{recordedCount}<span className="text-gray-400 text-sm">/12</span></p>
-                        <p className="text-[10px] font-bold text-gray-400 uppercase mt-1.5">{lang === 'AR' ? 'مرصود' : 'Recorded'}</p>
+                        <p className="text-lg font-black text-text-primary leading-none">{recordedCount}<span className="text-text-secondary text-sm">/12</span></p>
+                        <p className="text-[10px] font-bold text-text-secondary uppercase mt-1.5">{lang === 'AR' ? 'مرصود' : 'Recorded'}</p>
                       </div>
                     </div>
 
                     <button
                       onClick={() => setSelectedCourse(course.id)}
-                      className="w-full sm:w-auto px-4 py-2.5 bg-gray-50 hover:bg-gray-100 text-gray-700 font-bold text-sm rounded-xl transition-colors flex items-center justify-center gap-2"
+                      className="w-full sm:w-auto px-4 py-2.5 bg-surface hover:bg-surface text-text-primary font-bold text-sm rounded-xl transition-colors flex items-center justify-center gap-2"
                     >
                       {lang === 'AR' ? 'التفاصيل' : 'Details'}
-                      <ChevronRight size={16} className={lang === 'AR' ? 'rotate-180 text-gray-400' : 'text-gray-400'} />
+                      <ChevronRight size={16} className={lang === 'AR' ? 'rotate-180 text-text-secondary' : 'text-text-secondary'} />
                     </button>
                   </div>
                 </div>
@@ -173,8 +173,8 @@ const Attendance: React.FC = () => {
         {/* Previous Semesters */}
         {sortedPreviousSemesters.length > 0 && (
           <div className="space-y-6">
-            <h2 className="text-lg font-black text-gray-800 flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-gray-100 text-gray-500 flex items-center justify-center">
+            <h2 className="text-lg font-black text-text-primary flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-surface text-text-secondary flex items-center justify-center">
                 <Clock size={16} />
               </div>
               {lang === 'AR' ? 'الفصول السابقة' : 'Previous Semesters'}
@@ -185,58 +185,58 @@ const Attendance: React.FC = () => {
 
               return (
                 <div key={semId} className="space-y-4">
-                  <h3 className="text-sm font-bold text-gray-500 bg-gray-50 px-4 py-2 rounded-xl w-fit">
+                  <h3 className="text-sm font-bold text-text-secondary bg-surface px-4 py-2 rounded-xl w-fit">
                     {semester?.name || semId}
                   </h3>
 
                   <div className="grid grid-cols-1 gap-4 opacity-80 filter saturate-50 hover:saturate-100 transition-all">
                     {semesterAttendance.map(({ course, presentCount, absentCount, unrecordedCount, recordedCount, attendanceGrade, participationGrade, percentage }) => (
-                      <div key={course.id} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-shadow flex flex-col md:flex-row md:items-center justify-between gap-6">
+                      <div key={course.id} className="bg-card rounded-2xl p-6 border border-border shadow-sm hover:shadow-md transition-shadow flex flex-col md:flex-row md:items-center justify-between gap-6">
 
                         <div className="flex-1">
-                          <h3 className="text-xl font-black text-gray-800">{translate(course, 'title')}</h3>
-                          <p className="text-sm font-bold text-gray-400 mt-1">{course.code}</p>
+                          <h3 className="text-xl font-black text-text-primary">{translate(course, 'title')}</h3>
+                          <p className="text-sm font-bold text-text-secondary mt-1">{course.code}</p>
                         </div>
 
                         <div className="flex-1 w-full space-y-4">
                           <div>
                             <div className="flex justify-between items-end mb-1">
-                              <span className="text-xs font-bold text-gray-500 uppercase">{lang === 'AR' ? 'الحضور' : 'Attendance'}</span>
-                              <span className="text-sm font-black text-emerald-600">{percentage}%</span>
+                              <span className="text-xs font-bold text-text-secondary uppercase">{lang === 'AR' ? 'الحضور' : 'Attendance'}</span>
+                              <span className="text-sm font-black text-success">{percentage}%</span>
                             </div>
-                            <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
-                              <div className="bg-emerald-500 h-2.5 rounded-full" style={{ width: `${percentage}%` }}></div>
+                            <div className="w-full bg-surface rounded-full h-2.5 overflow-hidden">
+                              <div className="bg-success h-2.5 rounded-full" style={{ width: `${percentage}%` }}></div>
                             </div>
                           </div>
                           <div>
                             <div className="flex justify-between items-end mb-1">
-                              <span className="text-xs font-bold text-gray-500 uppercase">{lang === 'AR' ? 'المشاركة' : 'Participation'}</span>
+                              <span className="text-xs font-bold text-text-secondary uppercase">{lang === 'AR' ? 'المشاركة' : 'Participation'}</span>
                               <span className="text-sm font-black text-amber-500">{participationGrade} / 10</span>
                             </div>
-                            <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                            <div className="w-full bg-surface rounded-full h-1.5 overflow-hidden">
                               <div className="bg-amber-400 h-1.5 rounded-full" style={{ width: `${(participationGrade / 10) * 100}%` }}></div>
                             </div>
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-6 shrink-0 border-t md:border-t-0 md:border-l border-gray-100 pt-4 md:pt-0 pl-0 md:pl-6">
+                        <div className="flex items-center gap-6 shrink-0 border-t md:border-t-0 md:border-l border-border pt-4 md:pt-0 pl-0 md:pl-6">
                           <div className="flex gap-4">
                             <div className="text-center">
-                              <p className="text-lg font-black text-emerald-600 leading-none">{presentCount}</p>
-                              <p className="text-[10px] font-bold text-gray-400 uppercase mt-1.5">{lang === 'AR' ? 'حاضر' : 'Present'}</p>
+                              <p className="text-lg font-black text-success leading-none">{presentCount}</p>
+                              <p className="text-[10px] font-bold text-text-secondary uppercase mt-1.5">{lang === 'AR' ? 'حاضر' : 'Present'}</p>
                             </div>
                             <div className="text-center">
-                              <p className="text-lg font-black text-rose-500 leading-none">{absentCount}</p>
-                              <p className="text-[10px] font-bold text-gray-400 uppercase mt-1.5">{lang === 'AR' ? 'غائب' : 'Absent'}</p>
+                              <p className="text-lg font-black text-red-500 leading-none">{absentCount}</p>
+                              <p className="text-[10px] font-bold text-text-secondary uppercase mt-1.5">{lang === 'AR' ? 'غائب' : 'Absent'}</p>
                             </div>
                           </div>
 
                           <button
                             onClick={() => setSelectedCourse(course.id)}
-                            className="px-4 py-2.5 bg-gray-50 hover:bg-gray-100 text-gray-700 font-bold text-sm rounded-xl transition-colors flex items-center gap-2"
+                            className="px-4 py-2.5 bg-surface hover:bg-surface text-text-primary font-bold text-sm rounded-xl transition-colors flex items-center gap-2"
                           >
                             {lang === 'AR' ? 'التفاصيل' : 'Details'}
-                            <ChevronRight size={16} className={lang === 'AR' ? 'rotate-180 text-gray-400' : 'text-gray-400'} />
+                            <ChevronRight size={16} className={lang === 'AR' ? 'rotate-180 text-text-secondary' : 'text-text-secondary'} />
                           </button>
                         </div>
                       </div>
@@ -249,9 +249,9 @@ const Attendance: React.FC = () => {
         )}
 
         {myAttendance.length === 0 && (
-          <div className="text-center p-12 bg-gray-50 rounded-3xl border border-dashed border-gray-200">
+          <div className="text-center p-12 bg-surface rounded-3xl border border-dashed border-border">
             <BookMarked className="mx-auto text-gray-300 mb-4" size={48} />
-            <p className="font-bold text-gray-500">{lang === 'AR' ? 'لا يوجد سجل حضور مسجل بعد' : 'No attendance records yet'}</p>
+            <p className="font-bold text-text-secondary">{lang === 'AR' ? 'لا يوجد سجل حضور مسجل بعد' : 'No attendance records yet'}</p>
           </div>
         )}
       </div>
@@ -259,15 +259,15 @@ const Attendance: React.FC = () => {
       {/* Details Modal */}
       {selectedCourse && activeCourse && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+          <div className="bg-card w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
 
             {/* Modal Header */}
-            <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+            <div className="p-6 border-b border-border flex items-center justify-between bg-surface/50">
               <div>
-                <h3 className="text-xl font-black text-gray-800">{translate(activeCourse.course, 'title')}</h3>
-                <p className="text-sm font-bold text-gray-500 mt-1">{activeCourse.course.code}</p>
+                <h3 className="text-xl font-black text-text-primary">{translate(activeCourse.course, 'title')}</h3>
+                <p className="text-sm font-bold text-text-secondary mt-1">{activeCourse.course.code}</p>
               </div>
-              <button onClick={() => setSelectedCourse(null)} className="w-10 h-10 bg-white border border-gray-200 text-gray-500 hover:bg-gray-100 hover:text-gray-800 rounded-full flex items-center justify-center transition-colors">
+              <button onClick={() => setSelectedCourse(null)} className="w-10 h-10 bg-card border border-border text-text-secondary hover:bg-surface hover:text-text-primary rounded-full flex items-center justify-center transition-colors">
                 <X size={20} />
               </button>
             </div>
@@ -275,11 +275,11 @@ const Attendance: React.FC = () => {
             {/* Modal Body - Table Layout */}
             <div className="p-0 overflow-y-auto">
               <table className="w-full text-left border-collapse" dir={lang === 'AR' ? 'rtl' : 'ltr'}>
-                <thead className="bg-gray-50 sticky top-0 z-10">
+                <thead className="bg-surface sticky top-0 z-10">
                   <tr>
-                    <th className="py-3 px-6 text-xs font-black text-gray-500 uppercase tracking-wider">{lang === 'AR' ? 'الجلسة' : 'Session'}</th>
-                    <th className="py-3 px-6 text-xs font-black text-gray-500 uppercase tracking-wider">{lang === 'AR' ? 'حالة الحضور' : 'Attendance'}</th>
-                    <th className="py-3 px-6 text-xs font-black text-gray-500 uppercase tracking-wider text-center">{lang === 'AR' ? 'المشاركة' : 'Participation'}</th>
+                    <th className="py-3 px-6 text-xs font-black text-text-secondary uppercase tracking-wider">{lang === 'AR' ? 'الجلسة' : 'Session'}</th>
+                    <th className="py-3 px-6 text-xs font-black text-text-secondary uppercase tracking-wider">{lang === 'AR' ? 'حالة الحضور' : 'Attendance'}</th>
+                    <th className="py-3 px-6 text-xs font-black text-text-secondary uppercase tracking-wider text-center">{lang === 'AR' ? 'المشاركة' : 'Participation'}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -287,21 +287,21 @@ const Attendance: React.FC = () => {
                     const status = activeCourse.records[i];
                     const participationStatus = activeCourse.partRecords[i];
                     return (
-                      <tr key={i} className="hover:bg-gray-50/50 transition-colors">
+                      <tr key={i} className="hover:bg-surface/50 transition-colors">
                         <td className="py-4 px-6">
-                          <span className="font-bold text-gray-700">{lang === 'AR' ? `المحاضرة ${i + 1}` : `Session ${i + 1}`}</span>
+                          <span className="font-bold text-text-primary">{lang === 'AR' ? `المحاضرة ${i + 1}` : `Session ${i + 1}`}</span>
                         </td>
                         <td className="py-4 px-6">
                           {status === true ? (
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-lg text-sm font-bold">
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-success/10 text-success border border-success/20 rounded-lg text-sm font-bold">
                               <CheckCircle2 size={16} /> {lang === 'AR' ? 'حاضر' : 'Present'}
                             </span>
                           ) : status === false ? (
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-rose-50 text-rose-700 border border-rose-100 rounded-lg text-sm font-bold">
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-red-500/10 text-red-500 border border-red-500/20 rounded-lg text-sm font-bold">
                               <XCircle size={16} /> {lang === 'AR' ? 'غائب' : 'Absent'}
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-gray-50 text-gray-500 border border-gray-200 rounded-lg text-sm font-bold">
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-surface text-text-secondary border border-border rounded-lg text-sm font-bold">
                               <Clock size={16} /> {lang === 'AR' ? 'لم تُرصد' : 'Unrecorded'}
                             </span>
                           )}
@@ -323,23 +323,23 @@ const Attendance: React.FC = () => {
             </div>
 
             {/* Modal Footer (Summary) */}
-            <div className="p-6 bg-gray-50 border-t border-gray-200">
+            <div className="p-6 bg-surface border-t border-border">
               <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
                 <div className="flex items-center gap-6">
                   <div>
-                    <span className="block text-xs font-bold text-gray-500 mb-1">{lang === 'AR' ? 'إجمالي الحضور' : 'Total Attendance'}</span>
-                    <span className="text-lg font-black text-emerald-600">{activeCourse.presentCount} <span className="text-sm text-gray-400 font-bold">/ {activeCourse.recordedCount}</span></span>
+                    <span className="block text-xs font-bold text-text-secondary mb-1">{lang === 'AR' ? 'إجمالي الحضور' : 'Total Attendance'}</span>
+                    <span className="text-lg font-black text-success">{activeCourse.presentCount} <span className="text-sm text-text-secondary font-bold">/ {activeCourse.recordedCount}</span></span>
                   </div>
-                  <div className="w-px h-8 bg-gray-200"></div>
+                  <div className="w-px h-8 bg-border"></div>
                   <div>
-                    <span className="block text-xs font-bold text-gray-500 mb-1">{lang === 'AR' ? 'إجمالي المشاركة' : 'Total Participation'}</span>
-                    <span className="text-lg font-black text-amber-500">{activeCourse.participationGrade} <span className="text-sm text-gray-400 font-bold">/ 10</span></span>
+                    <span className="block text-xs font-bold text-text-secondary mb-1">{lang === 'AR' ? 'إجمالي المشاركة' : 'Total Participation'}</span>
+                    <span className="text-lg font-black text-amber-500">{activeCourse.participationGrade} <span className="text-sm text-text-secondary font-bold">/ 10</span></span>
                   </div>
                 </div>
 
-                <div className="bg-white px-4 py-2 rounded-xl border border-gray-200 shadow-sm">
-                  <span className="text-xs font-bold text-gray-500 ml-2">{lang === 'AR' ? 'درجة الحضور' : 'Attendance Grade'}:</span>
-                  <span className="text-lg font-black text-gray-800">
+                <div className="bg-card px-4 py-2 rounded-xl border border-border shadow-sm">
+                  <span className="text-xs font-bold text-text-secondary ml-2">{lang === 'AR' ? 'درجة الحضور' : 'Attendance Grade'}:</span>
+                  <span className="text-lg font-black text-text-primary">
                     {activeCourse.attendanceGrade !== null ? `${activeCourse.attendanceGrade}/20` : (lang === 'AR' ? 'قيد التقييم' : 'Pending')}
                   </span>
                 </div>

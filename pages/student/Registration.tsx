@@ -185,7 +185,7 @@ const Registration: React.FC = () => {
   return (
     <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500 pb-20">
       {message && (
-        <div className={`fixed top-24 left-1/2 -translate-x-1/2 z-[200] p-4 rounded-2xl border font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 shadow-2xl animate-in slide-in-from-top-4 ${message.type === 'success' ? 'bg-green-50 text-green-600 border-green-100' : 'bg-red-50 text-red-600 border-red-100'}`}>
+        <div className={`fixed top-24 left-1/2 -translate-x-1/2 z-[200] p-4 rounded-2xl border font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 shadow-2xl animate-in slide-in-from-top-4 ${message.type === 'success' ? 'bg-green-50 text-green-600 border-green-100' : 'bg-red-500/10 text-red-500 border-red-500/20'}`}>
           {message.type === 'success' ? <Send size={18} /> : <AlertCircle size={18} />}
           {message.text}
         </div>
@@ -195,7 +195,7 @@ const Registration: React.FC = () => {
         <div className="relative w-full h-48 md:h-64 rounded-[2.5rem] overflow-hidden shadow-xl group">
           <div className="w-full h-full flex transition-transform duration-700 ease-in-out" style={{ transform: `translateX(${settings.theme.borderColor === 'rtl' ? '' : '-'}${activeSlide * 100}%)` }}>
             {settings.branding.announcements.map((img, i) => (
-              <div key={i} className="min-w-full h-full bg-gray-100 flex items-center justify-center">
+              <div key={i} className="min-w-full h-full bg-surface flex items-center justify-center">
                 <img src={img} alt="Announcement" className="w-full h-full object-cover" />
               </div>
             ))}
@@ -205,7 +205,7 @@ const Registration: React.FC = () => {
               <button
                 key={i}
                 onClick={() => setActiveSlide(i)}
-                className={`w-2 h-2 rounded-full transition-all ${activeSlide === i ? 'bg-white w-6' : 'bg-white/50'}`}
+                className={`w-2 h-2 rounded-full transition-all ${activeSlide === i ? 'bg-card w-6' : 'bg-card/50'}`}
               />
             ))}
           </div>
@@ -219,20 +219,20 @@ const Registration: React.FC = () => {
         </div>
         {!isClosed && (
           <div className="relative w-full md:w-80">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" size={18} />
             <input
               type="text"
               placeholder={t.search}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 bg-white border border-gray-200 rounded-2xl focus:ring-2 focus:ring-[var(--primary)] outline-none transition-all shadow-sm font-medium"
+              className="w-full pl-10 pr-4 py-3 bg-card border border-border rounded-2xl focus:ring-2 focus:ring-[var(--primary)] outline-none transition-all shadow-sm font-medium"
             />
           </div>
         )}
       </div>
 
       {isClosed && (
-        <div className="p-6 bg-red-50 border border-red-100 rounded-[2rem] flex items-center gap-4 text-red-600">
+        <div className="p-6 bg-red-500/10 border border-red-500/20 rounded-[2rem] flex items-center gap-4 text-red-500">
           <Info size={24} />
           <p className="font-black text-sm uppercase tracking-wider">{t.registrationClosedMsg}</p>
         </div>
@@ -247,15 +247,15 @@ const Registration: React.FC = () => {
             return (
               <div
                 key={course.id}
-                className={`bg-white rounded-2xl p-4 border transition-all hover:shadow-xl ${isSelected ? 'border-[var(--primary)] ring-2 ring-[var(--primary)]/10' : 'border-gray-100 shadow-sm'}`}
+                className={`bg-card rounded-2xl p-4 border transition-all hover:shadow-xl ${isSelected ? 'border-[var(--primary)] ring-2 ring-[var(--primary)]/10' : 'border-border shadow-sm'}`}
               >
                 <div className="flex flex-col h-full">
                   <div className="flex justify-between items-start mb-3">
-                    <span className="inline-block px-2 py-1 bg-blue-50 text-[var(--primary)] text-[9px] font-black rounded-lg uppercase tracking-wider">
+                    <span className="inline-block px-2 py-1 bg-primary/10 text-[var(--primary)] text-[9px] font-black rounded-lg uppercase tracking-wider">
                       {course.code}
                     </span>
                     {!course.isRegistrationEnabled && (
-                      <span className="text-[8px] font-black text-red-500 bg-red-50 px-2 py-1 rounded-lg uppercase">{t.registrationClosed}</span>
+                      <span className="text-[8px] font-black text-red-500 bg-red-500/10 px-2 py-1 rounded-lg uppercase">{t.registrationClosed}</span>
                     )}
                   </div>
 
@@ -275,7 +275,7 @@ const Registration: React.FC = () => {
                     disabled={!canRegister || !isEditing}
                     onClick={() => togglePending(course.id)}
                     className={`w-full py-2.5 px-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center justify-center gap-1.5 mt-auto ${isSelected
-                      ? 'bg-red-50 text-red-600 hover:bg-red-100'
+                      ? 'bg-red-500/10 text-red-500 hover:bg-red-500/20'
                       : 'bg-[var(--primary)] text-white hover:brightness-110 shadow-lg shadow-blue-900/10'
                       } disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed`}
                   >
@@ -291,11 +291,11 @@ const Registration: React.FC = () => {
           })}
         </div>
 
-        <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-2xl p-8 max-w-4xl mx-auto w-full">
+        <div className="bg-card rounded-[2.5rem] border border-border shadow-2xl p-8 max-w-4xl mx-auto w-full">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>{t.selectedCourses}</h2>
             <div className="flex items-center gap-2">
-              <span className={`px-3 py-1 rounded-full text-[10px] font-black ${pendingSelection.size > 6 ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-[var(--primary)]'}`}>
+              <span className={`px-3 py-1 rounded-full text-[10px] font-black ${pendingSelection.size > 6 ? 'bg-red-500/20 text-red-500' : 'bg-primary/20 text-[var(--primary)]'}`}>
                 {pendingSelection.size} / 6
               </span>
             </div>
@@ -303,8 +303,8 @@ const Registration: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[40vh] overflow-y-auto mb-8 pr-2 custom-scrollbar">
             {currentSelectionCourses.map(course => (
-              <div key={course.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-2xl border border-gray-100">
-                <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-[var(--primary)] border border-gray-100">
+              <div key={course.id} className="flex items-center gap-3 p-3 bg-surface rounded-2xl border border-border">
+                <div className="w-8 h-8 rounded-lg bg-card flex items-center justify-center text-[var(--primary)] border border-border">
                   <BookOpen size={14} />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -312,7 +312,7 @@ const Registration: React.FC = () => {
                   <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>{course.code}</p>
                 </div>
                 {!isClosed && isEditing && (
-                  <button onClick={() => togglePending(course.id)} className="text-red-400 hover:text-red-600 p-1">
+                  <button onClick={() => togglePending(course.id)} className="text-red-500 hover:text-red-500 p-1">
                     <X size={16} />
                   </button>
                 )}
@@ -323,11 +323,11 @@ const Registration: React.FC = () => {
             )}
           </div>
 
-          <div className="pt-6 border-t border-gray-100 flex flex-col md:flex-row gap-4 items-center justify-center">
+          <div className="pt-6 border-t border-border flex flex-col md:flex-row gap-4 items-center justify-center">
             {!isEditing && !isClosed ? (
               <button
                 onClick={startEditing}
-                className="w-full md:w-auto px-10 py-4 bg-white border-2 border-[var(--primary)] text-[var(--primary)] font-black rounded-2xl text-xs uppercase tracking-widest hover:bg-blue-50 transition-all flex items-center justify-center gap-2"
+                className="w-full md:w-auto px-10 py-4 bg-card border-2 border-[var(--primary)] text-[var(--primary)] font-black rounded-2xl text-xs uppercase tracking-widest hover:bg-primary/10 transition-all flex items-center justify-center gap-2"
               >
                 <Edit3 size={18} />
                 {t.editRegistration}

@@ -150,12 +150,12 @@ const StudentExams: React.FC = () => {
         } catch (e: any) { setError(e.message); }
     };
 
-    const card = "bg-white rounded-2xl shadow-sm border border-gray-100 p-6";
+    const card = "bg-card rounded-2xl shadow-sm border border-border p-6";
     const btn = "px-4 py-2 rounded-xl text-sm font-bold transition-all duration-200 flex items-center gap-2";
-    const btnPrimary = `${btn} bg-blue-600 text-white hover:bg-blue-700`;
-    const btnGray = `${btn} bg-gray-100 text-gray-700 hover:bg-gray-200`;
+    const btnPrimary = `${btn} bg-primary text-white hover:bg-primary/80`;
+    const btnGray = `${btn} bg-surface text-text-primary hover:bg-border`;
 
-    if (loading) return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="animate-spin w-8 h-8 text-blue-600" /></div>;
+    if (loading) return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="animate-spin w-8 h-8 text-primary" /></div>;
 
     // ===== TAKING EXAM =====
     if (activeExam && !viewingResults) {
@@ -165,27 +165,27 @@ const StudentExams: React.FC = () => {
                     <div className="flex items-center justify-between mb-6">
                         <div>
                             <h1 className="text-xl font-black">{activeExam.title}</h1>
-                            <p className="text-sm text-gray-500">{getCourseName(activeExam.courseId)}</p>
+                            <p className="text-sm text-text-secondary">{getCourseName(activeExam.courseId)}</p>
                         </div>
                         <button className={btnGray} onClick={() => { setActiveExam(null); setAttempt(null); }}>{isAR ? '← خروج (بدون تسليم)' : '← Exit (without submit)'}</button>
                     </div>
 
                     <div className="space-y-6">
                         {questions.map((q, i) => (
-                            <div key={q.id} className="border border-gray-200 rounded-xl p-5">
+                            <div key={q.id} className="border border-border rounded-xl p-5">
                                 <div className="flex items-start gap-3 mb-3">
-                                    <span className="bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold shrink-0">{i + 1}</span>
+                                    <span className="bg-primary text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold shrink-0">{i + 1}</span>
                                     <div>
                                         <p className="font-bold text-base">{q.questionText}</p>
-                                        <p className="text-xs text-gray-400 mt-1">{q.marks} {isAR ? 'درجة' : 'marks'}</p>
+                                        <p className="text-xs text-text-secondary mt-1">{q.marks} {isAR ? 'درجة' : 'marks'}</p>
                                     </div>
                                 </div>
 
                                 {(q.type === 'mcq' || q.type === 'true_false') && (
                                     <div className="space-y-2 ml-11">
                                         {q.options?.map(o => (
-                                            <label key={o.id} className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${draftAnswers[q.id] === o.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:bg-gray-50'}`}>
-                                                <input type="radio" name={`q-${q.id}`} checked={draftAnswers[q.id] === o.id} onChange={() => updateAnswer(q.id, o.id)} className="accent-blue-600" />
+                                            <label key={o.id} className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${draftAnswers[q.id] === o.id ? 'border-primary bg-primary/10' : 'border-border hover:bg-surface'}`}>
+                                                <input type="radio" name={`q-${q.id}`} checked={draftAnswers[q.id] === o.id} onChange={() => updateAnswer(q.id, o.id)} className="accent-primary" />
                                                 <span className="text-sm">{o.optionText}</span>
                                             </label>
                                         ))}
@@ -194,7 +194,7 @@ const StudentExams: React.FC = () => {
 
                                 {q.type === 'essay' && (
                                     <div className="ml-11">
-                                        <textarea className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 text-sm" rows={5} placeholder={isAR ? 'اكتب إجابتك هنا...' : 'Write your answer here...'} value={draftAnswers[q.id] || ''} onChange={e => updateAnswer(q.id, e.target.value)} />
+                                        <textarea className="w-full px-4 py-3 rounded-xl border border-border focus:ring-2 focus:ring-primary text-sm" rows={5} placeholder={isAR ? 'اكتب إجابتك هنا...' : 'Write your answer here...'} value={draftAnswers[q.id] || ''} onChange={e => updateAnswer(q.id, e.target.value)} />
                                     </div>
                                 )}
 
@@ -211,7 +211,7 @@ const StudentExams: React.FC = () => {
                                                             const isChecked = rowSelections.includes(o.id);
                                                             return (
                                                                 <td key={o.id} className="border p-2 text-center">
-                                                                    <input type="checkbox" checked={isChecked} className="accent-blue-600 w-4 h-4 cursor-pointer" onChange={() => {
+                                                                    <input type="checkbox" checked={isChecked} className="accent-primary w-4 h-4 cursor-pointer" onChange={() => {
                                                                         const prev = { ...(draftAnswers[q.id] || {}) };
                                                                         const current: string[] = prev[ri.toString()] || [];
                                                                         prev[ri.toString()] = isChecked ? current.filter(id => id !== o.id) : [...current, o.id];
@@ -259,22 +259,22 @@ const StudentExams: React.FC = () => {
                         {questions.map((q, i) => {
                             const ans = resultAnswers.find(a => a.questionId === q.id);
                             return (
-                                <div key={q.id} className={`border rounded-xl p-4 ${ans?.isCorrect ? 'border-green-300 bg-green-50/50' : ans?.isCorrect === false ? 'border-red-300 bg-red-50/50' : 'border-gray-200'}`}>
+                                <div key={q.id} className={`border rounded-xl p-4 ${ans?.isCorrect ? 'border-green-300 bg-green-50/50' : ans?.isCorrect === false ? 'border-red-500/30 bg-red-500/10/50' : 'border-border'}`}>
                                     <div className="flex items-start gap-3 mb-2">
                                         <span className={`rounded-full w-7 h-7 flex items-center justify-center text-xs font-bold shrink-0 text-white ${ans?.isCorrect ? 'bg-green-600' : ans?.isCorrect === false ? 'bg-red-600' : 'bg-gray-400'}`}>{i + 1}</span>
                                         <div className="flex-1">
                                             <p className="font-bold">{q.questionText}</p>
-                                            <p className="text-xs text-gray-500">{ans?.awardedMarks ?? 0}/{q.marks}</p>
+                                            <p className="text-xs text-text-secondary">{ans?.awardedMarks ?? 0}/{q.marks}</p>
                                         </div>
                                     </div>
                                     {(q.type === 'mcq' || q.type === 'true_false') && q.options?.map(o => (
-                                        <div key={o.id} className={`ml-10 px-3 py-2 rounded-lg text-sm mb-1 ${o.isCorrect ? 'bg-green-100 border border-green-300 font-bold' : ans?.selectedOptionId === o.id ? 'bg-red-100 border border-red-300' : 'bg-gray-50'}`}>
+                                        <div key={o.id} className={`ml-10 px-3 py-2 rounded-lg text-sm mb-1 ${o.isCorrect ? 'bg-green-100 border border-green-300 font-bold' : ans?.selectedOptionId === o.id ? 'bg-red-500/20 border border-red-500/30' : 'bg-surface'}`}>
                                             {o.isCorrect && <CheckCircle size={14} className="inline mr-1 text-green-600" />}
-                                            {ans?.selectedOptionId === o.id && !o.isCorrect && <XCircle size={14} className="inline mr-1 text-red-600" />}
+                                            {ans?.selectedOptionId === o.id && !o.isCorrect && <XCircle size={14} className="inline mr-1 text-red-500" />}
                                             {o.optionText}
                                         </div>
                                     ))}
-                                    {q.type === 'essay' && <div className="ml-10 bg-gray-50 rounded-lg p-3 text-sm whitespace-pre-wrap">{ans?.essayAnswer || '-'}</div>}
+                                    {q.type === 'essay' && <div className="ml-10 bg-surface rounded-lg p-3 text-sm whitespace-pre-wrap">{ans?.essayAnswer || '-'}</div>}
                                 </div>
                             );
                         })}
@@ -287,12 +287,12 @@ const StudentExams: React.FC = () => {
     // ===== EXAM LIST =====
     return (
         <div className="max-w-5xl mx-auto p-4 space-y-6" dir={isAR ? 'rtl' : 'ltr'}>
-            {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl flex items-center gap-2"><AlertTriangle size={18} />{error}<button onClick={() => setError('')} className="ml-auto font-bold">×</button></div>}
+            {error && <div className="bg-red-500/10 border border-red-500/20 text-red-500 px-4 py-3 rounded-xl flex items-center gap-2"><AlertTriangle size={18} />{error}<button onClick={() => setError('')} className="ml-auto font-bold">×</button></div>}
 
             <h1 className="text-2xl font-black" style={{ color: 'var(--text-primary)' }}>{isAR ? '📝 الامتحانات' : '📝 Exams'}</h1>
 
             {exams.length === 0 ? (
-                <div className={card}><p className="text-center text-gray-500 py-12">{isAR ? 'لا توجد امتحانات متاحة' : 'No exams available'}</p></div>
+                <div className={card}><p className="text-center text-text-secondary py-12">{isAR ? 'لا توجد امتحانات متاحة' : 'No exams available'}</p></div>
             ) : (
                 <div className="space-y-3">
                     {exams.map(exam => {
@@ -302,12 +302,12 @@ const StudentExams: React.FC = () => {
                                 <div className="flex flex-wrap items-start justify-between gap-3">
                                     <div>
                                         <h3 className="font-bold text-lg">{exam.title}</h3>
-                                        <p className="text-sm text-gray-500">{getCourseName(exam.courseId)}</p>
+                                        <p className="text-sm text-text-secondary">{getCourseName(exam.courseId)}</p>
                                         <div className="flex gap-2 mt-2">
-                                            <span className={`px-2 py-1 rounded-full text-xs font-bold ${status === 'active' ? 'bg-green-100 text-green-700' : status === 'upcoming' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'}`}>
+                                            <span className={`px-2 py-1 rounded-full text-xs font-bold ${status === 'active' ? 'bg-green-100 text-green-700' : status === 'upcoming' ? 'bg-primary/20 text-primary' : 'bg-surface text-text-secondary'}`}>
                                                 {status === 'active' ? (isAR ? 'متاح الآن' : 'Available Now') : status === 'upcoming' ? (isAR ? 'قريباً' : 'Upcoming') : (isAR ? 'انتهى' : 'Ended')}
                                             </span>
-                                            <span className="text-xs text-gray-400 flex items-center gap-1"><Clock size={12} />{new Date(exam.startAt).toLocaleDateString()} - {new Date(exam.endAt).toLocaleDateString()}</span>
+                                            <span className="text-xs text-text-secondary flex items-center gap-1"><Clock size={12} />{new Date(exam.startAt).toLocaleDateString()} - {new Date(exam.endAt).toLocaleDateString()}</span>
                                         </div>
                                     </div>
                                     <div className="flex gap-2">
@@ -315,7 +315,7 @@ const StudentExams: React.FC = () => {
                                         {exam.isResultsReleased ? (
                                             <button className={btnGray} onClick={() => viewResults(exam)}><CheckCircle size={16} />{isAR ? 'عرض النتائج' : 'View Results'}</button>
                                         ) : status === 'ended' ? (
-                                            <span className="px-3 py-2 rounded-xl bg-yellow-50 text-yellow-700 text-sm font-bold flex items-center gap-1"><Lock size={14} />{isAR ? 'في انتظار النتائج' : 'Pending Results'}</span>
+                                            <span className="px-3 py-2 rounded-xl bg-amber-500/10 text-amber-500 text-sm font-bold flex items-center gap-1"><Lock size={14} />{isAR ? 'في انتظار النتائج' : 'Pending Results'}</span>
                                         ) : null}
                                     </div>
                                 </div>

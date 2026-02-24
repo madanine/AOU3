@@ -357,7 +357,7 @@ const AdminAttendance: React.FC = () => {
     <div className="space-y-8 animate-in fade-in duration-500 pb-10 relative">
       {showToast && (
         <div className="fixed top-8 left-1/2 -translate-x-1/2 z-[200] animate-in slide-in-from-top-4 duration-300">
-          <div className="bg-emerald-500 text-white px-8 py-4 rounded-2xl shadow-2xl flex items-center gap-3 border border-emerald-400">
+          <div className="bg-success text-white px-8 py-4 rounded-2xl shadow-2xl flex items-center gap-3 border border-emerald-400">
             <Check size={20} className="font-black" />
             <span className="font-black text-sm uppercase tracking-widest">
               {lang === 'AR' ? 'تم الحفظ بنجاح' : 'Saved Successfully'}
@@ -392,7 +392,7 @@ const AdminAttendance: React.FC = () => {
       <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-100 rounded-2xl p-4">
         <div className="flex flex-wrap items-center justify-center gap-6 text-xs font-bold">
           <div className="flex items-center gap-2">
-            <CheckCircle size={16} className="text-emerald-500" />
+            <CheckCircle size={16} className="text-success" />
             <span style={{ color: 'var(--text-secondary)' }}>{lang === 'AR' ? 'حاضر' : 'Present'}</span>
           </div>
           <div className="flex items-center gap-2">
@@ -537,12 +537,12 @@ const AdminAttendance: React.FC = () => {
           <div className="flex flex-col md:flex-row gap-4 items-center">
             {targetStudentId && (
               <div className="flex-1 w-full flex items-center gap-3 bg-blue-50 px-4 py-3 rounded-2xl border border-blue-100">
-                <UserIcon className="text-blue-500" size={20} />
+                <UserIcon className="text-primary" size={20} />
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-sm text-blue-900">
                     {students.find(s => s.id === targetStudentId)?.fullName}
                   </p>
-                  <p className="text-xs text-blue-600 font-mono">
+                  <p className="text-xs text-primary font-mono">
                     {students.find(s => s.id === targetStudentId)?.universityId}
                   </p>
                 </div>
@@ -551,7 +551,7 @@ const AdminAttendance: React.FC = () => {
                     setTargetStudentId('');
                     setStudentSearchTerm('');
                   }}
-                  className="text-blue-400 hover:text-blue-600 transition-colors"
+                  className="text-blue-400 hover:text-primary transition-colors"
                 >
                   <XCircle size={20} />
                 </button>
@@ -569,7 +569,7 @@ const AdminAttendance: React.FC = () => {
         viewMode === 'course' && selectedCourseId ? (
           <div className="space-y-6">
             <div className="flex flex-wrap items-center gap-3">
-              <button onClick={() => setConfirmModal({ show: true, type: 'present', scope: 'all' })} className="px-4 py-2 bg-blue-50 text-blue-600 rounded-xl font-black text-[10px] uppercase tracking-widest border border-blue-100 hover:bg-blue-100 transition-all">{lang === 'AR' ? 'تحضير الكل' : 'Mark All Present'}</button>
+              <button onClick={() => setConfirmModal({ show: true, type: 'present', scope: 'all' })} className="px-4 py-2 bg-blue-50 text-primary rounded-xl font-black text-[10px] uppercase tracking-widest border border-blue-100 hover:bg-blue-100 transition-all">{lang === 'AR' ? 'تحضير الكل' : 'Mark All Present'}</button>
               <button onClick={() => setConfirmModal({ show: true, type: 'absent', scope: 'all' })} className="px-4 py-2 bg-red-50 text-red-600 rounded-xl font-black text-[10px] uppercase tracking-widest border border-red-100 hover:bg-red-100 transition-all">{lang === 'AR' ? 'غياب الكل' : 'Mark All Absent'}</button>
               <div className="w-px h-8 bg-gray-100 mx-1"></div>
               <button
@@ -612,7 +612,7 @@ const AdminAttendance: React.FC = () => {
                 {lang === 'AR' ? 'إلغاء مشاركة المختار' : 'Clear Selected Participation'}
               </button>
               {participationUndoStack && (
-                <button onClick={undoParticipation} className="flex items-center gap-2 px-4 py-2 text-purple-600 bg-purple-50 rounded-xl font-black text-[10px] uppercase border border-purple-100">
+                <button onClick={undoParticipation} className="flex items-center gap-2 px-4 py-2 text-primary bg-primary/10 rounded-xl font-black text-[10px] uppercase border border-purple-100">
                   <Undo2 size={14} /> {lang === 'AR' ? 'تراجع مشاركة' : 'Undo Participation'}
                 </button>
               )}
@@ -632,7 +632,7 @@ const AdminAttendance: React.FC = () => {
                     <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest min-w-[100px]" style={{ color: 'var(--text-secondary)' }}>{lang === 'AR' ? 'الرقم الجامعي' : 'ID'}</th>
                     <th className={`px-6 py-4 text-[10px] font-black uppercase tracking-widest min-w-[180px] sticky ${lang === 'AR' ? 'right-0 border-l' : 'left-0 border-r'} border-gray-100 z-20 bg-gray-50`} style={{ color: 'var(--text-secondary)' }}>{t.fullName}</th>
                     {lectures.map(l => (
-                      <th key={l} className={`px-2 py-4 text-[10px] font-black text-center min-w-[50px] ${selectedLecture === l ? 'text-blue-600 bg-blue-50/50' : 'text-gray-400'}`}>م{l}</th>
+                      <th key={l} className={`px-2 py-4 text-[10px] font-black text-center min-w-[50px] ${selectedLecture === l ? 'text-primary bg-blue-50/50' : 'text-gray-400'}`}>م{l}</th>
                     ))}
                   </tr>
                 </thead>
@@ -665,7 +665,7 @@ const AdminAttendance: React.FC = () => {
                                 {/* Attendance Icon */}
                                 <button
                                   onClick={() => handleToggle(student.id, i)}
-                                  className={`p-1 rounded-lg transition-all ${record[i] === true ? 'text-emerald-500 bg-emerald-50' : (record[i] === false ? 'text-red-500 bg-red-50' : 'text-gray-300 bg-gray-50')}`}
+                                  className={`p-1 rounded-lg transition-all ${record[i] === true ? 'text-success bg-emerald-50' : (record[i] === false ? 'text-red-500 bg-red-50' : 'text-gray-300 bg-gray-50')}`}
                                   title={record[i] === true ? 'Present' : (record[i] === false ? 'Absent' : 'Not Recorded')}
                                 >
                                   {record[i] === true ? <CheckCircle size={16} /> : (record[i] === false ? <XCircle size={16} /> : <Minus size={16} />)}
@@ -723,7 +723,7 @@ const AdminAttendance: React.FC = () => {
                               {/* Attendance Icon */}
                               <button
                                 onClick={() => handleToggle(targetStudentId, i, course.id)}
-                                className={`p-1 rounded-lg transition-all ${record[i] === true ? 'text-emerald-500 bg-emerald-50' : (record[i] === false ? 'text-red-500 bg-red-50' : 'text-gray-300 bg-gray-50')}`}
+                                className={`p-1 rounded-lg transition-all ${record[i] === true ? 'text-success bg-emerald-50' : (record[i] === false ? 'text-red-500 bg-red-50' : 'text-gray-300 bg-gray-50')}`}
                                 title={record[i] === true ? 'Present' : (record[i] === false ? 'Absent' : 'Not Recorded')}
                               >
                                 {record[i] === true ? <CheckCircle size={16} /> : (record[i] === false ? <XCircle size={16} /> : <Minus size={16} />)}

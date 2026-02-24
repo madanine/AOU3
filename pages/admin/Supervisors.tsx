@@ -145,8 +145,8 @@ const AdminSupervisors: React.FC = () => {
             <div className="mt-4 pt-4 border-t border-border space-y-3">
               <p className="text-[10px] font-black uppercase tracking-widest text-text-secondary">{lang === 'AR' ? 'الصلاحيات' : 'Permissions'}:</p>
               <div className="flex flex-wrap gap-2">
-                {s.supervisorPermissions?.attendance && <span className="px-2.5 py-1.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-lg text-[10px] font-bold tracking-wide border border-blue-500/20">{lang === 'AR' ? 'الحضور والمشاركة' : 'Attendance & Participation'}</span>}
-                {s.supervisorPermissions?.assignments && <span className="px-2.5 py-1.5 bg-purple-500/10 text-purple-600 dark:text-purple-400 rounded-lg text-[10px] font-bold tracking-wide border border-purple-500/20">{lang === 'AR' ? 'التكاليف' : 'Assignments'}</span>}
+                {s.supervisorPermissions?.attendance && <span className="px-2.5 py-1.5 bg-primary/10 text-primary dark:text-blue-400 rounded-lg text-[10px] font-bold tracking-wide border border-primary/20">{lang === 'AR' ? 'الحضور والمشاركة' : 'Attendance & Participation'}</span>}
+                {s.supervisorPermissions?.assignments && <span className="px-2.5 py-1.5 bg-primary/10 text-primary dark:text-purple-400 rounded-lg text-[10px] font-bold tracking-wide border border-primary/20">{lang === 'AR' ? 'التكاليف' : 'Assignments'}</span>}
                 {s.supervisorPermissions?.grading && <span className="px-2.5 py-1.5 bg-success/10 text-success rounded-lg text-[10px] font-bold tracking-wide border border-success/20">{lang === 'AR' ? 'رصد الدرجات' : 'Grading'}</span>}
               </div>
             </div>
@@ -210,10 +210,10 @@ const AdminSupervisors: React.FC = () => {
                       ...formData,
                       supervisorPermissions: { ...formData.supervisorPermissions!, attendance: !formData.supervisorPermissions?.attendance }
                     })}
-                    className={`p-4 rounded-2xl border transition-all flex flex-col items-center justify-center text-center gap-3 ${formData.supervisorPermissions?.attendance ? 'bg-blue-500/10 border-blue-500/30' : 'border-border bg-surface hover:bg-surface/80'}`}
+                    className={`p-4 rounded-2xl border transition-all flex flex-col items-center justify-center text-center gap-3 ${formData.supervisorPermissions?.attendance ? 'bg-primary/10 border-primary/30' : 'border-border bg-surface hover:bg-surface/80'}`}
                   >
-                    <CheckCircle size={24} className={formData.supervisorPermissions?.attendance ? 'text-blue-500' : 'text-text-secondary opacity-50'} />
-                    <span className={`text-[10px] font-black uppercase tracking-widest ${formData.supervisorPermissions?.attendance ? 'text-blue-600 dark:text-blue-400' : 'text-text-secondary'}`}>{lang === 'AR' ? 'الحضور والمشاركة' : 'Attendance & Participation'}</span>
+                    <CheckCircle size={24} className={formData.supervisorPermissions?.attendance ? 'text-primary' : 'text-text-secondary opacity-50'} />
+                    <span className={`text-[10px] font-black uppercase tracking-widest ${formData.supervisorPermissions?.attendance ? 'text-primary dark:text-blue-400' : 'text-text-secondary'}`}>{lang === 'AR' ? 'الحضور والمشاركة' : 'Attendance & Participation'}</span>
                   </button>
                   <button
                     type="button"
@@ -221,10 +221,10 @@ const AdminSupervisors: React.FC = () => {
                       ...formData,
                       supervisorPermissions: { ...formData.supervisorPermissions!, assignments: !formData.supervisorPermissions?.assignments }
                     })}
-                    className={`p-4 rounded-2xl border transition-all flex flex-col items-center justify-center text-center gap-3 ${formData.supervisorPermissions?.assignments ? 'bg-purple-500/10 border-purple-500/30' : 'border-border bg-surface hover:bg-surface/80'}`}
+                    className={`p-4 rounded-2xl border transition-all flex flex-col items-center justify-center text-center gap-3 ${formData.supervisorPermissions?.assignments ? 'bg-primary/10 border-primary/30' : 'border-border bg-surface hover:bg-surface/80'}`}
                   >
                     <ClipboardList size={24} className={formData.supervisorPermissions?.assignments ? 'text-purple-500' : 'text-text-secondary opacity-50'} />
-                    <span className={`text-[10px] font-black uppercase tracking-widest ${formData.supervisorPermissions?.assignments ? 'text-purple-600 dark:text-purple-400' : 'text-text-secondary'}`}>{lang === 'AR' ? 'التكاليف' : 'Assignments'}</span>
+                    <span className={`text-[10px] font-black uppercase tracking-widest ${formData.supervisorPermissions?.assignments ? 'text-primary dark:text-purple-400' : 'text-text-secondary'}`}>{lang === 'AR' ? 'التكاليف' : 'Assignments'}</span>
                   </button>
                   <button
                     type="button"
