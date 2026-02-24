@@ -1,12 +1,10 @@
-
-
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useApp } from '../../App';
 import { supabaseService } from '../../supabaseService';
 import { User, Major, Language } from '../../types';
-import { User as UserIcon, Mail, KeyRound, Phone, ArrowRight, ShieldCheck, Loader2, Eye, EyeOff, Sun, Moon, Globe, Calendar } from 'lucide-react';
-import { COUNTRIES, getCountryName, findCountryByName } from '../../countries';
+import { User as UserIcon, Mail, Phone, ArrowRight, ShieldCheck, Loader2, Eye, EyeOff, Sun, Moon, Globe, Calendar } from 'lucide-react';
+import { COUNTRIES, getCountryName } from '../../countries';
 
 const SignupPage: React.FC = () => {
   const { setUser, t, lang, settings, setLang, isDarkMode, toggleDarkMode } = useApp();
@@ -22,7 +20,6 @@ const SignupPage: React.FC = () => {
     major: '' as Major | '',
     nationality: '',
     passportNumber: '',
-    dateOfBirth: ''
   });
 
   const [error, setError] = useState('');
@@ -36,7 +33,6 @@ const SignupPage: React.FC = () => {
   const [dobDay, setDobDay] = useState('');
   const [dobMonth, setDobMonth] = useState('');
   const [dobYear, setDobYear] = useState('');
-
 
   // Calculate age from DOB
   const calculateAge = (dob: string): number => {
@@ -67,7 +63,6 @@ const SignupPage: React.FC = () => {
       setIsLoading(false);
       return;
     }
-
 
     // Validate nationality
     if (!formData.nationality) {
@@ -178,41 +173,45 @@ const SignupPage: React.FC = () => {
     return val.replace(/[٠-٩]/g, (d) => (d.charCodeAt(0) - 1632).toString());
   };
 
-  const inputClasses = "w-full pl-10 pr-4 py-3 bg-white/20 border border-[var(--border-color)] rounded-xl focus:ring-2 focus:ring-[var(--primary)] focus:bg-white/40 outline-none transition-all text-sm font-bold text-black placeholder:text-black/50";
+  const inputClasses = "w-full pl-10 pr-4 py-3 bg-transparent border border-border rounded-xl focus:ring-2 focus:ring-primary focus:bg-surface outline-none transition-all text-sm font-bold text-text-primary placeholder:opacity-50";
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-[var(--background)] p-4 relative overflow-hidden">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4 relative overflow-hidden">
+      {/* Background Depth Effect */}
+      <div className="absolute inset-0 bg-premium-radial opacity-60 pointer-events-none"></div>
+
       <div className="w-full max-w-2xl z-10 my-auto">
-        <div className="bg-[var(--card-bg)] rounded-[2.5rem] shadow-2xl overflow-hidden border border-[var(--border-color)]">
+        <div className="bg-card rounded-[2.5rem] shadow-premium overflow-hidden border border-border">
           <div className="p-10 pb-0 flex flex-col items-center text-center">
             {(settings.branding.logo || settings.branding.logoBase64) ? (
               <img src={settings.branding.logo || settings.branding.logoBase64} alt="Logo" className="h-20 w-auto object-contain mb-4" />
             ) : (
-              <div className="w-16 h-16 bg-[var(--primary)] rounded-2xl flex items-center justify-center text-white font-bold text-2xl shadow-lg mb-4">A</div>
+              <div className="w-16 h-16 bg-gold-gradient rounded-2xl flex items-center justify-center text-white font-bold text-2xl shadow-lg mb-4">A</div>
             )}
             <div className="space-y-1 mb-4">
-              <h1 className="text-2xl font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>
+              <h1 className="text-title">
                 {lang === 'AR' ? settings.branding.siteNameAr : settings.branding.siteNameEn}
               </h1>
-              <p className="text-sm font-bold opacity-80" style={{ color: 'var(--text-primary)' }}>
+              <p className="text-sm font-bold opacity-80 text-text-primary">
                 {t.regionalCenter}
               </p>
             </div>
-            <h2 className="text-xl font-black uppercase tracking-tight" style={{ color: 'var(--text-primary)' }}>{t.signup}</h2>
+            <h2 className="text-xl font-black uppercase tracking-tight text-text-primary">{t.signup}</h2>
           </div>
 
-          <form onSubmit={handleSignup} className="p-10 space-y-6">
+          <form onSubmit={handleSignup} className="p-10 space-y-6 relative">
             {error && (
-              <div className="p-4 bg-black/10 text-black text-xs font-bold rounded-2xl border border-black/20 text-center uppercase">
+              <div className="p-4 bg-red-50 text-red-600 text-xs font-black rounded-xl border border-red-100 text-center uppercase flex items-center justify-center gap-2 dark:bg-red-500/10 dark:border-red-500/20">
+                <ShieldCheck size={16} />
                 {error}
               </div>
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div className="space-y-1">
-                <label className="text-[10px] font-black uppercase ml-1 block" style={{ color: 'var(--text-secondary)' }}>{t.fullName}</label>
+                <label className="text-[10px] font-black uppercase ml-1 block text-text-secondary">{t.fullName}</label>
                 <div className="relative group">
-                  <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-black/50" size={16} />
+                  <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary opacity-50 group-focus-within:opacity-100 group-focus-within:text-primary transition-colors" size={16} />
                   <input
                     required
                     value={formData.fullName}
@@ -224,23 +223,24 @@ const SignupPage: React.FC = () => {
               </div>
 
               <div className="space-y-1">
-                <label className="text-[10px] font-black uppercase ml-1 block" style={{ color: 'var(--text-secondary)' }}>{t.universityId}</label>
+                <label className="text-[10px] font-black uppercase ml-1 block text-text-secondary">{t.universityId}</label>
                 <div className="relative group">
-                  <ShieldCheck className="absolute left-3 top-1/2 -translate-y-1/2 text-black/50" size={16} />
+                  <ShieldCheck className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary opacity-50 group-focus-within:opacity-100 group-focus-within:text-primary transition-colors" size={16} />
                   <input
                     required
                     value={formData.universityId}
                     onChange={(e) => setFormData({ ...formData, universityId: forceWesternNumerals(e.target.value) })}
                     className={inputClasses}
                     placeholder="1234567"
+                    dir="ltr"
                   />
                 </div>
               </div>
 
               <div className="space-y-1">
-                <label className="text-[10px] font-black uppercase ml-1 block" style={{ color: 'var(--text-secondary)' }}>{t.email}</label>
+                <label className="text-[10px] font-black uppercase ml-1 block text-text-secondary">{t.email}</label>
                 <div className="relative group">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-black/50" size={16} />
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary opacity-50 group-focus-within:opacity-100 group-focus-within:text-primary transition-colors" size={16} />
                   <input
                     type="email"
                     required
@@ -248,25 +248,27 @@ const SignupPage: React.FC = () => {
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     className={inputClasses}
                     placeholder="email@university.edu"
+                    dir="ltr"
                   />
                 </div>
               </div>
 
               <div className="space-y-1">
-                <label className="text-[10px] font-black uppercase ml-1 block" style={{ color: 'var(--text-secondary)' }}>{t.phone}</label>
+                <label className="text-[10px] font-black uppercase ml-1 block text-text-secondary">{t.phone}</label>
                 <div className="relative group">
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-black/50" size={16} />
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary opacity-50 group-focus-within:opacity-100 group-focus-within:text-primary transition-colors" size={16} />
                   <input
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: forceWesternNumerals(e.target.value) })}
                     className={inputClasses}
                     placeholder="+966 50 123 4567"
+                    dir="ltr"
                   />
                 </div>
               </div>
 
               <div className="space-y-1">
-                <label className="text-[10px] font-black uppercase tracking-widest ml-1 block" style={{ color: 'var(--text-secondary)' }}>{t.password}</label>
+                <label className="text-[10px] font-black uppercase tracking-widest ml-1 block text-text-secondary">{t.password}</label>
                 <div className="relative group">
                   <input
                     type={showPassword ? "text" : "password"}
@@ -274,11 +276,12 @@ const SignupPage: React.FC = () => {
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                     className={inputClasses}
+                    dir="ltr"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className={`absolute top-1/2 -translate-y-1/2 text-black/40 hover:text-black transition-colors outline-none ${lang === 'AR' ? 'left-3' : 'right-3'}`}
+                    className={`absolute top-1/2 -translate-y-1/2 text-text-secondary opacity-50 hover:opacity-100 transition-colors outline-none ${lang === 'AR' ? 'left-3' : 'right-3'}`}
                   >
                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
@@ -286,7 +289,7 @@ const SignupPage: React.FC = () => {
               </div>
 
               <div className="space-y-1">
-                <label className="text-[10px] font-black uppercase tracking-widest ml-1 block" style={{ color: 'var(--text-secondary)' }}>
+                <label className="text-[10px] font-black uppercase tracking-widest ml-1 block text-text-secondary">
                   {lang === 'AR' ? 'تأكيد كلمة المرور' : 'Confirm Password'}
                 </label>
                 <div className="relative group">
@@ -296,11 +299,12 @@ const SignupPage: React.FC = () => {
                     value={formData.confirmPassword}
                     onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                     className={inputClasses}
+                    dir="ltr"
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className={`absolute top-1/2 -translate-y-1/2 text-black/40 hover:text-black transition-colors outline-none ${lang === 'AR' ? 'left-3' : 'right-3'}`}
+                    className={`absolute top-1/2 -translate-y-1/2 text-text-secondary opacity-50 hover:opacity-100 transition-colors outline-none ${lang === 'AR' ? 'left-3' : 'right-3'}`}
                   >
                     {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
@@ -308,18 +312,18 @@ const SignupPage: React.FC = () => {
               </div>
 
               <div className="md:col-span-2 space-y-1">
-                <label className="text-[10px] font-black uppercase tracking-widest ml-1 block" style={{ color: 'var(--text-secondary)' }}>{t.major}</label>
+                <label className="text-[10px] font-black uppercase tracking-widest ml-1 block text-text-secondary">{t.major}</label>
                 <div className="relative group">
                   <select
                     required
                     value={formData.major}
                     onChange={(e) => setFormData({ ...formData, major: e.target.value as Major })}
-                    className={`w-full py-3 bg-white/20 border border-[var(--border-color)] rounded-xl focus:ring-2 focus:ring-[var(--primary)] focus:bg-white/40 outline-none transition-all text-sm font-bold text-black appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23000000%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C/polyline%3E%3C/svg%3E')] bg-[length:20px] bg-no-repeat ${lang === 'AR' ? 'bg-[left_1rem_center] pl-10 pr-4' : 'bg-[right_1rem_center] pr-10 pl-4'
+                    className={`w-full py-3 bg-transparent border border-border rounded-xl focus:ring-2 focus:ring-primary focus:bg-surface outline-none transition-all text-sm font-bold text-text-primary appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23a0aec0%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C/polyline%3E%3C/svg%3E')] bg-[length:20px] bg-no-repeat ${lang === 'AR' ? 'bg-[left_1rem_center] pl-10 pr-4' : 'bg-[right_1rem_center] pr-10 pl-4'
                       }`}
                   >
-                    <option value="">{t.selectMajor}</option>
+                    <option value="" className="bg-card text-text-primary">{t.selectMajor}</option>
                     {Object.entries(t.majorList).map(([key, value]) => (
-                      <option key={key} value={key}>{value as string}</option>
+                      <option key={key} value={key} className="bg-card text-text-primary">{value as string}</option>
                     ))}
                   </select>
                 </div>
@@ -327,9 +331,9 @@ const SignupPage: React.FC = () => {
 
               {/* Nationality Dropdown (Searchable) */}
               <div className="md:col-span-2 space-y-1">
-                <label className="text-[10px] font-black uppercase tracking-widest ml-1 block" style={{ color: 'var(--text-secondary)' }}>{t.nationality}</label>
+                <label className="text-[10px] font-black uppercase tracking-widest ml-1 block text-text-secondary">{t.nationality}</label>
                 <div className="relative">
-                  <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-black/50 z-10" size={16} />
+                  <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary opacity-50 z-10" size={16} />
                   <input
                     type="text"
                     required
@@ -339,7 +343,6 @@ const SignupPage: React.FC = () => {
                       setNationalitySearch(searchValue);
                       setShowNationalityDropdown(true);
 
-                      // Clear nationality if user is typing (makes it editable)
                       if (formData.nationality && searchValue !== getCountryName(formData.nationality, lang)) {
                         setFormData({ ...formData, nationality: '' });
                       }
@@ -352,7 +355,7 @@ const SignupPage: React.FC = () => {
                   {showNationalityDropdown && (
                     <>
                       <div className="fixed inset-0 z-20" onClick={() => setShowNationalityDropdown(false)} />
-                      <div className="absolute z-30 w-full mt-2 max-h-60 overflow-y-auto bg-white border border-gray-200 rounded-xl shadow-2xl">
+                      <div className="absolute z-30 w-full mt-2 max-h-60 overflow-y-auto bg-card border border-border rounded-xl shadow-premium">
                         {COUNTRIES.filter(country => {
                           const displayName = lang === 'AR' ? country.name_ar : country.name_en;
                           return displayName.toLowerCase().includes(nationalitySearch.toLowerCase());
@@ -367,7 +370,7 @@ const SignupPage: React.FC = () => {
                                 setNationalitySearch(displayName);
                                 setShowNationalityDropdown(false);
                               }}
-                              className="w-full text-left px-4 py-3 hover:bg-blue-50 text-sm font-bold text-gray-700 transition-colors border-b border-gray-100 last:border-0"
+                              className="w-full text-left px-4 py-3 hover:bg-surface text-sm font-bold text-text-primary transition-colors border-b border-border last:border-0"
                             >
                               {displayName}
                             </button>
@@ -381,20 +384,20 @@ const SignupPage: React.FC = () => {
 
               {/* Date of Birth (Wheel Picker) */}
               <div className="md:col-span-2 space-y-1">
-                <label className="text-[10px] font-black uppercase tracking-widest ml-1 block" style={{ color: 'var(--text-secondary)' }}>{t.dateOfBirth}</label>
+                <label className="text-[10px] font-black uppercase tracking-widest ml-1 block text-text-secondary">{t.dateOfBirth}</label>
                 <div className="grid grid-cols-3 gap-3">
                   {/* Day */}
                   <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-black/50 z-10" size={16} />
+                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary opacity-50 z-10" size={16} />
                     <select
                       required
                       value={dobDay}
                       onChange={(e) => setDobDay(e.target.value)}
-                      className={`w-full pl-10 pr-4 py-3 bg-white/20 border border-[var(--border-color)] rounded-xl focus:ring-2 focus:ring-[var(--primary)] focus:bg-white/40 outline-none transition-all text-sm font-bold text-black appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23000000%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C/polyline%3E%3C/svg%3E')] bg-[length:16px] bg-no-repeat ${lang === 'AR' ? 'bg-[left_0.5rem_center]' : 'bg-[right_0.5rem_center]'}`}
+                      className={`w-full pl-10 pr-4 py-3 bg-transparent border border-border rounded-xl focus:ring-2 focus:ring-primary focus:bg-surface outline-none transition-all text-sm font-bold text-text-primary appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23a0aec0%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C/polyline%3E%3C/svg%3E')] bg-[length:16px] bg-no-repeat ${lang === 'AR' ? 'bg-[left_0.5rem_center]' : 'bg-[right_0.5rem_center]'}`}
                     >
-                      <option value="">{t.dobDay}</option>
+                      <option value="" className="bg-card text-text-primary">{t.dobDay}</option>
                       {Array.from({ length: 31 }, (_, i) => i + 1).map(d => (
-                        <option key={d} value={d}>{d}</option>
+                        <option key={d} value={d} className="bg-card text-text-primary">{d}</option>
                       ))}
                     </select>
                   </div>
@@ -405,11 +408,11 @@ const SignupPage: React.FC = () => {
                       required
                       value={dobMonth}
                       onChange={(e) => setDobMonth(e.target.value)}
-                      className={`w-full py-3 px-4 bg-white/20 border border-[var(--border-color)] rounded-xl focus:ring-2 focus:ring-[var(--primary)] focus:bg-white/40 outline-none transition-all text-sm font-bold text-black appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23000000%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C/polyline%3E%3C/svg%3E')] bg-[length:16px] bg-no-repeat ${lang === 'AR' ? 'bg-[left_0.5rem_center]' : 'bg-[right_0.5rem_center]'}`}
+                      className={`w-full py-3 px-4 bg-transparent border border-border rounded-xl focus:ring-2 focus:ring-primary focus:bg-surface outline-none transition-all text-sm font-bold text-text-primary appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23a0aec0%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C/polyline%3E%3C/svg%3E')] bg-[length:16px] bg-no-repeat ${lang === 'AR' ? 'bg-[left_0.5rem_center]' : 'bg-[right_0.5rem_center]'}`}
                     >
-                      <option value="">{t.dobMonth}</option>
+                      <option value="" className="bg-card text-text-primary">{t.dobMonth}</option>
                       {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
-                        <option key={m} value={m}>{m}</option>
+                        <option key={m} value={m} className="bg-card text-text-primary">{m}</option>
                       ))}
                     </select>
                   </div>
@@ -420,11 +423,11 @@ const SignupPage: React.FC = () => {
                       required
                       value={dobYear}
                       onChange={(e) => setDobYear(e.target.value)}
-                      className={`w-full py-3 px-4 bg-white/20 border border-[var(--border-color)] rounded-xl focus:ring-2 focus:ring-[var(--primary)] focus:bg-white/40 outline-none transition-all text-sm font-bold text-black appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23000000%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C/polyline%3E%3C/svg%3E')] bg-[length:16px] bg-no-repeat ${lang === 'AR' ? 'bg-[left_0.5rem_center]' : 'bg-[right_0.5rem_center]'}`}
+                      className={`w-full py-3 px-4 bg-transparent border border-border rounded-xl focus:ring-2 focus:ring-primary focus:bg-surface outline-none transition-all text-sm font-bold text-text-primary appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23a0aec0%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C/polyline%3E%3C/svg%3E')] bg-[length:16px] bg-no-repeat ${lang === 'AR' ? 'bg-[left_0.5rem_center]' : 'bg-[right_0.5rem_center]'}`}
                     >
-                      <option value="">{t.dobYear}</option>
+                      <option value="" className="bg-card text-text-primary">{t.dobYear}</option>
                       {Array.from({ length: new Date().getFullYear() - 1950 + 1 }, (_, i) => new Date().getFullYear() - i).map(y => (
-                        <option key={y} value={y}>{y}</option>
+                        <option key={y} value={y} className="bg-card text-text-primary">{y}</option>
                       ))}
                     </select>
                   </div>
@@ -433,9 +436,9 @@ const SignupPage: React.FC = () => {
 
               {/* Passport Number (Optional) */}
               <div className="md:col-span-2 space-y-1">
-                <label className="text-[10px] font-black uppercase tracking-widest ml-1 block" style={{ color: 'var(--text-secondary)' }}>{t.passportNumber}</label>
+                <label className="text-[10px] font-black uppercase tracking-widest ml-1 block text-text-secondary">{t.passportNumber}</label>
                 <div className="relative group">
-                  <ShieldCheck className="absolute left-3 top-1/2 -translate-y-1/2 text-black/50" size={16} />
+                  <ShieldCheck className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary opacity-50 group-focus-within:opacity-100 group-focus-within:text-primary transition-colors" size={16} />
                   <input
                     type="text"
                     required
@@ -443,6 +446,7 @@ const SignupPage: React.FC = () => {
                     onChange={(e) => setFormData({ ...formData, passportNumber: e.target.value })}
                     className={inputClasses}
                     placeholder={lang === 'AR' ? 'A12345678' : 'A12345678'}
+                    dir="ltr"
                   />
                 </div>
               </div>
@@ -451,8 +455,7 @@ const SignupPage: React.FC = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-4 mt-4 text-white font-black uppercase tracking-widest rounded-[1.5rem] shadow-xl hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-50"
-              style={{ backgroundColor: 'var(--primary)' }}
+              className="w-full py-4 mt-4 text-white font-black uppercase tracking-widest rounded-[1.5rem] shadow-premium hover:shadow-premium-hover bg-gold-gradient active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-50"
             >
               {isLoading ? (
                 <>
@@ -468,30 +471,28 @@ const SignupPage: React.FC = () => {
             </button>
 
             <div className="text-center pt-2">
-              <Link to="/auth/login" className="text-sm font-black transition-colors uppercase" style={{ color: 'var(--text-primary)' }}>
+              <Link to="/auth/login" className="text-sm font-black transition-colors uppercase text-text-primary hover:text-primary">
                 {t.login}
               </Link>
             </div>
           </form>
 
-          <div className="p-6 flex justify-center items-center gap-6 border-t" style={{ borderColor: 'var(--border-color)' }}>
+          <div className="p-6 flex justify-center items-center gap-6 border-t border-border bg-surface/50">
             <button
               onClick={toggleDarkMode}
-              className="p-2 rounded-lg transition-colors hover:bg-black/5"
+              className="p-2 rounded-lg transition-colors hover:bg-black/5 dark:hover:bg-white/5 text-text-secondary"
               title="Toggle Dark Mode"
-              style={{ color: 'var(--text-secondary)' }}
             >
               {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
             </button>
 
-            <div className="w-px h-6 bg-[var(--border-color)]"></div>
+            <div className="w-px h-6 bg-border"></div>
 
             {(['RU', 'FR', 'EN', 'AR'] as Language[]).map(l => (
               <button
                 key={l}
                 onClick={() => setLang(l)}
-                className={`text-[10px] font-black tracking-widest transition-all px-2 py-1 rounded-md hover:bg-black/5`}
-                style={{ color: lang === l ? 'var(--text-primary)' : 'var(--text-secondary)' }}
+                className={`text-[10px] font-black tracking-widest transition-all px-2 py-1 rounded-md hover:bg-black/5 dark:hover:bg-white/5 ${lang === l ? 'text-text-primary' : 'text-text-secondary'}`}
               >
                 {l}
               </button>
@@ -500,7 +501,7 @@ const SignupPage: React.FC = () => {
         </div>
       </div>
 
-      <footer className="mt-auto py-8 text-center space-y-1 z-10" style={{ color: 'var(--text-secondary)' }}>
+      <footer className="mt-auto py-8 text-center space-y-1 z-10 text-text-secondary">
         <p className="text-[10px] font-black uppercase tracking-widest">
           {settings.branding.footerText}
         </p>
