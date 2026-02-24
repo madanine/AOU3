@@ -1,9 +1,8 @@
-
 import React, { useState } from 'react';
 import { useApp } from '../../App';
 import { storage } from '../../storage';
 import { Course } from '../../types';
-import { Plus, Edit2, Trash2, X, BookOpen, Save, ToggleLeft, ToggleRight, Clock, User as DocIcon, Link, MessageCircle, Video } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, BookOpen, Save, ToggleLeft, ToggleRight, Clock, User as DocIcon, MessageCircle, Video } from 'lucide-react';
 import SemesterControls from '../../components/admin/SemesterControls';
 
 const AdminCourses: React.FC = () => {
@@ -25,28 +24,7 @@ const AdminCourses: React.FC = () => {
     isRegistrationEnabled: true
   });
 
-  // Show courses only for active semester
   const courses = allCourses.filter(c => c.semesterId === settings.activeSemesterId);
-
-  const handleDeleteAll = async () => {
-    const confirmMsg = lang === 'AR'
-      ? 'هل أنت متأكد تماماً؟ سيتم حذف جميع المواد من النظام نهائياً!'
-      : 'Are you sure? This will delete ALL courses permanently!';
-
-    if (window.confirm(confirmMsg)) {
-      // Loop through all courses and delete them
-      // In a real app we'd have a bulk delete API, but here we loop
-      setIsLoading(true);
-      try {
-        await Promise.all(courses.map(c => storage.deleteCourse(c.id)));
-        setAllCourses([]);
-      } catch (err) {
-        alert('Error deleting courses');
-      } finally {
-        setIsLoading(false);
-      }
-    }
-  };
 
   const [isLoading, setIsLoading] = useState(false);
 
@@ -69,7 +47,6 @@ const AdminCourses: React.FC = () => {
   const handleDelete = async (id: string) => {
     if (confirm(t.deleteConfirm || (lang === 'AR' ? 'هل أنت متأكد من الحذف؟ لن تتمكن من التراجع.' : 'Are you sure? This cannot be undone.'))) {
       await storage.deleteCourse(id);
-      // Update local state after deletion
       setAllCourses(prev => prev.filter(c => c.id !== id));
     }
   };
@@ -97,14 +74,14 @@ const AdminCourses: React.FC = () => {
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight" style={{ color: 'var(--text-primary)' }}>{t.courses}</h1>
-          <p className="font-medium" style={{ color: 'var(--text-secondary)' }}>{t.manageCurriculum}</p>
+          <h1 className="text-title tracking-tight">{t.courses}</h1>
+          <p className="font-medium text-text-secondary mt-1">{t.manageCurriculum}</p>
         </div>
         <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
           <SemesterControls />
           <button
             onClick={handleOpenAdd}
-            className="bg-[var(--primary)] text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-blue-900/10 flex items-center gap-2 hover:brightness-110 transition-all"
+            className="bg-gold-gradient text-white px-6 py-3 rounded-2xl font-black shadow-premium hover:shadow-premium-hover flex items-center gap-2 transition-all uppercase text-xs tracking-widest active:scale-95"
           >
             <Plus size={20} />
             {t.addCourse}
@@ -113,116 +90,120 @@ const AdminCourses: React.FC = () => {
       </div>
 
       {courses.length === 0 ? (
-        <div className="bg-white p-20 rounded-[3rem] text-center border-2 border-dashed border-gray-100">
-          <BookOpen size={48} className="mx-auto text-gray-200 mb-4" />
-          <p className="text-gray-400 font-bold uppercase tracking-widest">{lang === 'AR' ? 'لا توجد مواد لهذا الفصل' : 'No courses for this semester'}</p>
+        <div className="bg-card p-20 rounded-[3rem] text-center border-2 border-dashed border-border flex flex-col items-center justify-center">
+          <BookOpen size={48} className="text-text-secondary opacity-50 mb-4" />
+          <p className="text-text-secondary font-black uppercase tracking-widest text-xs">{lang === 'AR' ? 'لا توجد مواد لهذا الفصل' : 'No courses for this semester'}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {courses.map(course => (
-            <div key={course.id} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm group hover:shadow-xl transition-all relative overflow-hidden">
+            <div key={course.id} className="bg-card p-6 rounded-3xl border border-border shadow-sm group hover:shadow-premium transition-all relative overflow-hidden flex flex-col">
               <div className="flex justify-between items-start mb-4">
-                <span className="bg-blue-50 text-[var(--primary)] text-[10px] font-black px-3 py-1 rounded-lg uppercase tracking-wider">
+                <span className="bg-primary/10 text-primary text-[10px] font-black px-3 py-1 rounded-lg uppercase tracking-wider">
                   {course.code}
                 </span>
                 <div className="flex gap-2">
                   <button
                     onClick={() => toggleCourseRegistration(course)}
-                    className={`p-1.5 rounded-lg transition-colors ${course.isRegistrationEnabled ? 'text-emerald-500 bg-emerald-50' : 'text-red-500 bg-red-50'}`}
+                    className={`p-1.5 rounded-lg transition-colors ${course.isRegistrationEnabled ? 'text-success bg-success/10 hover:bg-success/20' : 'text-red-500 bg-red-50 hover:bg-red-100'}`}
                     title={course.isRegistrationEnabled ? t.regEnabled : t.regDisabled}
                   >
                     {course.isRegistrationEnabled ? <ToggleRight size={20} /> : <ToggleLeft size={20} />}
                   </button>
-                  <button onClick={() => handleOpenEdit(course)} className="p-1.5 text-gray-400 hover:text-[var(--primary)]">
-                    <Edit2 size={18} />
+                  <button onClick={() => handleOpenEdit(course)} className="p-1.5 text-text-secondary hover:text-primary transition-colors bg-surface hover:bg-primary/5 rounded-lg border border-border">
+                    <Edit2 size={16} />
                   </button>
-                  <button onClick={() => handleDelete(course.id)} className="p-1.5 text-gray-400 hover:text-red-600">
-                    <Trash2 size={18} />
+                  <button onClick={() => handleDelete(course.id)} className="p-1.5 text-text-secondary hover:text-red-500 transition-colors bg-surface hover:bg-red-50 rounded-lg border border-border">
+                    <Trash2 size={16} />
                   </button>
                 </div>
               </div>
 
-              <h3 className="text-lg font-black mb-2 leading-snug" style={{ color: 'var(--text-primary)' }}>{translate(course, 'title')}</h3>
+              <h3 className="text-card leading-snug mb-3 flex-1">{translate(course, 'title')}</h3>
 
-              <div className="space-y-2 mb-4">
-                <div className="flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                  <DocIcon size={14} className="text-gray-300" />
-                  <span>{translate(course, 'doctor')}</span>
+              <div className="space-y-2 mb-4 bg-surface rounded-2xl p-4 border border-border">
+                <div className="flex items-center gap-3 text-[10px] font-black text-text-secondary uppercase tracking-widest">
+                  <div className="w-6 h-6 rounded-lg bg-card border border-border flex items-center justify-center">
+                    <DocIcon size={12} className="text-primary" />
+                  </div>
+                  <span className="truncate">{translate(course, 'doctor')}</span>
                 </div>
-                <div className="flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                  <Clock size={14} className="text-gray-300" />
-                  <span>{t.days[course.day]} @ {course.time}</span>
+                <div className="flex items-center gap-3 text-[10px] font-black text-text-secondary uppercase tracking-widest">
+                  <div className="w-6 h-6 rounded-lg bg-card border border-border flex items-center justify-center">
+                    <Clock size={12} className="text-primary" />
+                  </div>
+                  <span className="truncate">{t.days[course.day]} @ {course.time}</span>
                 </div>
               </div>
 
-              {/* Removed Credits Display as per request */}
-              <p className="text-xs text-gray-500 line-clamp-2 font-medium">{translate(course, 'description')}</p>
+              <p className="text-xs text-text-secondary line-clamp-2 font-medium leading-relaxed">{translate(course, 'description')}</p>
             </div>
           ))}
         </div>
       )}
 
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 overflow-y-auto max-h-[90vh]">
-            <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-              <h2 className="text-xl font-black" style={{ color: 'var(--text-primary)' }}>{editingCourse ? t.editCourse : t.addCourse}</h2>
-              <button onClick={() => setIsModalOpen(false)} style={{ color: 'var(--text-secondary)' }}>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-card w-full max-w-2xl rounded-[2.5rem] border border-border shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+            <div className="p-6 md:p-8 border-b border-border flex justify-between items-center bg-surface">
+              <h2 className="text-xl font-black text-text-primary">{editingCourse ? t.editCourse : t.addCourse}</h2>
+              <button onClick={() => setIsModalOpen(false)} className="text-text-secondary hover:text-red-500 transition-colors">
                 <X size={24} />
               </button>
             </div>
-            <form onSubmit={handleSubmit} className="p-6 space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black uppercase tracking-widest ml-1" style={{ color: 'var(--text-secondary)' }}>{t.courseCode}</label>
+            <form onSubmit={handleSubmit} className="p-6 md:p-8 space-y-6 overflow-y-auto custom-scrollbar flex-1">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black uppercase tracking-widest ml-1 text-text-secondary">{t.courseCode}</label>
                   <input
                     required
                     value={formData.code}
                     onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                    className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none text-sm font-bold text-gray-900 dark:text-white"
+                    className="w-full px-4 py-3 bg-surface border border-border rounded-xl focus:ring-2 focus:ring-primary outline-none text-sm font-bold text-text-primary transition-all"
+                    placeholder="e.g. CS101"
                   />
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{lang === 'AR' ? 'اسم المادة' : 'Course Name'}</label>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black uppercase tracking-widest ml-1 text-text-secondary">{lang === 'AR' ? 'اسم المادة' : 'Course Name'}</label>
                   <input
                     required
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value, title_ar: e.target.value })}
-                    className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-white/10 rounded-xl outline-none text-sm font-bold text-gray-900 dark:text-white"
+                    className="w-full px-4 py-3 bg-surface border border-border rounded-xl focus:ring-2 focus:ring-primary outline-none text-sm font-bold text-text-primary transition-all"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{lang === 'AR' ? 'اسم الدكتور' : 'Doctor Name'}</label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black uppercase tracking-widest ml-1 text-text-secondary">{lang === 'AR' ? 'اسم الدكتور' : 'Doctor Name'}</label>
                   <input
                     required
                     value={formData.doctor}
                     onChange={(e) => setFormData({ ...formData, doctor: e.target.value, doctor_ar: e.target.value })}
-                    className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-white/10 rounded-xl outline-none text-sm font-bold text-gray-900 dark:text-white"
+                    className="w-full px-4 py-3 bg-surface border border-border rounded-xl focus:ring-2 focus:ring-primary outline-none text-sm font-bold text-text-primary transition-all"
                   />
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{t.time}</label>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black uppercase tracking-widest ml-1 text-text-secondary">{t.time}</label>
                   <input
                     required
                     value={formData.time}
                     onChange={(e) => setFormData({ ...formData, time: e.target.value })}
-                    className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-white/10 rounded-xl outline-none text-sm font-bold text-gray-900 dark:text-white"
+                    className="w-full px-4 py-3 bg-surface border border-border rounded-xl focus:ring-2 focus:ring-primary outline-none text-sm font-bold text-text-primary transition-all"
                     placeholder="10:00 - 12:00"
                   />
                 </div>
               </div>
 
-              <div className="space-y-1">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{t.day}</label>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black uppercase tracking-widest ml-1 text-text-secondary">{t.day}</label>
                 <select
                   value={formData.day}
                   onChange={(e) => setFormData({ ...formData, day: e.target.value })}
-                  className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-white/10 rounded-xl outline-none text-sm font-bold text-gray-900 dark:text-white"
+                  className="w-full px-4 py-3 bg-surface border border-border rounded-xl focus:ring-2 focus:ring-primary outline-none text-sm font-bold text-text-primary appearance-none transition-all"
                 >
                   {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(d => (
                     <option key={d} value={d}>
@@ -232,70 +213,75 @@ const AdminCourses: React.FC = () => {
                 </select>
               </div>
 
-              <div className="space-y-4 pt-4 border-t border-gray-100">
-                <h3 className="text-xs font-black uppercase tracking-widest text-gray-400">{lang === 'AR' ? 'روابط التواصل' : 'Communication Links'}</h3>
+              <div className="space-y-4 pt-6 border-t border-border">
+                <h3 className="text-xs font-black uppercase tracking-widest text-text-primary flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center text-primary">
+                    <Link size={12} />
+                  </div>
+                  {lang === 'AR' ? 'روابط التواصل' : 'Communication Links'}
+                </h3>
 
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black uppercase tracking-widest ml-1 flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
-                    <MessageCircle size={14} className="text-green-500" />
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black uppercase tracking-widest ml-1 flex items-center gap-2 text-text-secondary">
+                    <MessageCircle size={14} className="text-success" />
                     {lang === 'AR' ? 'رابط مجموعة الواتس اب' : 'WhatsApp Group Link'}
                   </label>
                   <input
                     value={formData.whatsappLink || ''}
                     onChange={(e) => setFormData({ ...formData, whatsappLink: e.target.value })}
-                    className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-white/10 rounded-xl outline-none text-sm font-bold text-gray-900 dark:text-white"
+                    className="w-full px-4 py-3 bg-surface border border-border rounded-xl focus:ring-2 focus:ring-primary outline-none text-sm font-bold text-text-primary transition-all"
                     placeholder="https://chat.whatsapp.com/..."
                   />
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black uppercase tracking-widest ml-1 flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
-                    <MessageCircle size={14} className="text-blue-400" />
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black uppercase tracking-widest ml-1 flex items-center gap-2 text-text-secondary">
+                    <MessageCircle size={14} className="text-blue-500" />
                     {lang === 'AR' ? 'رابط مجموعة التيليجرام' : 'Telegram Group Link'}
                   </label>
                   <input
                     value={formData.telegramLink || ''}
                     onChange={(e) => setFormData({ ...formData, telegramLink: e.target.value })}
-                    className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-white/10 rounded-xl outline-none text-sm font-bold text-gray-900 dark:text-white"
+                    className="w-full px-4 py-3 bg-surface border border-border rounded-xl focus:ring-2 focus:ring-primary outline-none text-sm font-bold text-text-primary transition-all"
                     placeholder="https://t.me/..."
                   />
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black uppercase tracking-widest ml-1 flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black uppercase tracking-widest ml-1 flex items-center gap-2 text-text-secondary">
                     <Video size={14} className="text-red-500" />
                     {lang === 'AR' ? 'رابط المحاضرة (Zoom/Meet)' : 'Lecture Link (Zoom/Meet)'}
                   </label>
                   <input
                     value={formData.lectureLink || ''}
                     onChange={(e) => setFormData({ ...formData, lectureLink: e.target.value })}
-                    className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-white/10 rounded-xl outline-none text-sm font-bold text-gray-900 dark:text-white"
+                    className="w-full px-4 py-3 bg-surface border border-border rounded-xl focus:ring-2 focus:ring-primary outline-none text-sm font-bold text-text-primary transition-all"
                     placeholder="https://zoom.us/..."
                   />
                 </div>
               </div>
 
-              <div className="space-y-1 pt-4 border-t border-gray-100">
-                <label className="text-[10px] font-black uppercase tracking-widest ml-1 text-gray-400">{lang === 'AR' ? 'ملاحظات' : 'Notes'}</label>
+              <div className="space-y-1.5 pt-6 border-t border-border">
+                <label className="text-[10px] font-black uppercase tracking-widest ml-1 text-text-secondary">{lang === 'AR' ? 'ملاحظات' : 'Notes'}</label>
                 <textarea
                   value={formData.notes || ''}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  className="w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-white/10 rounded-xl outline-none text-sm font-bold text-gray-900 dark:text-white min-h-[100px]"
+                  className="w-full px-4 py-3 bg-surface border border-border rounded-xl focus:ring-2 focus:ring-primary outline-none text-sm font-bold text-text-primary min-h-[100px] transition-all"
                   placeholder={lang === 'AR' ? 'أي تفاصيل إضافية...' : 'Any extra details...'}
                 />
               </div>
 
-              <div className="flex gap-3 pt-4">
+              <div className="flex gap-4 pt-6 border-t border-border mt-8">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="flex-1 py-4 text-xs font-black text-gray-400 uppercase tracking-widest hover:bg-gray-50 rounded-2xl transition-all"
+                  className="flex-1 py-4 text-xs font-black text-text-secondary hover:text-text-primary uppercase tracking-widest hover:bg-surface rounded-2xl transition-all border border-transparent hover:border-border"
                 >
                   {t.cancel}
                 </button>
                 <button
                   type="submit"
-                  className="flex-[2] py-4 bg-[var(--primary)] text-white font-black rounded-2xl shadow-xl hover:brightness-110 transition-all flex items-center justify-center gap-2 uppercase text-xs tracking-widest"
+                  className="flex-[2] py-4 bg-gold-gradient text-white font-black rounded-2xl shadow-premium hover:shadow-premium-hover transition-all flex items-center justify-center gap-2 uppercase text-xs tracking-widest active:scale-95"
                 >
                   <Save size={18} />
                   {t.save}
