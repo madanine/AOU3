@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { storage } from '../../storage';
@@ -26,7 +25,6 @@ import {
   GraduationCap as GradIcon,
   Sun,
   Moon,
-  Globe,
   FileEdit,
   ScrollText
 } from 'lucide-react';
@@ -77,18 +75,15 @@ const MainLayout: React.FC = () => {
         { label: lang === 'AR' ? 'السجلات الأكاديمية' : 'Transcripts', path: '/admin/transcripts', icon: ScrollText, key: 'transcripts' },
       ];
 
-      // CRITICAL: Sub-admins only see what they are allowed
       const filtered = items.filter(item => {
         if (fullAccess || isPrimaryAdmin) return true;
         return perms[item.key] === true;
       });
 
-      // University ID Registry (Super Admin or granted permission)
       if (isPrimaryAdmin || user.canAccessRegistry) {
         filtered.push({ label: t.universityIdRegistry, path: '/admin/registry', icon: FileSpreadsheet, key: 'registry' });
       }
 
-      // Admin Management (Primary Admin or granted permission)
       if (isPrimaryAdmin || user.permissions?.manageAdmins) {
         filtered.push({ label: lang === 'AR' ? 'إدارة المسؤولين' : 'Admin Management', path: '/admin/admins', icon: Lock, key: 'adminManagement' });
       } else {
@@ -111,7 +106,6 @@ const MainLayout: React.FC = () => {
         items.push({ label: t.grading, path: '/supervisor/grading', icon: GradIcon, key: 'grading' });
       }
 
-      // Add Supervisor Dashboard
       items.unshift({ label: t.dashboard, path: '/supervisor/dashboard', icon: LayoutDashboard, key: 'dashboard' });
 
       return items;
@@ -156,34 +150,32 @@ const MainLayout: React.FC = () => {
   const closeSidebar = () => setSidebarOpen(false);
 
   return (
-    <div className="h-screen overflow-hidden flex flex-col md:flex-row relative" style={{ backgroundColor: 'var(--background)' }}>
+    <div className="h-screen flex flex-col md:flex-row relative bg-background overflow-hidden">
       {/* Mobile Header */}
-      <div className="md:hidden flex items-center justify-between p-4 border-b sticky top-0 z-50 shadow-sm" style={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)' }}>
+      <div className="md:hidden flex items-center justify-between p-4 border-b border-border sticky top-0 z-50 shadow-sm bg-card">
         <div className="flex items-center gap-2">
           {(settings.branding.logo || settings.branding.logoBase64) ? (
             <img src={settings.branding.logo || settings.branding.logoBase64} alt="Logo" className="h-10 w-auto object-contain" />
           ) : (
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold" style={{ backgroundColor: 'var(--primary)' }}>A</div>
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold bg-gold-gradient">A</div>
           )}
           <div className="flex flex-col">
-            <span className="font-bold text-[10px] tracking-tight leading-none" style={{ color: 'var(--text-primary)' }}>
+            <span className="font-bold text-[10px] tracking-tight leading-none text-text-primary">
               {isRtl ? settings.branding.siteNameAr : settings.branding.siteNameEn}
             </span>
-            <span className="text-[8px] font-bold opacity-70" style={{ color: 'var(--text-primary)' }}>{t.regionalCenter}</span>
+            <span className="text-[8px] font-bold opacity-70 text-text-primary">{t.regionalCenter}</span>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={toggleDarkMode}
-            className="p-2 rounded-lg transition-colors"
-            style={{ color: 'var(--text-secondary)' }}
+            className="p-2 rounded-lg transition-colors hover:bg-surface text-text-secondary"
           >
             {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
           </button>
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-2 rounded-lg transition-colors"
-            style={{ color: 'var(--text-secondary)' }}
+            className="p-2 rounded-lg transition-colors hover:bg-surface text-text-secondary"
           >
             {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
@@ -192,24 +184,24 @@ const MainLayout: React.FC = () => {
 
       {/* Sidebar */}
       <aside className={`
-        fixed inset-y-0 z-50 w-72 border-r border-[var(--border-color)] transition-transform duration-300 ease-in-out
+        fixed inset-y-0 z-50 w-72 border-r border-border bg-card transition-transform duration-300 ease-in-out
         md:relative md:translate-x-0 md:z-auto md:flex md:w-64
         ${isRtl ? 'right-0' : 'left-0'}
         ${isRtl ? (sidebarOpen ? 'translate-x-0' : 'translate-x-full') : (sidebarOpen ? 'translate-x-0' : '-translate-x-full')}
-      `} style={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)' }}>
+      `}>
         <div className="h-full flex flex-col p-6 w-full">
           <div className="flex items-center justify-between mb-10">
             <div className="flex items-center gap-3">
               {(settings.branding.logo || settings.branding.logoBase64) ? (
                 <img src={settings.branding.logo || settings.branding.logoBase64} alt="Logo" className="h-12 w-auto object-contain" />
               ) : (
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg" style={{ backgroundColor: 'var(--primary)' }}>A</div>
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg bg-gold-gradient">A</div>
               )}
               <div className="flex flex-col">
-                <h1 className="font-bold text-sm leading-tight max-w-[140px]" style={{ color: 'var(--text-primary)' }}>
+                <h1 className="font-bold text-sm leading-tight max-w-[140px] text-text-primary">
                   {isRtl ? settings.branding.siteNameAr : settings.branding.siteNameEn}
                 </h1>
-                <p className="text-[9px] font-bold opacity-60" style={{ color: 'var(--text-primary)' }}>{t.regionalCenter}</p>
+                <p className="text-[9px] font-bold opacity-60 text-text-primary">{t.regionalCenter}</p>
               </div>
             </div>
           </div>
@@ -223,12 +215,10 @@ const MainLayout: React.FC = () => {
                   key={item.path}
                   to={item.path}
                   onClick={closeSidebar}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-semibold ${isActive ? 'shadow-lg' : ''
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-semibold ${isActive
+                    ? 'bg-gold-gradient text-white shadow-premium'
+                    : 'text-text-secondary hover:bg-surface hover:text-primary'
                     }`}
-                  style={{
-                    backgroundColor: isActive ? 'var(--primary)' : 'transparent',
-                    color: isActive ? '#fff' : 'var(--text-secondary)'
-                  }}
                 >
                   <Icon size={20} />
                   <span className="text-xs uppercase tracking-widest">{item.label}</span>
@@ -237,24 +227,22 @@ const MainLayout: React.FC = () => {
             })}
           </nav>
 
-          <div className="mt-auto pt-6 border-t border-[var(--border-color)] space-y-4">
-            {/* Language Switcher Inside App */}
-            <div className="flex justify-center gap-4 py-4 border-b border-[var(--border-color)] items-center">
+          <div className="mt-auto pt-6 border-t border-border space-y-4">
+            {/* Language Switcher */}
+            <div className="flex justify-center gap-4 py-4 border-b border-border items-center">
               {(['AR', 'EN', 'FR', 'RU'] as Language[]).map(l => (
                 <button
                   key={l}
                   onClick={() => setLang(l)}
-                  className={`text-[10px] font-black tracking-widest transition-all p-1 rounded-md hover:bg-black/5`}
-                  style={{ color: lang === l ? 'var(--primary)' : 'var(--text-secondary)' }}
+                  className={`text-[10px] font-black tracking-widest transition-all p-1 rounded-md hover:bg-surface ${lang === l ? 'text-primary' : 'text-text-secondary'}`}
                 >
                   {l}
                 </button>
               ))}
-              <div className="w-px h-4 bg-[var(--border-color)] mx-1"></div>
+              <div className="w-px h-4 bg-border mx-1"></div>
               <button
                 onClick={toggleDarkMode}
-                className="p-1 rounded-lg transition-colors hover:bg-black/5"
-                style={{ color: 'var(--text-secondary)' }}
+                className="p-1 rounded-lg transition-colors hover:bg-surface text-text-secondary"
                 title={isDarkMode ? 'Light Mode' : 'Dark Mode'}
               >
                 {isDarkMode ? <Sun size={16} /> : <Moon size={16} />}
@@ -263,17 +251,17 @@ const MainLayout: React.FC = () => {
 
             <div className="flex items-center justify-between gap-3 mb-2">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400">
+                <div className="w-8 h-8 rounded-lg bg-surface flex items-center justify-center text-text-secondary shadow-sm border border-border">
                   <UserIcon size={16} />
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-[10px] font-black text-[var(--text-primary)] truncate max-w-[100px]">{user?.fullName}</span>
-                  <span className="text-[8px] font-bold text-gray-400 uppercase tracking-tighter">{user?.role}</span>
+                  <span className="text-[10px] font-black text-text-primary truncate max-w-[100px]">{user?.fullName}</span>
+                  <span className="text-[8px] font-bold text-text-secondary uppercase tracking-tighter">{user?.role}</span>
                 </div>
               </div>
               <button
                 onClick={handleLogout}
-                className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-all"
                 title={t.logout}
               >
                 <LogOut size={18} />
@@ -284,28 +272,16 @@ const MainLayout: React.FC = () => {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col relative overflow-y-auto w-full">
-        <div className="flex-1 p-6 md:p-10">
+      <main className="flex-1 flex flex-col relative overflow-y-auto w-full bg-background">
+        <div className="flex-1 p-6 md:p-10 relative">
           <Outlet />
         </div>
-
-        {/* Footer */}
-        <footer className="py-6 px-6 md:px-10 border-t mt-auto shrink-0" style={{ borderColor: 'var(--border-color)', backgroundColor: 'transparent' }}>
-          <div className="text-center space-y-1">
-            <p className="text-[10px] font-black uppercase tracking-widest opacity-40">
-              {settings.branding.footerText}
-            </p>
-            <p className="text-[9px] font-black uppercase tracking-widest opacity-20">
-              BY ABDULLAH
-            </p>
-          </div>
-        </footer>
       </main>
 
       {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 md:hidden"
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 md:hidden"
           onClick={closeSidebar}
         />
       )}
