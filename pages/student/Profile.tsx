@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../App';
 import { storage } from '../../storage';
-import { User, Smartphone, GraduationCap, Mail, Fingerprint, Save, CheckCircle, Lock, KeyRound, AlertCircle, Globe, Calendar } from 'lucide-react';
+import { User, Smartphone, GraduationCap, Mail, Fingerprint, Save, CheckCircle, Lock, KeyRound, AlertCircle, Globe, Calendar, ShieldCheck } from 'lucide-react';
 import { Major } from '../../types';
 import { COUNTRIES, getCountryName } from '../../countries';
 
@@ -117,82 +117,89 @@ const Profile: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {!isSubAdmin && (
           <div className="lg:col-span-2 space-y-8">
-            <div className="rounded-[2.5rem] shadow-xl border overflow-hidden" style={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)' }}>
-              <div className="h-24 bg-[var(--primary)] opacity-90 relative">
-                <div className={`absolute -bottom-10 ${lang === 'AR' ? 'right-10' : 'left-10'}`}>
-                  <div className="w-20 h-20 rounded-2xl bg-card p-1 shadow-lg" style={{ backgroundColor: 'var(--card-bg)' }}>
-                    <div className="w-full h-full rounded-xl bg-surface flex items-center justify-center text-[var(--primary)] font-black text-2xl overflow-hidden">
-                      {settings.branding.logoBase64 ? (
-                        <img src={settings.branding.logoBase64} alt="Avatar Logo" className="w-full h-full object-contain" />
-                      ) : (
-                        user?.fullName.charAt(0)
-                      )}
-                    </div>
+            <div className="bg-card rounded-[2rem] shadow-premium border border-border overflow-hidden">
+              <div className="p-10 border-b border-border/50 flex flex-col md:flex-row items-center md:items-start gap-6 text-center md:text-left rtl:md:text-right">
+                <div className="w-24 h-24 rounded-2xl bg-surface p-1 shadow-sm border border-border shrink-0">
+                  <div className="w-full h-full rounded-xl bg-primary/10 flex items-center justify-center text-primary font-black text-3xl overflow-hidden">
+                    {settings.branding.logoBase64 ? (
+                      <img src={settings.branding.logoBase64} alt="Avatar Logo" className="w-full h-full object-contain" />
+                    ) : (
+                      user?.fullName.charAt(0)
+                    )}
                   </div>
+                </div>
+                <div className="flex flex-col justify-center py-2">
+                  <h2 className="text-3xl font-black text-text-primary tracking-tight">{user?.fullName}</h2>
+                  <p className="text-sm font-bold text-text-secondary mt-3 tracking-wide flex items-center justify-center md:justify-start gap-2">
+                    <Fingerprint size={14} className="opacity-70" />
+                    {user?.universityId}
+                    <span className="opacity-50">•</span>
+                    <GraduationCap size={14} className="opacity-70" />
+                    {t.majorList[user?.major as keyof typeof t.majorList] || user?.major}
+                  </p>
                 </div>
               </div>
 
-              <form onSubmit={handleSaveProfile} className="p-8 pt-16 space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <form onSubmit={handleSaveProfile} className="p-10 space-y-10">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest ml-1" style={{ color: 'var(--text-secondary)' }}>{t.universityId}</label>
+                    <label className="text-[10px] font-black uppercase tracking-widest ml-1 text-text-secondary">{t.universityId}</label>
                     <div className="relative">
-                      <Fingerprint className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" size={16} />
+                      <Fingerprint className="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary opacity-40" size={18} />
                       <input
                         required
                         value={formData.universityId}
                         readOnly
                         disabled
-                        className="w-full pl-10 pr-4 py-3 bg-surface border border-border rounded-xl outline-none text-sm font-bold text-text-secondary cursor-not-allowed"
+                        className="w-full pl-12 pr-5 py-4 bg-surface/30 border border-border border-dashed rounded-xl outline-none text-sm font-bold text-text-secondary opacity-60 cursor-not-allowed"
                       />
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest ml-1" style={{ color: 'var(--text-secondary)' }}>{t.email}</label>
+                    <label className="text-[10px] font-black uppercase tracking-widest ml-1 text-text-secondary">{t.email}</label>
                     <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" size={16} />
+                      <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary opacity-50" size={18} />
                       <input
                         required
                         type="email"
                         value={formData.email}
                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        className="w-full pl-10 pr-4 py-3 bg-surface/50 border border-border rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none transition-all text-sm font-bold text-text-primary"
+                        className="w-full pl-12 pr-5 py-4 bg-surface border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-sm font-bold text-text-primary shadow-sm"
                       />
                     </div>
                   </div>
 
                   <div className="space-y-2 md:col-span-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest ml-1" style={{ color: 'var(--text-secondary)' }}>{t.fullName}</label>
+                    <label className="text-[10px] font-black uppercase tracking-widest ml-1 text-text-secondary">{t.fullName}</label>
                     <input
                       required
                       value={formData.fullName}
                       onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                      className="w-full px-5 py-3 bg-surface/50 border border-border rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none transition-all text-sm font-bold text-text-primary"
+                      className="w-full px-6 py-4 bg-surface border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-sm font-bold text-text-primary shadow-sm"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest ml-1" style={{ color: 'var(--text-secondary)' }}>{t.phone}</label>
+                    <label className="text-[10px] font-black uppercase tracking-widest ml-1 text-text-secondary">{t.phone}</label>
                     <div className="relative">
-                      <Smartphone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" size={16} />
+                      <Smartphone className="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary opacity-50" size={18} />
                       <input
                         value={formData.phone}
                         onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                        className="w-full pl-10 pr-4 py-3 bg-surface/50 border border-border rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none transition-all text-sm font-bold text-text-primary"
+                        className="w-full pl-12 pr-5 py-4 bg-surface border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-sm font-bold text-text-primary shadow-sm"
                       />
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest ml-1" style={{ color: 'var(--text-secondary)' }}>{t.major}</label>
+                    <label className="text-[10px] font-black uppercase tracking-widest ml-1 text-text-secondary">{t.major}</label>
                     <div className="relative group">
                       <select
                         required
                         value={formData.major}
                         disabled
-                        className={`w-full py-3 bg-surface border border-border rounded-xl outline-none text-sm font-bold text-text-secondary cursor-not-allowed appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23cbd5e1%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C/polyline%3E%3C/svg%3E')] bg-[length:18px] bg-no-repeat ${lang === 'AR' ? 'bg-[left_1rem_center] pl-10 pr-5' : 'bg-[right_1rem_center] pr-10 pl-5'
-                          }`}
+                        className="w-full py-4 bg-surface/30 border border-border border-dashed rounded-xl outline-none text-sm font-bold text-text-secondary opacity-60 cursor-not-allowed appearance-none ltr:pl-6 ltr:pr-12 rtl:pr-6 rtl:pl-12"
                       >
                         <option value="">{t.selectMajor}</option>
                         {Object.entries(t.majorList).map(([key, value]) => (
@@ -204,9 +211,9 @@ const Profile: React.FC = () => {
 
                   {/* Nationality Field */}
                   <div className="space-y-2 md:col-span-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest ml-1" style={{ color: 'var(--text-secondary)' }}>{t.nationality}</label>
+                    <label className="text-[10px] font-black uppercase tracking-widest ml-1 text-text-secondary">{t.nationality}</label>
                     <div className="relative">
-                      <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" size={16} />
+                      <Globe className="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary opacity-50" size={18} />
                       <input
                         type="text"
                         required
@@ -216,7 +223,6 @@ const Profile: React.FC = () => {
                           setNationalitySearch(searchValue);
                           setShowNationalityDropdown(true);
 
-                          // Clear nationality if user is typing
                           if (formData.nationality && searchValue !== getCountryName(formData.nationality, lang)) {
                             setFormData({ ...formData, nationality: '' });
                           }
@@ -224,12 +230,12 @@ const Profile: React.FC = () => {
                         onFocus={() => setShowNationalityDropdown(true)}
                         placeholder={t.selectNationality}
                         autoComplete="off"
-                        className="w-full pl-10 pr-4 py-3 bg-surface/50 border border-border rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none transition-all text-sm font-bold text-text-primary"
+                        className="w-full pl-12 pr-5 py-4 bg-surface border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-sm font-bold text-text-primary shadow-sm"
                       />
                       {showNationalityDropdown && (
                         <>
                           <div className="fixed inset-0 z-20" onClick={() => setShowNationalityDropdown(false)} />
-                          <div className="absolute z-30 w-full mt-2 max-h-60 overflow-y-auto bg-card dark:bg-gray-800 border border-border rounded-xl shadow-2xl">
+                          <div className="absolute z-30 w-full mt-2 max-h-60 overflow-y-auto bg-card border border-border rounded-xl shadow-premium">
                             {COUNTRIES.filter(country => {
                               const displayName = lang === 'AR' ? country.name_ar : country.name_en;
                               return displayName.toLowerCase().includes(nationalitySearch.toLowerCase());
@@ -244,7 +250,7 @@ const Profile: React.FC = () => {
                                     setNationalitySearch(displayName);
                                     setShowNationalityDropdown(false);
                                   }}
-                                  className="w-full text-left px-4 py-3 hover:bg-primary/10 dark:hover:bg-gray-700 text-sm font-bold text-text-primary dark:text-gray-200 transition-colors border-b border-border dark:border-gray-700 last:border-0"
+                                  className="w-full text-left rtl:text-right px-4 py-3 hover:bg-primary/5 text-sm font-bold text-text-primary transition-colors border-b border-border/50 last:border-0"
                                 >
                                   {displayName}
                                 </button>
@@ -258,107 +264,114 @@ const Profile: React.FC = () => {
 
                   {/* Passport Number (Optional) */}
                   <div className="space-y-2 md:col-span-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest ml-1" style={{ color: 'var(--text-secondary)' }}>{t.passportNumber}</label>
+                    <label className="text-[10px] font-black uppercase tracking-widest ml-1 text-text-secondary">{t.passportNumber}</label>
                     <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" size={16} />
+                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary opacity-50" size={18} />
                       <input
                         required
                         type="text"
                         value={formData.passportNumber}
                         onChange={(e) => setFormData({ ...formData, passportNumber: e.target.value })}
                         placeholder={lang === 'AR' ? 'A12345678' : 'A12345678'}
-                        className="w-full pl-10 pr-4 py-3 bg-surface/50 border border-border rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none transition-all text-sm font-bold text-text-primary"
+                        className="w-full pl-12 pr-5 py-4 bg-surface border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-sm font-bold text-text-primary shadow-sm"
                       />
                     </div>
                   </div>
 
                   {/* Date of Birth Field */}
                   <div className="space-y-2 md:col-span-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest ml-1" style={{ color: 'var(--text-secondary)' }}>{t.dateOfBirth}</label>
+                    <label className="text-[10px] font-black uppercase tracking-widest ml-1 text-text-secondary">{t.dateOfBirth}</label>
                     <div className="relative">
-                      <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" size={16} />
+                      <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary opacity-50" size={18} />
                       <input
                         type="date"
                         required
                         value={formData.dateOfBirth}
                         max={new Date().toISOString().split('T')[0]}
                         onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
-                        className="w-full pl-10 pr-4 py-3 bg-surface/50 border border-border rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none transition-all text-sm font-bold text-text-primary"
+                        className="w-full pl-12 pr-5 py-4 bg-surface border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-sm font-bold text-text-primary shadow-sm text-center ltr:text-left rtl:text-right"
                       />
                     </div>
                   </div>
                 </div>
 
-                <button
-                  type="submit"
-                  className="w-full py-4 bg-[var(--primary)] text-white font-black rounded-2xl shadow-lg shadow-blue-900/10 hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-3 uppercase text-xs tracking-widest"
-                >
-                  <Save size={18} />
-                  {t.save}
-                </button>
+                <div className="pt-6">
+                  <button
+                    type="submit"
+                    className="w-full py-4 bg-gold-gradient text-white font-black rounded-xl shadow-premium hover:shadow-premium-hover hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center justify-center gap-3 uppercase text-xs tracking-widest"
+                  >
+                    <Save size={18} />
+                    {t.save}
+                  </button>
+                </div>
               </form>
             </div>
           </div>
         )}
 
         <div className={isSubAdmin ? "lg:col-span-3" : "lg:col-span-1"}>
-          <div className="rounded-[2.5rem] shadow-xl border p-8 space-y-6 sticky top-8" style={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)' }}>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-500 flex items-center justify-center">
-                <Lock size={20} />
+          <div className="bg-card rounded-[2rem] shadow-premium border border-border p-10 space-y-10 sticky top-8">
+            <div className="flex items-center gap-4 border-b border-border/50 pb-8">
+              <div className="w-14 h-14 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                <ShieldCheck size={28} />
               </div>
-              <h2 className="text-xl font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>{lang === 'AR' ? 'تغيير كلمة المرور' : 'Change Password'}</h2>
+              <div>
+                <h2 className="text-2xl font-black text-text-primary tracking-tight">{lang === 'AR' ? 'تغيير كلمة المرور' : 'Security'}</h2>
+                <p className="text-sm font-bold text-text-secondary mt-1">{lang === 'AR' ? 'قم بتحديث بيانات الدخول' : 'Update credentials'}</p>
+              </div>
             </div>
 
-            <form onSubmit={handleChangePassword} className="space-y-4">
-              <div className="space-y-1">
-                <label className="text-[10px] font-black uppercase tracking-widest ml-1" style={{ color: 'var(--text-secondary)' }}>{lang === 'AR' ? 'كلمة المرور الحالية' : 'Current Password'}</label>
+            <form onSubmit={handleChangePassword} className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest ml-1 text-text-secondary">{lang === 'AR' ? 'كلمة المرور الحالية' : 'Current Password'}</label>
                 <div className="relative">
-                  <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" size={16} />
+                  <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary opacity-50" size={18} />
                   <input
                     type="password"
                     required
                     value={passwordData.currentPassword}
                     onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
-                    className="w-full pl-10 pr-4 py-3 bg-surface/50 border border-border rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none text-sm font-bold"
+                    className="w-full pl-12 pr-5 py-4 bg-surface border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-sm font-bold text-text-primary shadow-sm"
                   />
                 </div>
               </div>
 
-              <div className="space-y-1">
-                <label className="text-[10px] font-black uppercase tracking-widest ml-1" style={{ color: 'var(--text-secondary)' }}>{lang === 'AR' ? 'كلمة المرور الجديدة' : 'New Password'}</label>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest ml-1 text-text-secondary">{lang === 'AR' ? 'كلمة المرور الجديدة' : 'New Password'}</label>
                 <div className="relative">
-                  <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" size={16} />
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary opacity-50" size={18} />
                   <input
                     type="password"
                     required
                     value={passwordData.newPassword}
                     onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-                    className="w-full pl-10 pr-4 py-3 bg-surface/50 border border-border rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none text-sm font-bold"
+                    className="w-full pl-12 pr-5 py-4 bg-surface border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-sm font-bold text-text-primary shadow-sm"
                   />
                 </div>
               </div>
 
-              <div className="space-y-1">
-                <label className="text-[10px] font-black uppercase tracking-widest ml-1" style={{ color: 'var(--text-secondary)' }}>{lang === 'AR' ? 'تأكيد كلمة المرور الجديدة' : 'Confirm New Password'}</label>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest ml-1 text-text-secondary">{lang === 'AR' ? 'تأكيد كلمة المرور الجديدة' : 'Confirm New Password'}</label>
                 <div className="relative">
-                  <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" size={16} />
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary opacity-50" size={18} />
                   <input
                     type="password"
                     required
                     value={passwordData.confirmNewPassword}
                     onChange={(e) => setPasswordData({ ...passwordData, confirmNewPassword: e.target.value })}
-                    className="w-full pl-10 pr-4 py-3 bg-surface/50 border border-border rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none text-sm font-bold"
+                    className="w-full pl-12 pr-5 py-4 bg-surface border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-sm font-bold text-text-primary shadow-sm"
                   />
                 </div>
               </div>
 
-              <button
-                type="submit"
-                className="w-full py-4 bg-gray-900 text-white font-black rounded-2xl shadow-xl hover:brightness-110 active:scale-[0.98] transition-all text-xs uppercase tracking-widest"
-              >
-                {t.save || (lang === 'AR' ? 'حفظ' : 'Save')}
-              </button>
+              <div className="pt-6">
+                <button
+                  type="submit"
+                  className="w-full py-4 bg-gold-gradient text-white font-black rounded-xl shadow-premium hover:shadow-premium-hover hover:-translate-y-0.5 active:translate-y-0 transition-all text-xs uppercase tracking-widest"
+                >
+                  {t.save || (lang === 'AR' ? 'حفظ' : 'Save')}
+                </button>
+              </div>
             </form>
           </div>
         </div>

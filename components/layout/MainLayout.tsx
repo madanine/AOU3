@@ -169,13 +169,13 @@ const MainLayout: React.FC = () => {
         <div className="flex items-center gap-2">
           <button
             onClick={toggleDarkMode}
-            className="p-2 rounded-lg transition-colors hover:bg-surface text-text-secondary"
+            className="p-2 rounded-lg transition-colors hover:bg-black/5 dark:hover:bg-white/5 text-text-secondary"
           >
             {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
           </button>
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-2 rounded-lg transition-colors hover:bg-surface text-text-secondary"
+            className="p-2 rounded-lg transition-colors hover:bg-black/5 dark:hover:bg-white/5 text-text-secondary"
           >
             {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
@@ -217,7 +217,7 @@ const MainLayout: React.FC = () => {
                   onClick={closeSidebar}
                   className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-semibold ${isActive
                     ? 'bg-gold-gradient text-white shadow-premium'
-                    : 'text-text-secondary hover:bg-surface hover:text-primary'
+                    : 'text-text-secondary hover:bg-black/5 dark:hover:bg-white/5 hover:text-primary'
                     }`}
                 >
                   <Icon size={20} />
@@ -234,7 +234,7 @@ const MainLayout: React.FC = () => {
                 <button
                   key={l}
                   onClick={() => setLang(l)}
-                  className={`text-[10px] font-black tracking-widest transition-all p-1 rounded-md hover:bg-surface ${lang === l ? 'text-primary' : 'text-text-secondary'}`}
+                  className={`text-[10px] font-black tracking-widest transition-all p-1 rounded-md hover:bg-black/5 dark:hover:bg-white/5 ${lang === l ? 'text-primary' : 'text-text-secondary'}`}
                 >
                   {l}
                 </button>
@@ -242,7 +242,7 @@ const MainLayout: React.FC = () => {
               <div className="w-px h-4 bg-border mx-1"></div>
               <button
                 onClick={toggleDarkMode}
-                className="p-1 rounded-lg transition-colors hover:bg-surface text-text-secondary"
+                className="p-1 rounded-lg transition-colors hover:bg-black/5 dark:hover:bg-white/5 text-text-secondary"
                 title={isDarkMode ? 'Light Mode' : 'Dark Mode'}
               >
                 {isDarkMode ? <Sun size={16} /> : <Moon size={16} />}
