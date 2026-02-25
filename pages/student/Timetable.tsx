@@ -136,17 +136,17 @@ const StudentTimetable: React.FC = () => {
           <div className="overflow-x-auto print:overflow-visible">
             <table className="w-full border-collapse" dir={lang === 'AR' ? 'rtl' : 'ltr'}>
               <thead>
-                <tr className="border-b-2 border-border/80 text-text-secondary">
-                  <th className="px-6 py-5 w-1/6 text-sm font-black uppercase tracking-wider text-center bg-surface/50 border-r border-l border-border/50">
+                <tr className="border-b-2 border-border/80 text-text-secondary bg-surface/30">
+                  <th className="px-6 py-5 w-1/6 text-sm font-black uppercase tracking-wider text-center border-r border-l border-border/50 border-t-[3px] border-t-primary">
                     {lang === 'AR' ? 'اليوم' : 'Day'}
                   </th>
-                  <th className="px-6 py-5 w-2/6 text-sm font-black uppercase tracking-wider text-center bg-surface/50 border-r border-border/50">
+                  <th className="px-6 py-5 w-2/6 text-sm font-black uppercase tracking-wider text-center border-r border-border/50 border-t-[3px] border-t-primary/80">
                     {lang === 'AR' ? 'المادة' : 'Subject'}
                   </th>
-                  <th className="px-6 py-5 w-1/6 text-sm font-black uppercase tracking-wider text-center bg-surface/50 border-r border-border/50">
+                  <th className="px-6 py-5 w-1/6 text-sm font-black uppercase tracking-wider text-center border-r border-border/50 border-t-[3px] border-t-primary/60">
                     {lang === 'AR' ? 'الوقت' : 'Time'}
                   </th>
-                  <th className="px-6 py-5 w-2/6 text-sm font-black uppercase tracking-wider text-center bg-surface/50 border-r border-border/50">
+                  <th className="px-6 py-5 w-2/6 text-sm font-black uppercase tracking-wider text-center border-r border-border/50 border-t-[3px] border-t-primary/40">
                     {lang === 'AR' ? 'ملاحظات' : 'Notes'}
                   </th>
                 </tr>
@@ -155,27 +155,28 @@ const StudentTimetable: React.FC = () => {
                 {scheduleRows.map((row, index) => (
                   <tr
                     key={index}
-                    className={`border-b border-border/50 transition-colors ${index % 2 === 0 ? 'bg-card' : 'bg-surface/30'}`}
+                    className={`border-b border-border/50 transition-colors hover:bg-black/5 dark:hover:bg-white/5 ${index % 2 === 0 ? 'bg-card' : 'bg-surface/20'}`}
                   >
                     <td className="px-6 py-5 text-center border-r border-l border-border/50">
                       <span className="font-bold text-base text-text-primary">
                         {row.day}
                       </span>
                     </td>
-                    <td className="px-6 py-5 text-center border-r border-border/50">
+                    <td className="px-6 py-5 border-r border-border/50">
                       <div className="font-black text-lg text-text-primary">
                         {row.subject}
                       </div>
+                      <div className="text-sm font-bold opacity-80 mt-0.5 text-text-secondary">
+                        {row.doctor}
+                      </div>
                     </td>
                     <td className="px-6 py-5 text-center border-r border-border/50">
-                      <span className="text-base font-bold text-primary bg-primary/10 px-3 py-1 rounded-lg">
+                      <span className="text-sm font-black text-primary bg-primary/10 px-4 py-1.5 rounded-xl border border-primary/20">
                         {row.time}
                       </span>
                     </td>
-                    <td className="px-6 py-5 text-center border-r border-border/50 min-w-[200px]">
-                      <span className="text-sm font-bold leading-relaxed block whitespace-pre-wrap text-text-secondary">
-                        {row.notes || '-'}
-                      </span>
+                    <td className="px-6 py-5 text-sm font-bold border-r border-border/50 leading-relaxed text-text-secondary">
+                      {row.notes || '-'}
                     </td>
                   </tr>
                 ))}

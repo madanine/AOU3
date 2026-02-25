@@ -106,7 +106,8 @@ const Attendance: React.FC = () => {
 
             <div className="grid grid-cols-1 gap-4">
               {currentSemesterAttendance.map(({ course, presentCount, absentCount, unrecordedCount, recordedCount, attendanceGrade, participationGrade, percentage }, idx) => {
-                const currentAttendanceScore = Math.max(0, 20 - (absentCount * 2));
+                // Ensure score increases progressively out of 20 based on total 12 sessions
+                const currentAttendanceScore = Math.round((presentCount / 12) * 20);
                 return (
                   <div key={course.id} style={{ animationDelay: `${idx * 100}ms` }} className="bg-card rounded-2xl p-5 md:p-6 border border-border shadow-sm hover:shadow-md transition-shadow group flex flex-col lg:flex-row lg:items-center justify-between gap-5 animate-in slide-in-from-bottom-2 fill-mode-both">
 
@@ -131,7 +132,7 @@ const Attendance: React.FC = () => {
                           <span className="text-xs md:text-sm font-black text-success">{currentAttendanceScore} <span className="text-text-secondary font-bold text-[10px] md:text-xs">/ 20</span></span>
                         </div>
                         <div className="w-full bg-surface rounded-full h-2 overflow-hidden">
-                          <div className="bg-success h-2 rounded-full transition-all duration-1000" style={{ width: `${(currentAttendanceScore / 20) * 100}%` }}></div>
+                          <div className="bg-success h-2 rounded-full transition-all duration-1000" style={{ width: `${percentage}%` }}></div>
                         </div>
                       </div>
 
@@ -200,7 +201,7 @@ const Attendance: React.FC = () => {
 
                   <div className="grid grid-cols-1 gap-4 opacity-80 filter saturate-50 hover:saturate-100 transition-all">
                     {semesterAttendance.map(({ course, presentCount, absentCount, unrecordedCount, recordedCount, attendanceGrade, participationGrade, percentage }) => {
-                      const currentAttendanceScore = Math.max(0, 20 - (absentCount * 2));
+                      const currentAttendanceScore = Math.round((presentCount / 12) * 20);
                       return (
                         <div key={course.id} className="bg-card rounded-2xl p-5 md:p-6 border border-border shadow-sm hover:shadow-md transition-shadow flex flex-col lg:flex-row lg:items-center justify-between gap-5">
 
@@ -222,7 +223,7 @@ const Attendance: React.FC = () => {
                                 <span className="text-xs md:text-sm font-black text-success">{currentAttendanceScore} <span className="text-text-secondary font-bold text-[10px] md:text-xs">/ 20</span></span>
                               </div>
                               <div className="w-full bg-surface rounded-full h-2 overflow-hidden">
-                                <div className="bg-success h-2 rounded-full" style={{ width: `${(currentAttendanceScore / 20) * 100}%` }}></div>
+                                <div className="bg-success h-2 rounded-full" style={{ width: `${percentage}%` }}></div>
                               </div>
                             </div>
                             <div>

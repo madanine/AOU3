@@ -117,10 +117,12 @@ const Profile: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {!isSubAdmin && (
           <div className="lg:col-span-2 space-y-8">
-            <div className="bg-card rounded-[2rem] shadow-premium border border-border overflow-hidden">
+            <div className="bg-card rounded-[2rem] shadow-premium dark:shadow-dark-premium border border-border dark:border-primary/10 overflow-hidden relative group">
+              <div className="absolute top-0 left-0 w-full h-1 bg-gold-gradient opacity-0 group-hover:opacity-100 transition-opacity"></div>
               <div className="p-10 border-b border-border/50 flex flex-col md:flex-row items-center md:items-start gap-6 text-center md:text-left rtl:md:text-right">
-                <div className="w-24 h-24 rounded-2xl bg-surface p-1 shadow-sm border border-border shrink-0">
-                  <div className="w-full h-full rounded-xl bg-primary/10 flex items-center justify-center text-primary font-black text-3xl overflow-hidden">
+                <div className="w-24 h-24 rounded-2xl bg-gold-gradient p-[2px] shadow-glow shrink-0 relative">
+                  <div className="absolute inset-0 rounded-2xl bg-primary/20 blur-md pointer-events-none"></div>
+                  <div className="relative w-full h-full rounded-[14px] bg-card flex items-center justify-center text-primary font-black text-3xl overflow-hidden z-10">
                     {settings.branding.logoBase64 ? (
                       <img src={settings.branding.logoBase64} alt="Avatar Logo" className="w-full h-full object-contain" />
                     ) : (
@@ -131,10 +133,10 @@ const Profile: React.FC = () => {
                 <div className="flex flex-col justify-center py-2">
                   <h2 className="text-3xl font-black text-text-primary tracking-tight">{user?.fullName}</h2>
                   <p className="text-sm font-bold text-text-secondary mt-3 tracking-wide flex items-center justify-center md:justify-start gap-2">
-                    <Fingerprint size={14} className="opacity-70" />
+                    <Fingerprint size={14} className="text-primary/70" />
                     {user?.universityId}
                     <span className="opacity-50">•</span>
-                    <GraduationCap size={14} className="opacity-70" />
+                    <GraduationCap size={14} className="text-primary/70" />
                     {t.majorList[user?.major as keyof typeof t.majorList] || user?.major}
                   </p>
                 </div>
@@ -310,10 +312,13 @@ const Profile: React.FC = () => {
         )}
 
         <div className={isSubAdmin ? "lg:col-span-3" : "lg:col-span-1"}>
-          <div className="bg-card rounded-[2rem] shadow-premium border border-border p-10 space-y-10 sticky top-8">
+          <div className="bg-card rounded-[2rem] shadow-premium dark:shadow-dark-premium border border-border dark:border-primary/10 p-10 space-y-10 sticky top-8 relative overflow-hidden group">
+            <div className="absolute top-0 inset-x-0 h-1 bg-gold-gradient opacity-0 group-hover:opacity-100 transition-opacity"></div>
             <div className="flex items-center gap-4 border-b border-border/50 pb-8">
-              <div className="w-14 h-14 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                <ShieldCheck size={28} />
+              <div className="w-14 h-14 rounded-xl bg-gold-gradient p-[1px] shrink-0">
+                <div className="w-full h-full rounded-[11px] bg-card flex items-center justify-center text-primary">
+                  <ShieldCheck size={28} />
+                </div>
               </div>
               <div>
                 <h2 className="text-2xl font-black text-text-primary tracking-tight">{lang === 'AR' ? 'تغيير كلمة المرور' : 'Security'}</h2>
