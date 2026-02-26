@@ -2,7 +2,7 @@
 import { User, Course, Enrollment, SiteSettings, Semester, Assignment, Submission, AttendanceRecord, AttendanceRow, ParticipationRecord, ParticipationRow, Language } from './types';
 import { supabaseService } from './supabaseService';
 import { supabase } from './supabase';
-import { DEFAULT_SETTINGS } from './constants';
+import { DEFAULT_SETTINGS, SETTINGS_VERSION } from './constants';
 
 const KEYS = {
   USERS: 'aou_users',
@@ -182,6 +182,17 @@ export const storage = {
     if (!stored) return DEFAULT_SETTINGS;
     try {
       const parsed = JSON.parse(stored);
+
+      // ── Version Gate ───────────────────────────────────────────────────────
+      // If the stored settings predate the current design system version,
+      // discard them entirely and fall back to DEFAULT_SETTINGS.
+      // This is the only migration mechanism — no per-field color inspection.
+      if (!parsed.settingsVersion || parsed.settingsVersion !== SETTINGS_VERSION) {
+        localStorage.setItem(KEYS.SETTINGS, JSON.stringify(DEFAULT_SETTINGS));
+        return DEFAULT_SETTINGS;
+      }
+      // ── End Version Gate ───────────────────────────────────────────────────
+
       if (!parsed.theme || !parsed.branding) return DEFAULT_SETTINGS;
       return parsed;
     } catch (e) {
@@ -189,8 +200,10 @@ export const storage = {
     }
   },
   setSettings: (settings: SiteSettings) => {
-    localStorage.setItem(KEYS.SETTINGS, JSON.stringify(settings));
-    supabaseService.updateSettings(settings).catch(() => { });
+    // Always stamp the current version so the version-gate never resets valid settings.
+    const versioned: SiteSettings = { ...settings, settingsVersion: SETTINGS_VERSION };
+    localStorage.setItem(KEYS.SETTINGS, JSON.stringify(versioned));
+    supabaseService.updateSettings(versioned).catch(() => { });
   },
 
   getAuthUser: (): User | null => JSON.parse(localStorage.getItem(KEYS.AUTH_USER) || 'null'),

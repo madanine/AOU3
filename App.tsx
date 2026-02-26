@@ -182,17 +182,19 @@ const App: React.FC = () => {
   if (isLoading) {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-[var(--background)] z-[9999]">
-        <div className="flex flex-col items-center gap-6">
+        {/* Ambient gold glow behind logo */}
+        <div className="absolute w-64 h-64 rounded-full bg-[var(--primary)] opacity-[0.06] blur-3xl pointer-events-none" />
+        <div className="flex flex-col items-center gap-6 relative">
           {(settings.branding.logo || settings.branding.logoBase64) ? (
             <img src={settings.branding.logo || settings.branding.logoBase64} alt="Logo" className="h-16 w-auto object-contain animate-pulse" />
           ) : (
-            <div className="w-16 h-16 bg-[var(--primary)] rounded-3xl flex items-center justify-center text-white font-bold text-3xl shadow-xl animate-pulse">
+            <div className="w-16 h-16 bg-gold-gradient rounded-3xl flex items-center justify-center text-white font-bold text-3xl shadow-glow animate-pulse">
               A
             </div>
           )}
           <div className="flex flex-col items-center gap-2">
-            <div className="w-8 h-1 bg-gray-200 rounded-full overflow-hidden">
-              <div className="w-1/2 h-full bg-[var(--primary)] rounded-full animate-[loading_1.5s_infinite_linear]"></div>
+            <div className="w-24 h-[2px] bg-[var(--border-color)] rounded-full overflow-hidden">
+              <div className="h-full bg-[var(--primary)] rounded-full animate-[loading_1.5s_infinite_linear]"></div>
             </div>
             <p className="text-[9px] font-black uppercase tracking-[0.3em] text-[var(--text-secondary)] animate-pulse mt-2">
               {lang === 'AR' ? 'جاري التحميل...' : 'Loading Portal...'}

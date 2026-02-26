@@ -64,6 +64,9 @@ export interface ThemeSettings {
 }
 
 export interface SiteSettings {
+  /** Increment this whenever DEFAULT_SETTINGS changes in a breaking way.
+   *  If stored version doesn't match, settings are reset to DEFAULT_SETTINGS. */
+  settingsVersion?: number;
   branding: {
     siteNameAr: string;
     siteNameEn: string;

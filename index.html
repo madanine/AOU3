@@ -35,11 +35,12 @@
             'text-secondary': 'var(--text-secondary)'
           },
           boxShadow: {
-            'premium': '0 6px 18px rgba(0,0,0,0.04)',
-            'premium-hover': '0 8px 24px rgba(198,165,74,0.15)',
-            'dark-premium': '0 10px 25px rgba(0,0,0,0.4)',
-            'glow': '0 0 20px rgba(212,175,55,0.15)',
-            'glow-strong': '0 0 30px rgba(212,175,55,0.25)'
+            'premium': '0 4px 20px rgba(198,165,74,0.08)',
+            'premium-hover': '0 8px 32px rgba(212,175,55,0.2)',
+            'dark-premium': '0 12px 40px rgba(0,0,0,0.6)',
+            'glow': '0 0 24px rgba(212,175,55,0.18)',
+            'glow-strong': '0 0 48px rgba(212,175,55,0.32)',
+            'gold-inset': 'inset 0 1px 0 rgba(212,175,55,0.15)'
           }
         }
       }
@@ -77,30 +78,40 @@
     }
 
     :root {
+      /* Premium Light: Warm Ivory-Gold Identity */
       --primary: #C6A54A;
       --primary-hover: #B8922E;
+      --secondary: #B8922E;
+      --accent: #D4AF37;
       --success: #3F6F4E;
       --success-soft: #6E9F7A;
-      --background: #F6F4EF;
-      --card-bg: #FFFFFF;
-      --surface-bg: #FFFFFF;
-      --text-primary: #1F1F1F;
-      --text-secondary: #6B7280;
-      --border-color: #EAEAEA;
+      --background: #F5F0E8;
+      --surface-bg: #EDE6D6;
+      --card-bg: #FDFAF4;
+      --text-primary: #1A1410;
+      --text-secondary: #6B5E4A;
+      --border-color: #E8DCC8;
       --transition-speed: 0.35s;
+      --gold-glow: rgba(212, 175, 55, 0.18);
+      --surface-elevated: #FFFFFF;
     }
 
     html.dark {
+      /* Premium Dark: Deep Charcoal + Gold Identity */
       --primary: #D4AF37;
       --primary-hover: #F3E5AB;
+      --secondary: #C6A54A;
+      --accent: #F3E5AB;
       --success: #4C8B5F;
       --success-soft: #6E9F7A;
       --background: #050505;
-      --surface-bg: #0F0F0F;
+      --surface-bg: #0A0A0A;
       --card-bg: #141414;
-      --text-primary: #F5F5F5;
-      --text-secondary: #BDBDBD;
-      --border-color: rgba(255, 255, 255, 0.05);
+      --text-primary: #F5F0E8;
+      --text-secondary: #A89070;
+      --border-color: rgba(212, 175, 55, 0.1);
+      --gold-glow: rgba(212, 175, 55, 0.22);
+      --surface-elevated: #1C1C1C;
     }
 
     body {
@@ -128,12 +139,45 @@
     }
 
     .custom-scrollbar::-webkit-scrollbar-thumb {
-      background: #cbd5e1;
+      background: rgba(198, 165, 74, 0.3);
       border-radius: 10px;
     }
 
     .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-      background: var(--text-secondary);
+      background: var(--primary);
+    }
+
+    /* ═══════════════════════════════════════════════
+       PREMIUM FOUNDATION — Global Dark/Light Systems
+       ═══════════════════════════════════════════════ */
+
+    /* Dark mode: Subtle gold ambient at top-right of page */
+    html.dark body {
+      background-image: radial-gradient(ellipse at 80% 0%,
+          rgba(212, 175, 55, 0.04) 0%,
+          transparent 55%);
+    }
+
+    /* Light mode: Warm ivory ambient */
+    html:not(.dark) body {
+      background-image: radial-gradient(ellipse at 90% 0%,
+          rgba(198, 165, 74, 0.07) 0%,
+          transparent 50%);
+    }
+
+    /* Premium card borders in dark mode */
+    html.dark [class*="bg-card"],
+    html.dark .bg-card {
+      box-shadow:
+        0 1px 3px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(212, 175, 55, 0.06);
+    }
+
+    /* Gold shimmer on sidebar active state */
+    html.dark .bg-gold-gradient {
+      box-shadow:
+        0 4px 16px rgba(212, 175, 55, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.12);
     }
   </style>
   <script type="importmap">

@@ -1,6 +1,10 @@
 import { Language, SiteSettings } from './types';
 
+/** Current design system version. Increment when DEFAULT_SETTINGS changes in a breaking way. */
+export const SETTINGS_VERSION = 2;
+
 export const DEFAULT_SETTINGS: SiteSettings = {
+  settingsVersion: SETTINGS_VERSION,
   branding: {
     siteNameAr: 'الجامعة الأمريكية المفتوحة',
     siteNameEn: 'American Open University',
@@ -8,28 +12,30 @@ export const DEFAULT_SETTINGS: SiteSettings = {
     announcements: [],
     logo: '/assets/logo.png'
   },
+  // Light mode: warm ivory-cream with gold accents — premium institutional feel
   theme: {
-    primary: '#1e3a8a',
-    secondary: '#3b82f6',
-    accent: '#f59e0b',
-    background: '#f8fafc',
-    cardBg: '#ffffff',
-    textPrimary: '#1e293b',
-    textSecondary: '#64748b',
-    borderColor: '#e2e8f0'
+    primary: '#C6A54A',
+    secondary: '#B8922E',
+    accent: '#D4AF37',
+    background: '#F5F0E8',
+    cardBg: '#FDFAF4',
+    textPrimary: '#1A1410',
+    textSecondary: '#6B5E4A',
+    borderColor: '#E8DCC8'
   },
+  // Dark mode: deep charcoal with layered surfaces and real gold — premium dark identity
   darkTheme: {
-    primary: '#636363',      // Matte Gray Primary
-    secondary: '#636363',    // Matte Gray Secondary
-    accent: '#636363',       // Matte Gray Accent
-    background: '#7C7979',   // Matte Gray Background
-    cardBg: '#999999',       // Matte Gray Card Background
-    textPrimary: '#000000',  // Pure Black for Contrast
-    textSecondary: '#000000',// Pure Black for Contrast
-    borderColor: '#5e5e5e'   // Darker shade for borders
+    primary: '#D4AF37',      // True Gold Primary
+    secondary: '#C6A54A',    // Warm Gold Secondary
+    accent: '#F3E5AB',       // Soft Gold Highlight
+    background: '#050505',   // Near-black foundation
+    cardBg: '#141414',       // Deep charcoal card surface
+    textPrimary: '#F5F0E8',  // Warm ivory — not pure white
+    textSecondary: '#A89070',// Muted warm gold-gray
+    borderColor: 'rgba(212,175,55,0.1)' // Subtle gold-tinted border
   },
   fonts: {
-    arabicFont: 'Tajawal',
+    arabicFont: 'Cairo',
     latinFont: 'Inter',
     baseFontSize: '16px'
   },
