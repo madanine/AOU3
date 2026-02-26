@@ -1,34 +1,61 @@
-/* Print styles for Timetable */
+/* ═══════════════════════════════════════════════════
+   TIMETABLE PRINT STYLES — Premium Academic Output
+   ═══════════════════════════════════════════════════ */
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap');
+
 @media print {
   @page {
     size: A4;
-    margin: 1.5cm;
+    margin: 1.8cm 1.5cm;
   }
-  
+
+  * {
+    font-family: 'Cairo', sans-serif !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
   body {
-    print-color-adjust: exact;
-    -webkit-print-color-adjust: exact;
+    background: #F5F0E8 !important;
+    color: #1A1410 !important;
   }
-  
-  /* Hide print buttons */
-  .print\\:hidden {
+
+  /* Hide action buttons bar */
+  .print\:hidden {
     display: none !important;
   }
-  
-  /* Remove shadows and borders for print */
-  .print\\:shadow-none {
+
+  /* Keep the card premium — soft rounded corners survive print */
+  .print\:shadow-none {
     box-shadow: none !important;
   }
-  
-  .print\\:border-none {
+
+  .print\:border-none {
     border: none !important;
   }
-  
-  .print\\:rounded-none {
-    border-radius: 0 !important;
-  }
-  
-  .print\\:p-0 {
+
+  /* Override rounded-none — we KEEP rounded in print for premium look */
+  /* (class is not applied in new design) */
+
+  .print\:p-0 {
     padding: 0 !important;
+  }
+
+  .print\:p-6 {
+    padding: 1.5rem !important;
+  }
+
+  .print\:bg-white {
+    background: #ffffff !important;
+  }
+
+  /* Mobile card rows: hidden in print — only table shows */
+  .print\:block {
+    display: block !important;
+  }
+
+  /* Ensure the shine overlay doesn't bleed into print */
+  [class*="pointer-events-none"][class*="absolute"] {
+    display: none !important;
   }
 }
