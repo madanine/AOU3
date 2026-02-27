@@ -8,16 +8,20 @@ import { Loader2 } from 'lucide-react';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // StudentIDCard — Premium University ID Card
-// • Tap card → flip (front/back 3D animation)
-// • Tap photo area → upload only (does NOT flip)
-// • No visible buttons/icons on the card
-// • Screenshot-ready
+//
+// CRITICAL flip notes:
+// • The entire card wrapper MUST be dir="ltr" — otherwise rotateY() acts on
+//   the RTL X-axis and the back face text appears mirrored.
+// • Arabic text is placed inside inner divs that each carry dir="rtl".
+// • Front face: no initial rotation.
+// • Back face: transform: rotateY(180deg) → when container flips 180deg,
+//   back reaches net 360deg = visible and unmirrored.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const HINT_KEY = 'aou3_card_hint_seen';
 
 const StudentIDCard: React.FC = () => {
-    const { user, setUser, settings, lang } = useApp();
+    const { user, setUser, settings } = useApp();
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [isFlipped, setIsFlipped] = useState(false);
@@ -25,30 +29,27 @@ const StudentIDCard: React.FC = () => {
     const [uploading, setUploading] = useState(false);
     const [showHint, setShowHint] = useState(false);
 
-    // Show one-time hint if not yet dismissed
     useEffect(() => {
         if (!localStorage.getItem(HINT_KEY)) {
             setShowHint(true);
-            const t = setTimeout(() => {
+            const timer = setTimeout(() => {
                 setShowHint(false);
                 localStorage.setItem(HINT_KEY, 'true');
-            }, 4000);
-            return () => clearTimeout(t);
+            }, 4500);
+            return () => clearTimeout(timer);
         }
     }, []);
 
-    // ── Photo upload ─────────────────────────────────────────────────────────
+    // ── Photo upload ───────────────────────────────────────────────────────────
     const handlePhotoClick = (e: React.MouseEvent) => {
-        e.stopPropagation(); // prevent flip
+        e.stopPropagation(); // ← MUST NOT flip the card
         fileInputRef.current?.click();
     };
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file || !user?.id) return;
-
-        const allowed = ['image/jpeg', 'image/png', 'image/webp'];
-        if (!allowed.includes(file.type)) return;
+        if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) return;
         if (file.size > 5 * 1024 * 1024) return;
 
         setUploading(true);
@@ -59,256 +60,281 @@ const StudentIDCard: React.FC = () => {
             setUser(updated);
             storage.setAuthUser(updated);
         } catch (err) {
-            console.error('[ID Card upload]', err);
+            console.error('[IDCard upload]', err);
         } finally {
             setUploading(false);
             e.target.value = '';
         }
     };
 
-    // ── Helpers ──────────────────────────────────────────────────────────────
+    // ── Data helpers ───────────────────────────────────────────────────────────
     const logoSrc = settings.branding.logo || settings.branding.logoBase64 || null;
-    const nationalityLabel = user?.nationality ? getCountryName(user.nationality, lang) : '—';
+
+    const nationalityLabel = user?.nationality
+        ? getCountryName(user.nationality, 'AR')  // always Arabic on this card
+        : '—';
+
     const dobLabel = user?.dateOfBirth
-        ? new Date(user.dateOfBirth).toLocaleDateString(lang === 'AR' ? 'ar-SA' : 'en-GB', {
+        ? new Date(user.dateOfBirth).toLocaleDateString('ar-SA', {
             year: 'numeric', month: '2-digit', day: '2-digit',
         })
         : '—';
 
     const majorLabel = user?.major || '—';
 
-    // ── Field row helper ─────────────────────────────────────────────────────
+    // ── Inline style atoms ─────────────────────────────────────────────────────
+    const GOLD_STRIPE: React.CSSProperties = {
+        background: 'linear-gradient(90deg, #c9983a 0%, #F5E07A 40%, #D4AF37 70%, #c9983a 100%)',
+    };
+
+    const CARD_BG = 'linear-gradient(150deg, #FEFDF8 0%, #FBF5E4 55%, #F5EDD2 100%)';
+
+    const faceShared: React.CSSProperties = {
+        position: 'absolute',
+        inset: 0,
+        borderRadius: '14px',
+        overflow: 'hidden',
+        backfaceVisibility: 'hidden',
+        WebkitBackfaceVisibility: 'hidden',
+        background: CARD_BG,
+    };
+
+    // ── Field component (Arabic label + value) ─────────────────────────────────
     const Field = ({ label, value }: { label: string; value: string }) => (
-        <div className="flex flex-col">
-            <span
-                style={{
-                    fontSize: '8px',
-                    fontWeight: 800,
-                    letterSpacing: '.12em',
-                    textTransform: 'uppercase',
-                    color: 'rgba(212,175,55,0.85)',
-                    marginBottom: '2px',
-                    fontFamily: '"Cairo", sans-serif',
-                }}
-            >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+            <span style={{
+                fontSize: '7.5px', fontWeight: 800, letterSpacing: '.1em',
+                textTransform: 'uppercase', color: '#b8932a',
+                fontFamily: '"Cairo", sans-serif',
+            }}>
                 {label}
             </span>
-            <span
-                style={{
-                    fontSize: '12px',
-                    fontWeight: 700,
-                    color: '#1a1a1a',
-                    fontFamily: '"Cairo", sans-serif',
-                    lineHeight: 1.3,
-                }}
-            >
+            <span style={{
+                fontSize: '11.5px', fontWeight: 700, color: '#1c1a14',
+                fontFamily: '"Cairo", sans-serif', lineHeight: 1.25,
+                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+            }}>
                 {value}
             </span>
         </div>
     );
 
-    // ── Card dimensions ───────────────────────────────────────────────────────
-    // CR80 aspect ratio = 85.6mm × 54mm → 1.585
-    const cardStyle: React.CSSProperties = {
-        width: '100%',
-        maxWidth: '420px',
-        aspectRatio: '1.585 / 1',
-        perspective: '1200px',
-        cursor: 'pointer',
-        userSelect: 'none',
-        WebkitUserSelect: 'none',
-        fontFamily: '"Cairo", sans-serif',
-    };
-
-    const innerStyle: React.CSSProperties = {
-        width: '100%',
-        height: '100%',
-        position: 'relative',
-        transformStyle: 'preserve-3d',
-        transition: 'transform 0.75s cubic-bezier(0.4, 0.2, 0.2, 1)',
-        transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
-        borderRadius: '16px',
-        boxShadow: isFlipped
-            ? '0 20px 60px rgba(0,0,0,0.25), 0 0 0 1px rgba(212,175,55,0.3)'
-            : '0 12px 40px rgba(0,0,0,0.18), 0 0 0 1px rgba(212,175,55,0.25)',
-        filter: 'drop-shadow(0 0 18px rgba(212,175,55,0.12))',
-    };
-
-    const faceBase: React.CSSProperties = {
-        position: 'absolute',
-        inset: 0,
-        borderRadius: '16px',
-        backfaceVisibility: 'hidden',
-        WebkitBackfaceVisibility: 'hidden',
-        overflow: 'hidden',
-    };
-
-    const frontStyle: React.CSSProperties = {
-        ...faceBase,
-        background: 'linear-gradient(135deg, #FEFCF5 0%, #FDF8EC 40%, #F9F2DC 100%)',
-    };
-
-    const backStyle: React.CSSProperties = {
-        ...faceBase,
-        background: 'linear-gradient(135deg, #FEFCF5 0%, #FDF8EC 40%, #F9F2DC 100%)',
-        transform: 'rotateY(180deg)',
-    };
-
     return (
-        <div className="flex flex-col items-center gap-3">
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+
             {/* Hidden file input */}
             <input
                 ref={fileInputRef}
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
-                className="hidden"
+                style={{ display: 'none' }}
                 onChange={handleFileChange}
             />
 
-            {/* One-time hint */}
+            {/* One-time hint — disappears after 4.5s */}
             {showHint && (
-                <div
-                    className="text-xs font-bold text-text-secondary animate-in fade-in duration-500 text-center"
-                    style={{ fontFamily: '"Cairo", sans-serif' }}
-                >
-                    {lang === 'AR'
-                        ? 'اضغط على البطاقة لقلبها · اضغط على الصورة لتغييرها'
-                        : 'Tap the card to flip · Tap the photo to change it'}
+                <div style={{
+                    fontSize: '12px', fontWeight: 600,
+                    color: 'var(--text-secondary)',
+                    fontFamily: '"Cairo", sans-serif',
+                    textAlign: 'center',
+                    animation: 'fadeIn .4s ease',
+                    direction: 'rtl',
+                }}>
+                    اضغط على البطاقة لقلبها · اضغط على الصورة لتغييرها
                 </div>
             )}
 
-            {/* Card */}
-            <div style={cardStyle} onClick={() => setIsFlipped(f => !f)}>
-                <div style={innerStyle}>
+            {/*
+        ──────────────────────────────────────────────────────────────────────
+        OUTER WRAPPER — MUST be dir="ltr" so rotateY() works on the correct
+        physical X-axis regardless of document RTL direction.
+        ──────────────────────────────────────────────────────────────────────
+      */}
+            <div
+                dir="ltr"
+                onClick={() => setIsFlipped(f => !f)}
+                style={{
+                    width: '100%',
+                    maxWidth: '400px',
+                    aspectRatio: '1.586 / 1',   /* CR80 credit-card ratio */
+                    perspective: '1000px',
+                    cursor: 'pointer',
+                    userSelect: 'none',
+                    WebkitUserSelect: 'none',
+                }}
+            >
+                {/* Inner — rotates on flip */}
+                <div style={{
+                    width: '100%',
+                    height: '100%',
+                    position: 'relative',
+                    transformStyle: 'preserve-3d',
+                    transition: 'transform 0.8s cubic-bezier(0.35, 0.1, 0.25, 1.0)',
+                    transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
+                    borderRadius: '14px',
+                    boxShadow: '0 10px 48px rgba(0,0,0,0.22), 0 0 0 1.5px rgba(212,175,55,0.35)',
+                    filter: 'drop-shadow(0 0 14px rgba(212,175,55,0.10))',
+                }}>
 
-                    {/* ── FRONT ──────────────────────────────────────────────────── */}
-                    <div style={frontStyle} dir="rtl">
-                        {/* Gold top stripe */}
+                    {/* ═══════════════════════════════════════════════════════════════
+              FRONT FACE
+          ═══════════════════════════════════════════════════════════════ */}
+                    <div style={faceShared}>
+
+                        {/* Top gold stripe */}
+                        <div style={{ ...GOLD_STRIPE, position: 'absolute', top: 0, left: 0, right: 0, height: '5px' }} />
+                        {/* Bottom gold stripe */}
+                        <div style={{ ...GOLD_STRIPE, position: 'absolute', bottom: 0, left: 0, right: 0, height: '3px' }} />
+                        {/* Left side gold bar */}
                         <div style={{
-                            position: 'absolute', top: 0, left: 0, right: 0, height: '5px',
-                            background: 'linear-gradient(90deg, #D4AF37, #F5E07A, #D4AF37)',
+                            position: 'absolute', top: '5px', left: 0, bottom: '3px', width: '3px',
+                            background: 'linear-gradient(180deg, #c9983a, #F5E07A, #c9983a)',
                         }} />
 
-                        {/* Gold bottom stripe */}
-                        <div style={{
-                            position: 'absolute', bottom: 0, left: 0, right: 0, height: '3px',
-                            background: 'linear-gradient(90deg, #D4AF37, #F5E07A, #D4AF37)',
-                        }} />
-
-                        {/* Left decorative bar */}
-                        <div style={{
-                            position: 'absolute', top: '5px', right: 0, bottom: '3px', width: '4px',
-                            background: 'linear-gradient(180deg, #D4AF37, #F5E07A, #D4AF37)',
-                        }} />
-
-                        {/* Content layout */}
-                        <div style={{
-                            position: 'absolute', inset: '5px 4px 3px 0',
-                            display: 'flex', flexDirection: 'row', alignItems: 'stretch',
-                            padding: '10px 12px 10px 14px', gap: '10px',
+                        {/*
+              Content is dir="rtl" inside — photo on visual RIGHT (start in RTL),
+              text on visual LEFT
+            */}
+                        <div dir="rtl" style={{
+                            position: 'absolute',
+                            top: '5px', left: '3px', right: 0, bottom: '3px',
+                            display: 'flex',
+                            flexDirection: 'row',
+                            padding: '10px 12px 10px 14px',
+                            gap: '10px',
+                            alignItems: 'stretch',
                         }}>
 
-                            {/* Right side: Photo */}
+                            {/* ── PHOTO (visual right in RTL = first child) ─────────── */}
                             <div
+                                onClick={handlePhotoClick}
                                 style={{
                                     flexShrink: 0,
-                                    width: '22%',
+                                    width: '23%',
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    paddingTop: '2px',
+                                    cursor: 'pointer',
                                 }}
-                                onClick={handlePhotoClick}
                             >
                                 <div style={{
                                     width: '100%',
-                                    aspectRatio: '1',
-                                    borderRadius: '10px',
-                                    border: '1.5px solid rgba(212,175,55,0.6)',
+                                    aspectRatio: '3/4',
+                                    borderRadius: '8px',
+                                    border: '1.5px solid rgba(212,175,55,0.55)',
                                     overflow: 'hidden',
-                                    background: 'rgba(212,175,55,0.06)',
+                                    background: 'rgba(212,175,55,0.05)',
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
                                     position: 'relative',
-                                    cursor: 'pointer',
+                                    flexShrink: 0,
                                 }}>
                                     {uploading ? (
-                                        <Loader2 size={16} style={{ color: '#D4AF37', animation: 'spin 1s linear infinite' }} />
+                                        <Loader2 size={14} style={{ color: '#D4AF37' }} className="animate-spin" />
                                     ) : avatarUrl ? (
-                                        <img src={avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        <img
+                                            src={avatarUrl}
+                                            alt=""
+                                            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                                        />
                                     ) : (
-                                        /* Subtle person silhouette placeholder */
-                                        <svg viewBox="0 0 40 40" width="55%" style={{ opacity: 0.2 }} fill="#9b835a">
-                                            <circle cx="20" cy="14" r="8" />
-                                            <path d="M4 36c0-8.84 7.16-16 16-16s16 7.16 16 16H4z" />
+                                        /* Subtle person silhouette — NO letter avatar */
+                                        <svg viewBox="0 0 40 50" style={{ width: '65%', opacity: 0.18 }} fill="#9b835a">
+                                            <circle cx="20" cy="14" r="9" />
+                                            <path d="M2 46c0-9.94 8.06-18 18-18s18 8.06 18 18H2z" />
                                         </svg>
                                     )}
                                 </div>
                             </div>
 
-                            {/* Left side: Info */}
+                            {/* ── INFO COLUMN (visual left in RTL = second child) ──── */}
                             <div style={{
                                 flex: 1,
                                 display: 'flex',
                                 flexDirection: 'column',
                                 justifyContent: 'space-between',
                                 minWidth: 0,
+                                overflow: 'hidden',
                             }}>
-                                {/* University header */}
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+
+                                {/* University header — logo + name ONCE */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
                                     {logoSrc ? (
-                                        <img src={logoSrc} alt="Logo" style={{ height: '22px', width: 'auto', objectFit: 'contain', flexShrink: 0 }} />
+                                        <img
+                                            src={logoSrc}
+                                            alt="Logo"
+                                            style={{ height: '24px', width: 'auto', objectFit: 'contain', flexShrink: 0 }}
+                                        />
                                     ) : (
                                         <div style={{
-                                            width: '22px', height: '22px', borderRadius: '6px',
-                                            background: 'rgba(212,175,55,0.15)',
+                                            width: '24px', height: '24px', borderRadius: '6px',
+                                            background: 'rgba(212,175,55,0.14)',
                                             display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                                         }}>
-                                            <span style={{ fontSize: '9px', fontWeight: 900, color: '#D4AF37' }}>AOU</span>
+                                            <span style={{ fontSize: '8px', fontWeight: 900, color: '#c9983a' }}>AOU</span>
                                         </div>
                                     )}
                                     <div>
-                                        <div style={{ fontSize: '8px', fontWeight: 900, color: '#1a1a1a', lineHeight: 1.2, fontFamily: '"Cairo", sans-serif' }}>
+                                        <div style={{
+                                            fontSize: '8.5px', fontWeight: 900, color: '#1c1a14', lineHeight: 1.2,
+                                            fontFamily: '"Cairo", sans-serif',
+                                        }}>
                                             الجامعة الأمريكية المفتوحة
                                         </div>
-                                        <div style={{ fontSize: '7px', fontWeight: 600, color: 'rgba(212,175,55,0.85)', lineHeight: 1.2, fontFamily: '"Cairo", sans-serif' }}>
+                                        <div style={{
+                                            fontSize: '7px', fontWeight: 700, color: '#b8932a', lineHeight: 1.2,
+                                            fontFamily: '"Cairo", sans-serif',
+                                        }}>
                                             بطاقة هوية الطالب
                                         </div>
                                     </div>
                                 </div>
 
-                                {/* Thin gold divider */}
-                                <div style={{ height: '1px', background: 'linear-gradient(90deg, rgba(212,175,55,0.6), transparent)', marginBottom: '5px' }} />
-
-                                {/* Student name — prominent */}
+                                {/* Gold divider */}
                                 <div style={{
-                                    fontSize: '13px', fontWeight: 900, color: '#111111',
-                                    lineHeight: 1.2, marginBottom: '5px',
+                                    height: '1px', margin: '5px 0',
+                                    background: 'linear-gradient(90deg, rgba(212,175,55,0.7), transparent)',
+                                }} />
+
+                                {/* Full name — prominent */}
+                                <div style={{
+                                    fontSize: '13.5px', fontWeight: 900, color: '#111',
                                     fontFamily: '"Cairo", sans-serif',
+                                    lineHeight: 1.2, marginBottom: '5px',
                                     whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                                 }}>
                                     {user?.fullName || '—'}
                                 </div>
 
-                                {/* Fields grid */}
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 10px', flex: 1 }}>
+                                {/* Fields grid: 2 cols */}
+                                <div style={{
+                                    display: 'grid',
+                                    gridTemplateColumns: '1fr 1fr',
+                                    gap: '4px 8px',
+                                    flex: 1,
+                                    alignContent: 'start',
+                                }}>
                                     <Field label="الرقم الجامعي" value={user?.universityId || '—'} />
                                     <Field label="الجنسية" value={nationalityLabel} />
                                     <Field label="تاريخ الميلاد" value={dobLabel} />
                                     <Field label="التخصص" value={majorLabel} />
                                 </div>
 
-                                {/* Bottom: stage badge */}
+                                {/* Stage badge */}
                                 <div style={{
-                                    marginTop: '5px',
-                                    display: 'inline-flex', alignItems: 'center', gap: '5px',
+                                    display: 'inline-flex', alignItems: 'center',
                                     background: 'rgba(212,175,55,0.12)',
                                     border: '1px solid rgba(212,175,55,0.35)',
-                                    borderRadius: '6px', padding: '3px 8px',
-                                    alignSelf: 'flex-start',
+                                    borderRadius: '5px', padding: '2px 7px',
+                                    alignSelf: 'flex-start', marginTop: '5px',
                                 }}>
-                                    <span style={{ fontSize: '8px', fontWeight: 800, color: '#9b7e2d', letterSpacing: '.05em', fontFamily: '"Cairo", sans-serif' }}>
+                                    <span style={{
+                                        fontSize: '8px', fontWeight: 800,
+                                        color: '#9b7e2d', fontFamily: '"Cairo", sans-serif',
+                                        letterSpacing: '.04em',
+                                    }}>
                                         المرحلة: بكالوريوس
                                     </span>
                                 </div>
@@ -316,59 +342,92 @@ const StudentIDCard: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* ── BACK ───────────────────────────────────────────────────── */}
-                    <div style={backStyle} dir="rtl">
-                        {/* Gold top stripe */}
-                        <div style={{
-                            position: 'absolute', top: 0, left: 0, right: 0, height: '5px',
-                            background: 'linear-gradient(90deg, #D4AF37, #F5E07A, #D4AF37)',
-                        }} />
-                        {/* Gold bottom stripe */}
-                        <div style={{
-                            position: 'absolute', bottom: 0, left: 0, right: 0, height: '3px',
-                            background: 'linear-gradient(90deg, #D4AF37, #F5E07A, #D4AF37)',
-                        }} />
+                    {/* ═══════════════════════════════════════════════════════════════
+              BACK FACE
+              Pre-rotated 180deg. Container flips +180 → net 360 = readable.
+              dir="ltr" on the face too — content text uses dir="rtl" inline.
+          ═══════════════════════════════════════════════════════════════ */}
+                    <div style={{ ...faceShared, transform: 'rotateY(180deg)' }}>
 
-                        {/* Watermark crest */}
+                        {/* Top gold stripe */}
+                        <div style={{ ...GOLD_STRIPE, position: 'absolute', top: 0, left: 0, right: 0, height: '5px' }} />
+                        {/* Bottom gold stripe */}
+                        <div style={{ ...GOLD_STRIPE, position: 'absolute', bottom: 0, left: 0, right: 0, height: '3px' }} />
+
+                        {/* Subtle watermark — centered logo or AOU text */}
                         <div style={{
                             position: 'absolute', inset: 0,
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                             pointerEvents: 'none',
                         }}>
                             {logoSrc ? (
-                                <img src={logoSrc} alt="" style={{ height: '60%', width: 'auto', objectFit: 'contain', opacity: 0.06 }} />
+                                <img
+                                    src={logoSrc}
+                                    alt=""
+                                    style={{ height: '55%', width: 'auto', objectFit: 'contain', opacity: 0.055 }}
+                                />
                             ) : (
-                                <div style={{ fontSize: '52px', fontWeight: 900, color: 'rgba(212,175,55,0.07)', letterSpacing: '-2px', fontFamily: '"Cairo", sans-serif' }}>
+                                <span style={{
+                                    fontSize: '60px', fontWeight: 900,
+                                    color: 'rgba(212,175,55,0.06)',
+                                    fontFamily: '"Cairo", sans-serif',
+                                    letterSpacing: '-3px',
+                                }}>
                                     AOU
-                                </div>
+                                </span>
                             )}
                         </div>
 
-                        {/* Back content */}
-                        <div style={{
+                        {/* Back text content — centered, Arabic */}
+                        <div dir="rtl" style={{
                             position: 'absolute', inset: '5px 0 3px 0',
                             display: 'flex', flexDirection: 'column',
                             alignItems: 'center', justifyContent: 'center',
-                            gap: '6px', padding: '12px 20px',
+                            gap: '5px', padding: '14px 24px',
                         }}>
-                            <div style={{ fontSize: '14px', fontWeight: 900, color: '#111111', textAlign: 'center', fontFamily: '"Cairo", sans-serif', letterSpacing: '-0.01em' }}>
+                            <div style={{
+                                fontSize: '15px', fontWeight: 900, color: '#1c1a14',
+                                textAlign: 'center', fontFamily: '"Cairo", sans-serif',
+                                letterSpacing: '-0.01em',
+                            }}>
                                 الجامعة الأمريكية المفتوحة
                             </div>
-                            <div style={{ fontSize: '11px', fontWeight: 600, color: 'rgba(212,175,55,0.8)', textAlign: 'center', fontFamily: '"Cairo", sans-serif' }}>
+                            <div style={{
+                                fontSize: '11px', fontWeight: 600,
+                                color: 'rgba(212,175,55,0.85)',
+                                textAlign: 'center', fontFamily: '"Cairo", sans-serif',
+                            }}>
                                 Arab Open University
                             </div>
-                            <div style={{ height: '1px', width: '60%', background: 'linear-gradient(90deg, transparent, rgba(212,175,55,0.5), transparent)', margin: '3px 0' }} />
-                            <div style={{ fontSize: '9px', fontWeight: 700, color: '#777777', textAlign: 'center', fontFamily: '"Cairo", sans-serif' }}>
+
+                            {/* Divider */}
+                            <div style={{
+                                height: '1px', width: '55%',
+                                background: 'linear-gradient(90deg, transparent, rgba(212,175,55,0.5), transparent)',
+                                margin: '2px 0',
+                            }} />
+
+                            <div style={{
+                                fontSize: '10px', fontWeight: 700, color: '#777',
+                                textAlign: 'center', fontFamily: '"Cairo", sans-serif',
+                            }}>
                                 المركز الإقليمي الأول
                             </div>
-                            <div style={{ fontSize: '8px', fontWeight: 600, color: 'rgba(212,175,55,0.6)', letterSpacing: '.12em', textTransform: 'uppercase', marginTop: '4px', fontFamily: '"Cairo", sans-serif' }}>
-                                AOU3 · {user?.universityId || 'ID'}
+
+                            <div style={{
+                                fontSize: '8.5px', fontWeight: 700,
+                                color: 'rgba(212,175,55,0.65)',
+                                letterSpacing: '.12em', textTransform: 'uppercase',
+                                fontFamily: '"Cairo", sans-serif',
+                                marginTop: '3px',
+                            }}>
+                                {'AOU3 · ' + (user?.universityId || 'ID')}
                             </div>
                         </div>
                     </div>
 
-                </div>
-            </div>
+                </div>{/* /inner */}
+            </div>{/* /outer wrapper */}
         </div>
     );
 };
