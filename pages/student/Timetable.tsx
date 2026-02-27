@@ -1,219 +1,33 @@
 
 import React, { useMemo, useState } from 'react';
+import { createRoot } from 'react-dom/client';
 import { useApp } from '../../App';
 import { storage } from '../../storage';
 import { Calendar, Loader2, Clock, User, FileText } from 'lucide-react';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
+import TimetableExportView, { type TimetableRow } from '../../components/timetable/TimetableExportView';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// buildExportHTML — Generates a 100% self-contained HTML string for the PDF.
-// Opens in a new window → auto-triggers browser print dialog → user saves as PDF.
-// No html2canvas, no portal, no screenshot. Clean, guaranteed correct layout.
+// Export pipeline:
+// 1. Build scheduleRows (memoized, exactly one entry per enrolled course).
+// 2. On click: create a hidden div, mount TimetableExportView into it via
+//    createRoot (completely outside the visible React tree).
+// 3. html2canvas captures ONLY that div — 794px wide, white background.
+// 4. jsPDF adds the canvas as an image and saves as PDF download.
+// 5. createRoot.unmount() + div removal cleans up.
+//
+// NO window.print(), NO portal, NO DOM cloning, NO screen capture.
 // ─────────────────────────────────────────────────────────────────────────────
-interface ExportRow {
-  day: string;
-  code: string;
-  subject: string;
-  time: string;
-  notes: string;
-  doctor: string;
-}
 
-function buildExportHTML(opts: {
-  rows: ExportRow[];
-  fullName: string;
-  universityId: string;
-  printDate: string;
-  isRtl: boolean;
-  logoSrc: string | null;
-}): string {
-  const { rows, fullName, universityId, printDate, isRtl, logoSrc } = opts;
-
-  const labels = {
-    title: isRtl ? 'جدولي الدراسي' : 'My Timetable',
-    day: isRtl ? 'اليوم' : 'Day',
-    subject: isRtl ? 'المادة' : 'Subject',
-    time: isRtl ? 'الوقت' : 'Time',
-    notes: isRtl ? 'ملاحظات' : 'Notes',
-    printed: isRtl ? `طُبع في: ${printDate}` : `Printed: ${printDate}`,
-  };
-
-  const rowsHTML = rows.map((row, i) => `
-    <tr style="background:${i % 2 === 0 ? '#ffffff' : 'rgba(212,175,55,0.04)'}">
-      <td style="padding:14px 16px;border-bottom:1px solid rgba(212,175,55,0.18);text-align:center;font-weight:800;font-size:13px;color:#111;">
-        ${row.day}
-      </td>
-      <td style="padding:14px 16px;border-bottom:1px solid rgba(212,175,55,0.18);${isRtl ? 'text-align:right' : 'text-align:left'}">
-        <div style="font-size:9px;font-weight:800;color:#D4AF37;letter-spacing:.1em;text-transform:uppercase;margin-bottom:3px;">${row.code}</div>
-        <div style="font-size:14px;font-weight:900;color:#111;line-height:1.3;">${row.subject}</div>
-        <div style="font-size:11px;font-weight:600;color:#6b7280;margin-top:3px;">${row.doctor}</div>
-      </td>
-      <td style="padding:14px 16px;border-bottom:1px solid rgba(212,175,55,0.18);text-align:center;">
-        <span style="display:inline-block;font-size:12px;font-weight:800;color:#D4AF37;background:rgba(212,175,55,0.1);border:1px solid rgba(212,175,55,0.28);border-radius:50px;padding:4px 14px;">
-          ${row.time}
-        </span>
-      </td>
-      <td style="padding:14px 16px;border-bottom:1px solid rgba(212,175,55,0.18);text-align:center;font-size:12px;color:#6b7280;">
-        ${row.notes || '—'}
-      </td>
-    </tr>
-  `).join('');
-
-  const logoHTML = logoSrc
-    ? `<img src="${logoSrc}" alt="Logo" style="height:32px;width:auto;object-fit:contain;display:block;margin-bottom:10px;margin-left:auto;margin-right:auto;" />`
-    : `<div style="height:32px;width:32px;border-radius:8px;background:rgba(212,175,55,0.15);display:flex;align-items:center;justify-content:center;margin:0 auto 10px;"><span style="font-size:11px;font-weight:900;color:#D4AF37;">AOU</span></div>`;
-
-  return `<!DOCTYPE html>
-<html lang="${isRtl ? 'ar' : 'en'}" dir="${isRtl ? 'rtl' : 'ltr'}">
-<head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>${labels.title}</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet"/>
-<style>
-  @page {
-    size: A4 portrait;
-    margin: 14mm 14mm 14mm 14mm;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: 'Cairo', 'Segoe UI', sans-serif !important;
-    background: #ffffff;
-    color: #111111;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
-  .export-root {
-    width: 100%;
-    max-width: 760px;
-    margin: 0 auto;
-    padding: 0;
-  }
-  .header {
-    text-align: center;
-    margin-bottom: 32px;
-    padding-bottom: 24px;
-    border-bottom: 2px solid rgba(212,175,55,0.30);
-  }
-  .title {
-    font-family: 'Cairo', sans-serif !important;
-    font-size: 28px;
-    font-weight: 900;
-    color: #111;
-    letter-spacing: -.02em;
-    margin-bottom: 12px;
-  }
-  .badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    background: rgba(212,175,55,0.07);
-    border: 1px solid rgba(212,175,55,0.22);
-    border-radius: 50px;
-    padding: 7px 20px;
-  }
-  .badge-name { font-family: 'Cairo', sans-serif !important; font-weight: 700; font-size: 14px; color: #111; }
-  .badge-sep  { width: 4px; height: 4px; border-radius: 50%; background: rgba(212,175,55,0.6); display: inline-block; }
-  .badge-id   { font-family: 'Cairo', sans-serif !important; font-weight: 800; font-size: 13px; color: #D4AF37; letter-spacing: .1em; }
-
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    font-family: 'Cairo', sans-serif !important;
-    table-layout: fixed;
-  }
-  th {
-    font-family: 'Cairo', sans-serif !important;
-    border-top: 3px solid #D4AF37;
-    border-bottom: 2px solid rgba(212,175,55,0.28);
-    background: rgba(212,175,55,0.07) !important;
-    padding: 13px 16px;
-    font-size: 10px;
-    font-weight: 900;
-    text-transform: uppercase;
-    letter-spacing: .07em;
-    text-align: center;
-    color: #555;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
-  td { font-family: 'Cairo', sans-serif !important; }
-
-  .footer {
-    margin-top: 32px;
-    padding-top: 14px;
-    border-top: 1px solid rgba(212,175,55,0.2);
-    text-align: ${isRtl ? 'left' : 'right'};
-    font-family: 'Cairo', sans-serif !important;
-    font-size: 10px;
-    color: #9ca3af;
-    font-weight: 600;
-  }
-
-  @media print {
-    body { background: #fff !important; }
-    .export-root { max-width: 100%; }
-  }
-</style>
-</head>
-<body>
-<div class="export-root">
-  <div class="header">
-    ${logoHTML}
-    <div class="title">${labels.title}</div>
-    <div class="badge">
-      <span class="badge-name">${fullName}</span>
-      <span class="badge-sep"></span>
-      <span class="badge-id">${universityId}</span>
-    </div>
-  </div>
-
-  <table dir="${isRtl ? 'rtl' : 'ltr'}">
-    <colgroup>
-      <col style="width:14%;"/>
-      <col style="width:37%;"/>
-      <col style="width:16%;"/>
-      <col style="width:33%;"/>
-    </colgroup>
-    <thead>
-      <tr>
-        <th>${labels.day}</th>
-        <th style="${isRtl ? 'text-align:right' : 'text-align:left'};padding-right:16px;padding-left:16px;">${labels.subject}</th>
-        <th>${labels.time}</th>
-        <th>${labels.notes}</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${rowsHTML}
-    </tbody>
-  </table>
-
-  <div class="footer">${labels.printed}</div>
-</div>
-
-<script>
-  // Wait for Cairo font to load, then auto-print
-  document.fonts.ready.then(function() {
-    setTimeout(function() { window.print(); }, 400);
-  });
-  // Close the window after print dialog is dismissed
-  window.addEventListener('afterprint', function() { window.close(); });
-</script>
-</body>
-</html>`;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Main Timetable Component
-// ─────────────────────────────────────────────────────────────────────────────
 const StudentTimetable: React.FC = () => {
   const { user, t, translate, lang, settings } = useApp();
   const [isExporting, setIsExporting] = useState(false);
 
   const isRtl = lang === 'AR';
 
-  const scheduleRows = useMemo(() => {
+  // ── Data — built ONCE, shared between visible UI and export ───────────────
+  const scheduleRows = useMemo<TimetableRow[]>(() => {
     const activeSemId = settings.activeSemesterId;
     const enrollments = storage.getEnrollments().filter(e =>
       e.studentId === user?.id &&
@@ -236,50 +50,115 @@ const StudentTimetable: React.FC = () => {
   const printDate = new Date().toLocaleDateString('ar-SA', {
     day: '2-digit', month: '2-digit', year: 'numeric',
   });
-
   const logoSrc = settings.branding.logo || settings.branding.logoBase64 || null;
 
-  // ── Export PDF via new window ─────────────────────────────────────────────
-  // Opens a fully self-contained print window with Cairo loaded.
-  // auto-triggers print dialog → user saves as PDF. No html2canvas.
-  const handleExportPDF = () => {
+  // ── PDF Export ─────────────────────────────────────────────────────────────
+  const handleExportPDF = async () => {
     if (isExporting || scheduleRows.length === 0) return;
     setIsExporting(true);
 
+    // Hidden mount container — off-screen but rendered, invisible to user
+    const mountDiv = document.createElement('div');
+    mountDiv.style.cssText = [
+      'position:fixed',
+      'top:0',
+      'left:0',
+      'width:794px',
+      'height:auto',
+      'overflow:visible',
+      'opacity:0',
+      'pointer-events:none',
+      'z-index:-9999',
+      'background:#ffffff',
+    ].join(';');
+    document.body.appendChild(mountDiv);
+
+    // Mount the dedicated export component — completely separate React root
+    const exportRoot = createRoot(mountDiv);
+    exportRoot.render(
+      <TimetableExportView
+        rows={scheduleRows}
+        fullName={user?.fullName || ''}
+        universityId={user?.universityId || ''}
+        printDate={printDate}
+        isRtl={isRtl}
+        logoSrc={logoSrc}
+      />
+    );
+
     try {
-      const html = buildExportHTML({
-        rows: scheduleRows,
-        fullName: user?.fullName || '',
-        universityId: user?.universityId || '',
-        printDate,
-        isRtl,
-        logoSrc,
+      // Wait for React to flush + Cairo to load
+      await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+      await new Promise<void>(resolve => setTimeout(resolve, 600));
+
+      // Target the rendered root element (794px wide, auto height)
+      const exportEl = mountDiv.firstElementChild as HTMLElement | null;
+      if (!exportEl) throw new Error('Export element not found');
+
+      const canvas = await html2canvas(exportEl, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+        // Capture exactly this element — no window clipping
+        width: exportEl.scrollWidth,
+        height: exportEl.scrollHeight,
+        windowWidth: exportEl.scrollWidth,
+        windowHeight: exportEl.scrollHeight,
+        scrollX: 0,
+        scrollY: 0,
+        x: 0,
+        y: 0,
       });
 
-      const win = window.open('', '_blank', 'width=900,height=700,scrollbars=yes');
-      if (!win) {
-        alert(isRtl
-          ? 'يرجى السماح للنوافذ المنبثقة لهذا الموقع'
-          : 'Please allow popups for this site to export the PDF');
-        return;
-      }
-      win.document.open();
-      win.document.write(html);
-      win.document.close();
+      // Build PDF — fit to A4 with 10mm margins
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const pageW = pdf.internal.pageSize.getWidth();   // 210mm
+      const pageH = pdf.internal.pageSize.getHeight();  // 297mm
+      const margin = 10;
+      const maxW = pageW - margin * 2;
+      const maxH = pageH - margin * 2;
+
+      // canvas is at scale:2, so real px = canvas.width / 2
+      const pxPerMm = 96 / 25.4;
+      const imgWmm = (canvas.width / 2) / pxPerMm;
+      const imgHmm = (canvas.height / 2) / pxPerMm;
+
+      const scale = Math.min(maxW / imgWmm, maxH / imgHmm, 1);
+      const finalW = imgWmm * scale;
+      const finalH = imgHmm * scale;
+      const offsetX = (pageW - finalW) / 2;
+      const offsetY = margin;
+
+      pdf.addImage(
+        canvas.toDataURL('image/png'),
+        'PNG',
+        offsetX, offsetY,
+        finalW, finalH,
+      );
+
+      pdf.save(`Timetable_${user?.universityId || 'student'}.pdf`);
     } catch (err) {
-      console.error('[Export PDF]', err);
+      console.error('[Timetable PDF]', err);
       alert(isRtl ? 'فشل التصدير. حاول مرة أخرى.' : 'Export failed. Please try again.');
     } finally {
+      // Guaranteed cleanup — unmount React root then remove DOM node
+      exportRoot.unmount();
+      if (document.body.contains(mountDiv)) {
+        document.body.removeChild(mountDiv);
+      }
       setIsExporting(false);
     }
   };
 
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div
       className="max-w-5xl mx-auto space-y-8 animate-in fade-in duration-500 pb-24"
       style={{ fontFamily: '"Cairo", sans-serif' }}
     >
-      {/* ── Page Header ──────────────────────────────────────────────────── */}
+      {/* Page header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
           <h1 className="text-3xl font-black tracking-tight text-text-primary">
@@ -293,24 +172,26 @@ const StudentTimetable: React.FC = () => {
         <button
           onClick={handleExportPDF}
           disabled={isExporting || scheduleRows.length === 0}
-          className="flex items-center gap-2.5 px-6 py-3 bg-gold-gradient text-white rounded-xl shadow-premium hover:shadow-premium-hover font-black text-xs uppercase tracking-widest hover:-translate-y-0.5 active:translate-y-0 transition-all disabled:opacity-50"
+          className="flex items-center gap-2.5 px-6 py-3 bg-gold-gradient text-white rounded-xl shadow-premium hover:shadow-premium-hover font-black text-xs uppercase tracking-widest hover:-translate-y-0.5 active:translate-y-0 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isExporting ? <Loader2 size={16} className="animate-spin" /> : <FileText size={16} />}
+          {isExporting
+            ? <Loader2 size={16} className="animate-spin" />
+            : <FileText size={16} />}
           {isRtl ? 'تصدير PDF' : 'Export PDF'}
         </button>
       </div>
 
-      {/* ── Main Visible Card ─────────────────────────────────────────────── */}
+      {/* Main card */}
       <div
         className="relative overflow-hidden rounded-3xl border border-border shadow-premium bg-card"
         style={{ fontFamily: '"Cairo", sans-serif' }}
       >
-        {/* Radial gold shine */}
         <div
           className="pointer-events-none absolute inset-0 rounded-3xl"
           style={{
-            background: `radial-gradient(ellipse at 15% 10%, rgba(212,175,55,0.07) 0%, transparent 55%),
-                         radial-gradient(ellipse at 85% 90%, rgba(212,175,55,0.04) 0%, transparent 45%)`,
+            background:
+              'radial-gradient(ellipse at 15% 10%, rgba(212,175,55,0.07) 0%, transparent 55%),' +
+              'radial-gradient(ellipse at 85% 90%, rgba(212,175,55,0.04) 0%, transparent 45%)',
           }}
         />
         <div
@@ -319,6 +200,7 @@ const StudentTimetable: React.FC = () => {
         />
 
         <div className="relative p-8 md:p-12">
+
           {/* Card header */}
           <div className="text-center mb-10 pb-8 border-b border-border/40">
             <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10 mb-5">
@@ -345,21 +227,25 @@ const StudentTimetable: React.FC = () => {
                 >
                   <colgroup>
                     <col style={{ width: '14%' }} />
-                    <col style={{ width: '37%' }} />
+                    <col style={{ width: '36%' }} />
                     <col style={{ width: '16%' }} />
-                    <col style={{ width: '33%' }} />
+                    <col style={{ width: '34%' }} />
                   </colgroup>
                   <thead>
                     <tr>
                       {[
-                        { label: isRtl ? 'اليوم' : 'Day' },
+                        { label: isRtl ? 'اليوم' : 'Day', align: 'center' },
                         { label: isRtl ? 'المادة' : 'Subject', align: isRtl ? 'right' : 'left' },
-                        { label: isRtl ? 'الوقت' : 'Time' },
-                        { label: isRtl ? 'ملاحظات' : 'Notes' },
+                        { label: isRtl ? 'الوقت' : 'Time', align: 'center' },
+                        { label: isRtl ? 'ملاحظات' : 'Notes', align: 'center' },
                       ].map(h => (
                         <th
                           key={h.label}
-                          style={{ borderTop: '3px solid #D4AF37', borderBottom: '2px solid rgba(212,175,55,0.25)', textAlign: (h.align as any) || 'center' }}
+                          style={{
+                            borderTop: '3px solid #D4AF37',
+                            borderBottom: '2px solid rgba(212,175,55,0.25)',
+                            textAlign: h.align as any,
+                          }}
                           className="px-5 py-4 text-xs font-black uppercase tracking-wider text-text-secondary bg-primary/5"
                         >
                           {h.label}
@@ -370,7 +256,7 @@ const StudentTimetable: React.FC = () => {
                   <tbody>
                     {scheduleRows.map((row, i) => (
                       <tr
-                        key={`row-${i}`}
+                        key={`visible-${i}`}
                         className={`transition-colors hover:bg-primary/5 ${i % 2 === 0 ? 'bg-transparent' : 'bg-surface/20 dark:bg-white/[0.02]'}`}
                         style={{ borderBottom: '1px solid rgba(212,175,55,0.12)' }}
                       >
@@ -404,7 +290,7 @@ const StudentTimetable: React.FC = () => {
               {/* Mobile cards */}
               <div className="md:hidden space-y-3">
                 {scheduleRows.map((row, i) => (
-                  <div key={`m-${i}`} className="relative rounded-2xl border border-border/60 bg-surface/40 dark:bg-white/[0.03] p-4 overflow-hidden">
+                  <div key={`mobile-${i}`} className="relative rounded-2xl border border-border/60 bg-surface/40 dark:bg-white/[0.03] p-4 overflow-hidden">
                     <div className="absolute top-0 bottom-0 start-0 w-[3px] rounded-full bg-gold-gradient" />
                     <div className="ps-3">
                       <div className="flex items-start justify-between gap-3 mb-2.5" dir={isRtl ? 'rtl' : 'ltr'}>
@@ -447,9 +333,7 @@ const StudentTimetable: React.FC = () => {
 
           {scheduleRows.length > 0 && (
             <div className="mt-10 pt-6 border-t border-border/30 flex items-center justify-end">
-              <p className="text-xs font-bold text-text-secondary opacity-70">
-                {`طُبع في: ${printDate}`}
-              </p>
+              <p className="text-xs font-bold text-text-secondary opacity-70">{`طُبع في: ${printDate}`}</p>
             </div>
           )}
         </div>
