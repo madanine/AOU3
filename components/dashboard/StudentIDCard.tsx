@@ -6,6 +6,17 @@ import { storage } from '../../storage';
 import { getCountryName } from '../../countries';
 import { Loader2 } from 'lucide-react';
 
+// Inject Amiri — a classical, prestigious Arabic typeface — for the name only.
+// Runs once; harmless if called multiple times (checks for existing link).
+function ensureAmiriFont() {
+    if (document.getElementById('amiri-font-link')) return;
+    const link = document.createElement('link');
+    link.id = 'amiri-font-link';
+    link.rel = 'stylesheet';
+    link.href = 'https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap';
+    document.head.appendChild(link);
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // LUXURY MEMBERSHIP STUDENT CARD
 // Design: VIP-level physical card aesthetic — ivory base, gold metal border,
@@ -29,6 +40,7 @@ const StudentIDCard: React.FC = () => {
     const [hint, setHint] = useState(false);
 
     useEffect(() => {
+        ensureAmiriFont();
         if (!localStorage.getItem(HINT_KEY)) {
             setHint(true);
             const timer = setTimeout(() => {
@@ -199,51 +211,65 @@ const StudentIDCard: React.FC = () => {
                             {/* ── LEFT INFO AREA ─────────────────────────────── */}
                             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0', minWidth: 0 }}>
 
-                                {/* University row — logo + name */}
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '8px' }}>
+                                {/* University header — logo + name + subtitle */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
                                     {logoSrc ? (
-                                        <img src={logoSrc} alt="" style={{ height: '26px', width: 'auto', objectFit: 'contain', flexShrink: 0 }} />
+                                        <img src={logoSrc} alt="" style={{ height: '28px', width: 'auto', objectFit: 'contain', flexShrink: 0 }} />
                                     ) : (
                                         <div style={{
-                                            width: '26px', height: '26px', borderRadius: '7px',
+                                            width: '28px', height: '28px', borderRadius: '7px',
                                             background: 'rgba(201,168,76,0.15)', display: 'flex',
                                             alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                                         }}>
                                             <span style={{ fontSize: '8px', fontWeight: 900, color: GOLD, fontFamily: FONT }}>AOU</span>
                                         </div>
                                     )}
-                                    <div>
-                                        <div style={{ fontSize: '9px', fontWeight: 900, color: DARK, lineHeight: 1.2, fontFamily: FONT }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                                        <div style={{ fontSize: '9.5px', fontWeight: 900, color: DARK, lineHeight: 1.2, fontFamily: FONT }}>
                                             الجامعة الأمريكية المفتوحة
                                         </div>
-                                        <div style={{ fontSize: '7px', fontWeight: 600, color: GOLD, lineHeight: 1.3, fontFamily: FONT, letterSpacing: '.06em' }}>
-                                            Arab Open University
+                                        {/* Subtitle — refined, not glued to title */}
+                                        <div style={{
+                                            fontSize: '7.5px', fontWeight: 700,
+                                            color: GOLD, lineHeight: 1.2,
+                                            fontFamily: FONT, letterSpacing: '.08em',
+                                            marginTop: '2px',
+                                        }}>
+                                            بطاقة الطالب
                                         </div>
                                     </div>
                                 </div>
-
                                 {/* Gold separator */}
                                 <div style={{ height: '1px', background: GOLD_LINE, marginBottom: '10px' }} />
 
-                                {/* STUDENT NAME — dominant element */}
+                                {/* STUDENT NAME — dominant, Amiri for prestige */}
                                 <div style={{
-                                    fontSize: '18px', fontWeight: 900, color: DARK,
-                                    fontFamily: FONT, lineHeight: 1.15,
-                                    marginBottom: '6px',
-                                    letterSpacing: '-0.01em',
+                                    fontSize: '20px', fontWeight: 700, color: DARK,
+                                    fontFamily: '"Amiri", "Cairo", serif',
+                                    lineHeight: 1.15, marginBottom: '4px',
+                                    letterSpacing: '0',
                                     whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                                 }}>
                                     {user?.fullName || '—'}
                                 </div>
 
-                                {/* Student ID — spaced mono style */}
-                                <div style={{
-                                    fontSize: '12px', fontWeight: 700, color: GOLD,
-                                    fontFamily: '"Courier New", monospace',
-                                    letterSpacing: '.18em',
-                                    marginBottom: '12px',
-                                }}>
-                                    {user?.universityId || '—'}
+                                {/* University ID — labeled */}
+                                <div style={{ marginBottom: '12px', display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                                    <span style={{
+                                        fontSize: '7px', fontWeight: 700,
+                                        color: GOLD, letterSpacing: '.12em',
+                                        textTransform: 'uppercase', fontFamily: FONT,
+                                    }}>
+                                        الرقم الجامعي
+                                    </span>
+                                    <span style={{
+                                        fontSize: '13px', fontWeight: 800,
+                                        color: DARK,
+                                        fontFamily: '"Courier New", monospace',
+                                        letterSpacing: '.16em',
+                                    }}>
+                                        {user?.universityId || '—'}
+                                    </span>
                                 </div>
 
                                 {/* Thin gold line separator */}
@@ -332,46 +358,35 @@ const StudentIDCard: React.FC = () => {
                             pointerEvents: 'none',
                         }} />
 
-                        {/* Watermark — large, very subtle */}
+                        {/* Back = ONLY centered logo. No text. Physical card back feel. */}
                         <div style={{
-                            position: 'absolute', inset: 0,
+                            position: 'absolute', inset: '6px 0 4px 0',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                             pointerEvents: 'none',
                         }}>
                             {logoSrc ? (
-                                <img src={logoSrc} alt="" style={{ height: '58%', width: 'auto', objectFit: 'contain', opacity: 0.05 }} />
+                                <img
+                                    src={logoSrc}
+                                    alt=""
+                                    style={{
+                                        height: '52%',
+                                        width: 'auto',
+                                        objectFit: 'contain',
+                                        opacity: 0.22,
+                                        filter: 'sepia(1) saturate(2.5) hue-rotate(5deg) brightness(0.75)',
+                                    }}
+                                />
                             ) : (
-                                <span style={{ fontSize: '64px', fontWeight: 900, color: `rgba(201,168,76,0.05)`, fontFamily: FONT }}>AOU</span>
+                                /* Fallback: AOU initials in large gold */
+                                <span style={{
+                                    fontSize: '52px', fontWeight: 900,
+                                    color: 'rgba(201,168,76,0.18)',
+                                    fontFamily: '"Amiri", serif',
+                                    letterSpacing: '6px',
+                                }}>AOU</span>
                             )}
                         </div>
 
-                        {/* Back content — centered */}
-                        <div dir="rtl" style={{
-                            position: 'absolute', inset: '6px 0 4px 0',
-                            display: 'flex', flexDirection: 'column',
-                            alignItems: 'center', justifyContent: 'center',
-                            gap: '8px', padding: '16px 28px',
-                        }}>
-                            <div style={{ fontSize: '17px', fontWeight: 900, color: DARK, textAlign: 'center', fontFamily: FONT, letterSpacing: '-0.01em' }}>
-                                الجامعة الأمريكية المفتوحة
-                            </div>
-                            <div style={{ height: '1px', width: '60%', background: GOLD_LINE, margin: '2px 0' }} />
-                            <div style={{ fontSize: '9.5px', fontWeight: 700, color: MUTED, textAlign: 'center', fontFamily: FONT }}>
-                                Arab Open University
-                            </div>
-                            <div style={{ fontSize: '8.5px', fontWeight: 600, color: MUTED, textAlign: 'center', fontFamily: FONT }}>
-                                المركز الإقليمي الأول
-                            </div>
-                            <div style={{
-                                fontSize: '9px', fontWeight: 700,
-                                color: 'rgba(201,168,76,0.7)',
-                                letterSpacing: '.16em', textTransform: 'uppercase',
-                                fontFamily: '"Courier New", monospace',
-                                marginTop: '6px',
-                            }}>
-                                {'AOU3 · ' + (user?.universityId || '')}
-                            </div>
-                        </div>
                     </div>
 
                 </div>{/* /inner */}
