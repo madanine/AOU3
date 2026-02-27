@@ -32,10 +32,31 @@ async function drawTimetable(p: {
 
   // ── Helpers ──────────────────────────────────────────────────────────────
   const text = (str: string, x: number, y: number, font: string, color: string,
-    align: CanvasTextAlign = 'center', dir: CanvasDirection = 'ltr', maxW?: number) => {
+    align: CanvasTextAlign = 'center', dir: CanvasDirection = 'ltr') => {
     ctx.save(); ctx.font = font; ctx.fillStyle = color;
     ctx.textAlign = align; ctx.direction = dir; ctx.textBaseline = 'middle';
-    maxW ? ctx.fillText(str, x, y, maxW) : ctx.fillText(str, x, y);
+    ctx.fillText(str, x, y);
+    ctx.restore();
+  };
+  // Word-wrap text into multiple lines, centred vertically around midY.
+  const wrapText = (str: string, x: number, midY: number, maxW: number,
+    lineH: number, font: string, color: string,
+    align: CanvasTextAlign = 'center', dir: CanvasDirection = 'ltr') => {
+    ctx.save(); ctx.font = font; ctx.fillStyle = color;
+    ctx.textAlign = align; ctx.direction = dir; ctx.textBaseline = 'middle';
+    const words = str.split(' ');
+    const lines: string[] = [];
+    let current = '';
+    for (const word of words) {
+      const test = current ? current + ' ' + word : word;
+      if (ctx.measureText(test).width > maxW && current) {
+        lines.push(current); current = word;
+      } else { current = test; }
+    }
+    if (current) lines.push(current);
+    const totalH = lines.length * lineH;
+    const startY = midY - totalH / 2 + lineH / 2;
+    lines.forEach((line, i) => ctx.fillText(line, x, startY + i * lineH, maxW));
     ctx.restore();
   };
   const rr = (x: number, y: number, w: number, h: number, r: number) => {
@@ -92,17 +113,24 @@ async function drawTimetable(p: {
   text(title, W / 2, cy + 18, F(900, 26), DARK, 'center', p.isRtl ? 'rtl' : 'ltr');
   cy += 40 + 14;
 
-  // ── Name badge ───────────────────────────────────────────────────────────
-  const badgeH = 38, badgeW = 240, badgeX = (W - badgeW) / 2;
-  ctx.save(); ctx.fillStyle = GOLD_A + '.08)'; rr(badgeX, cy, badgeW, badgeH, 19); ctx.fill();
-  ctx.strokeStyle = GOLD_A + '.22)'; ctx.lineWidth = 1; ctx.stroke(); ctx.restore();
-  if (p.isRtl) {
-    text(p.fullName, W / 2 + 8, cy + badgeH / 2, F(700, 14), DARK, 'right', 'rtl');
-    ctx.save(); ctx.fillStyle = GOLD; ctx.beginPath(); ctx.arc(W / 2, cy + badgeH / 2, 2, 0, Math.PI * 2); ctx.fill(); ctx.restore();
-    text(p.universityId, W / 2 - 10, cy + badgeH / 2, F(900, 13), GOLD, 'left', 'ltr');
-  } else {
-    text(`${p.fullName}  ·  ${p.universityId}`, W / 2, cy + badgeH / 2, F(700, 14), DARK);
-  }
+  // ── Name badge — two-row layout prevents overlap with long names ─────────
+  const badgeH = 50;
+  ctx.save();
+  ctx.font = F(700, 14); // measure name width first
+  const nameW = ctx.measureText(p.fullName).width;
+  ctx.font = F(700, 12);
+  const idW = ctx.measureText(p.universityId).width;
+  const badgeW = Math.max(nameW, idW) + 56;
+  const badgeX = (W - badgeW) / 2;
+  ctx.fillStyle = GOLD_A + '.08)'; rr(badgeX, cy, badgeW, badgeH, 25); ctx.fill();
+  ctx.strokeStyle = GOLD_A + '.22)'; ctx.lineWidth = 1; ctx.stroke();
+  ctx.restore();
+  // Row 1: student name
+  text(p.fullName, W / 2, cy + 17, F(700, 14), DARK, 'center', p.isRtl ? 'rtl' : 'ltr');
+  // Micro separator
+  ctx.save(); ctx.fillStyle = GOLD_A + '.35)'; ctx.fillRect(W / 2 - 24, cy + 27, 48, 1); ctx.restore();
+  // Row 2: university ID
+  text(p.universityId, W / 2, cy + 39, F(800, 12), GOLD, 'center', 'ltr');
   cy += badgeH + 28;
 
   // ── Divider ──────────────────────────────────────────────────────────────
@@ -145,8 +173,8 @@ async function drawTimetable(p: {
     const sAlign: CanvasTextAlign = p.isRtl ? 'right' : 'left';
     const subW = CX.subject.r - CX.subject.l - 16;
     text(row.code, sR, mid - 22, F(700, 9), GOLD, sAlign, 'ltr');
-    text(row.subject, sR, mid - 6, F(900, 14), DARK, sAlign, dir, subW);
-    text(row.doctor, sR, mid + 14, F(600, 11), MUTED, sAlign, dir, subW);
+    wrapText(row.subject, sR, mid - 4, subW, 16, F(900, 13), DARK, sAlign, dir);
+    wrapText(row.doctor, sR, mid + 16, subW, 14, F(600, 11), MUTED, sAlign, dir);
 
     // Time column — single line with pill
     const timeStr = row.time.includes('-') ? row.time : row.time;
@@ -155,9 +183,10 @@ async function drawTimetable(p: {
     ctx.strokeStyle = GOLD_A + '.28)'; ctx.lineWidth = 1; ctx.stroke(); ctx.restore();
     text(timeStr, CX.time.cx, mid, F(800, 11), GOLD, 'center', 'ltr');
 
-    // Notes column
+    // Notes column — word-wrapped so long text doesn't get squished
     const notesText = row.notes && !row.notes.startsWith('http') ? row.notes : '—';
-    text(notesText, CX.notes.cx, mid, F(600, 11), MUTED, 'center', dir, CX.notes.r - CX.notes.l - 8);
+    const notesColW = CX.notes.r - CX.notes.l - 12;
+    wrapText(notesText, CX.notes.cx, mid, notesColW, 15, F(600, 10), MUTED, 'center', dir);
   }
   cy += p.rows.length * ROW_H + 24;
 
@@ -253,9 +282,10 @@ const StudentTimetable: React.FC = () => {
           <div className="text-center mb-10 pb-8 border-b border-border/40">
             <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10 mb-5"><Calendar className="text-primary" size={28} /></div>
             <h2 className="text-4xl md:text-5xl font-black mb-4 tracking-tight text-text-primary leading-tight">{isRtl ? 'جدولي الدراسي' : 'My Timetable'}</h2>
-            <div className="inline-flex items-center gap-3 bg-primary/5 border border-primary/15 rounded-full px-5 py-2">
-              <span className="font-bold text-base text-text-primary">{user?.fullName}</span>
-              <span className="w-1 h-1 rounded-full bg-primary/50 inline-block" />
+            {/* Badge: name on top, ID below — never overlaps for any name length */}
+            <div className="inline-flex flex-col items-center gap-0.5 bg-primary/5 border border-primary/15 rounded-2xl px-6 py-2.5 min-w-[160px]">
+              <span className="font-bold text-base text-text-primary leading-tight text-center">{user?.fullName}</span>
+              <div className="w-10 h-px bg-primary/25 my-0.5" />
               <span className="font-bold text-sm tracking-widest text-primary">{user?.universityId}</span>
             </div>
           </div>
@@ -288,8 +318,16 @@ const StudentTimetable: React.FC = () => {
                         <td className="px-5 py-5 text-center">
                           <span className="inline-flex items-center gap-1.5 text-xs font-black text-primary bg-primary/10 px-3 py-1.5 rounded-full border border-primary/20 whitespace-nowrap"><Clock size={11} />{row.time}</span>
                         </td>
-                        <td className="px-5 py-5 text-center text-xs font-semibold text-text-secondary">
-                          {row.notes && !row.notes.startsWith('http') ? <span className="bg-surface/60 dark:bg-white/5 border border-border/50 rounded-xl px-3 py-1.5 inline-block">{row.notes}</span> : <span className="opacity-30">—</span>}
+                        <td className="px-4 py-4 text-center text-xs font-semibold text-text-secondary">
+                          {row.notes && !row.notes.startsWith('http')
+                            ? (
+                              <span
+                                className="bg-surface/60 dark:bg-white/5 border border-border/50 rounded-xl px-3 py-1.5 inline-block"
+                                dir={isRtl ? 'rtl' : 'ltr'}
+                                style={{ wordBreak: 'break-word', whiteSpace: 'normal', textAlign: isRtl ? 'right' : 'left', maxWidth: '100%' }}
+                              >{row.notes}</span>
+                            )
+                            : <span className="opacity-30">—</span>}
                         </td>
                       </tr>
                     ))}
