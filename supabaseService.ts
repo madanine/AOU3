@@ -74,11 +74,40 @@ export const supabaseService = {
             fullAccess: data.full_access,
             isDisabled: data.is_disabled,
             canAccessRegistry: data.can_access_registry,
+            avatarUrl: data.avatar_url || null,
             createdAt: data.created_at
         } as User;
     },
 
-    // Profiles (Users)
+    async uploadAvatar(userId: string, file: File): Promise<string> {
+        const ext = file.name.split('.').pop();
+        const path = `${userId}/avatar.${ext}`;
+
+        // Upload (upsert so repeated uploads overwrite)
+        const { error: uploadError } = await supabase.storage
+            .from('profile-images')
+            .upload(path, file, { upsert: true, contentType: file.type });
+
+        if (uploadError) throw uploadError;
+
+        // Get public URL
+        const { data: urlData } = supabase.storage
+            .from('profile-images')
+            .getPublicUrl(path);
+
+        const publicUrl = urlData.publicUrl;
+
+        // Save URL to profiles table
+        const { error: dbError } = await supabase
+            .from('profiles')
+            .update({ avatar_url: publicUrl })
+            .eq('id', userId);
+
+        if (dbError) throw dbError;
+
+        return publicUrl;
+    },
+
     async getUsers() {
         const { data, error } = await supabase.from('profiles').select('*');
         if (error) throw error;

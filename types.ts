@@ -39,6 +39,7 @@ export interface User {
   fullAccess?: boolean;
   isDisabled?: boolean;
   canAccessRegistry?: boolean;  // New: University ID Registry permission
+  avatarUrl?: string;           // Profile photo URL (Supabase Storage)
 }
 
 // University ID Registry
