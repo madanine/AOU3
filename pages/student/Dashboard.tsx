@@ -2,22 +2,24 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useApp } from '../../App';
 import { storage } from '../../storage';
-import { supabaseService } from '../../supabaseService';
 import { Link } from 'react-router-dom';
 import {
     BookOpen, GraduationCap, ClipboardList, Calendar,
-    History, FileEdit, CheckCircle, XCircle
+    History, FileEdit, CheckCircle, Users, TrendingUp
 } from 'lucide-react';
-import { StatCard } from '../../components/dashboard/StatCard';
-import { ChartBlock } from '../../components/dashboard/ChartBlock';
 import StudentIDCard from '../../components/dashboard/StudentIDCard';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
     ResponsiveContainer, PieChart, Pie, Cell, Legend
 } from 'recharts';
 
+// ─────────────────────────────────────────────────────────────────────────────
+// STUDENT DASHBOARD — Layout: Hero Card → Stats Row → Charts → Quick Links
+// ─────────────────────────────────────────────────────────────────────────────
+
 const StudentDashboard: React.FC = () => {
-    const { user, t, lang, settings } = useApp();
+    const { user, t, lang, settings, translate } = useApp();
+    const isAr = lang === 'AR';
 
     const [data, setData] = useState({
         courses: storage.getCourses(),
@@ -27,206 +29,257 @@ const StudentDashboard: React.FC = () => {
         submissions: storage.getSubmissions().filter(s => s.studentId === user?.id),
     });
 
-    const [loading, setLoading] = useState(false);
-
     useEffect(() => {
-        const handleUpdate = () => {
-            setData({
-                courses: storage.getCourses(),
-                enrollments: storage.getEnrollments().filter(e => e.studentId === user?.id),
-                assignments: storage.getAssignments(),
-                attendances: storage.getAttendance(),
-                submissions: storage.getSubmissions().filter(s => s.studentId === user?.id),
-            });
-        };
-        window.addEventListener('storage-update', handleUpdate);
-        return () => window.removeEventListener('storage-update', handleUpdate);
+        const refresh = () => setData({
+            courses: storage.getCourses(),
+            enrollments: storage.getEnrollments().filter(e => e.studentId === user?.id),
+            assignments: storage.getAssignments(),
+            attendances: storage.getAttendance(),
+            submissions: storage.getSubmissions().filter(s => s.studentId === user?.id),
+        });
+        window.addEventListener('storage-update', refresh);
+        return () => window.removeEventListener('storage-update', refresh);
     }, [user?.id]);
 
-    const activeSemesterId = settings.activeSemesterId;
     const currentEnrollments = data.enrollments.filter(
-        e => !activeSemesterId || e.semesterId === activeSemesterId
+        e => !settings.activeSemesterId || e.semesterId === settings.activeSemesterId
     );
+    // Deduplicated enrolled courses
+    const seen = new Set<string>();
     const myCourses = data.courses.filter(c =>
-        currentEnrollments.some(e => e.courseId === c.id)
+        currentEnrollments.some(e => e.courseId === c.id) && !seen.has(c.id) && seen.add(c.id)
     );
 
-    // ── Charts data ──────────────────────────────────────────────────────────
-    const attendanceData = useMemo(() => {
-        let present = 0;
-        let absent = 0;
+    // ── Attendance stats ──────────────────────────────────────────────────────
+    const { presentCount, totalSessions } = useMemo(() => {
+        let present = 0, total = 0;
         myCourses.forEach(course => {
             const rec = (data.attendances[course.id] || {})[user?.id || ''] || [];
-            rec.forEach((s: boolean | null) => {
-                if (s === true) present++;
-                else if (s === false) absent++;
-            });
+            rec.forEach((s: boolean | null) => { if (s === true) present++; if (s !== null) total++; });
         });
-        if (present === 0 && absent === 0) return [];
-        return [
-            { name: lang === 'AR' ? 'حاضر' : 'Present', value: present, color: '#3F6F4E' },
-            { name: lang === 'AR' ? 'غائب' : 'Absent', value: absent, color: '#f43f5e' },
-        ];
-    }, [data.attendances, myCourses, user?.id, lang]);
+        return { presentCount: present, totalSessions: total };
+    }, [data.attendances, myCourses, user?.id]);
 
-    const gradesData = useMemo(() => {
-        return data.submissions
+    const attendancePct = totalSessions > 0 ? Math.round((presentCount / totalSessions) * 100) : null;
+
+    // ── Pie chart data ────────────────────────────────────────────────────────
+    const attendanceData = useMemo(() => {
+        const absent = totalSessions - presentCount;
+        if (presentCount === 0 && absent === 0) return [];
+        return [
+            { name: isAr ? 'حاضر' : 'Present', value: presentCount, color: '#3F6F4E' },
+            { name: isAr ? 'غائب' : 'Absent', value: absent, color: '#f43f5e' },
+        ];
+    }, [presentCount, totalSessions, isAr]);
+
+    // ── Grades data ───────────────────────────────────────────────────────────
+    const gradesData = useMemo(() =>
+        data.submissions
             .filter(s => s.status === 'graded' && s.grade !== undefined && s.grade !== null)
             .map(s => {
-                const assignment = data.assignments.find(a => a.id === s.assignmentId);
-                const course = data.courses.find(c => c.id === assignment?.courseId);
+                const asgn = data.assignments.find(a => a.id === s.assignmentId);
+                const course = data.courses.find(c => c.id === asgn?.courseId);
                 return {
-                    name: assignment ? assignment.title : 'Unknown',
-                    course: course ? (lang === 'AR' ? course.title_ar : course.title) : '',
+                    name: asgn ? asgn.title : '—',
+                    course: course ? translate(course, 'title') : '',
                     grade: s.grade || 0,
-                    maxGrade: (assignment as any)?.maxScore || 100,
+                    maxGrade: (asgn as any)?.maxScore || 100,
                 };
             })
-            .slice(-5);
-    }, [data.submissions, data.assignments, data.courses, lang]);
+            .slice(-5),
+        [data.submissions, data.assignments, data.courses, translate]);
 
-    // ── Quick links ──────────────────────────────────────────────────────────
-    const QuickLink = ({ title, to, icon: Icon, colorClass }: any) => (
-        <Link
-            to={to}
-            className="flex flex-col items-center justify-center bg-card p-6 rounded-3xl border border-border shadow-sm hover:shadow-premium-hover hover:-translate-y-1 transition-all group"
-        >
-            <div className={`w-16 h-16 rounded-[20px] ${colorClass} text-white shadow-premium flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
-                <Icon size={32} />
-            </div>
-            <h3 className="text-sm font-black text-text-primary text-center">{title}</h3>
-        </Link>
-    );
+    const latestGrade = gradesData.length > 0 ? gradesData[gradesData.length - 1] : null;
 
+    // ── Quick links ───────────────────────────────────────────────────────────
     const quickLinks = [
-        { title: t.registration, to: '/student/registration', icon: GraduationCap, colorClass: 'bg-gold-gradient' },
-        { title: t.myCourses, to: '/student/my-courses', icon: BookOpen, colorClass: 'bg-gold-gradient' },
-        { title: t.assignments, to: '/student/assignments', icon: ClipboardList, colorClass: 'bg-card border border-border !text-text-primary' },
-        { title: lang === 'AR' ? 'سجل الحضور' : 'Attendance', to: '/student/attendance', icon: History, colorClass: 'bg-success' },
-        { title: t.myTimetable, to: '/student/timetable', icon: Calendar, colorClass: 'bg-card border border-border !text-text-primary' },
-        { title: lang === 'AR' ? 'الامتحانات' : 'Exams', to: '/student/exams', icon: FileEdit, colorClass: 'bg-gold-gradient' },
+        { title: t.registration, to: '/student/registration', icon: GraduationCap },
+        { title: t.myCourses, to: '/student/my-courses', icon: BookOpen },
+        { title: t.assignments, to: '/student/assignments', icon: ClipboardList },
+        { title: isAr ? 'سجل الحضور' : 'Attendance', to: '/student/attendance', icon: History },
+        { title: t.myTimetable, to: '/student/timetable', icon: Calendar },
+        { title: isAr ? 'الامتحانات' : 'Exams', to: '/student/exams', icon: FileEdit },
     ];
 
     return (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 max-w-7xl mx-auto pb-10">
+        <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700 max-w-5xl mx-auto pb-12" dir={isAr ? 'rtl' : 'ltr'}>
 
-            {/* ── Welcome banner ─────────────────────────────────────────────────── */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-card p-8 rounded-3xl border border-border shadow-sm relative overflow-hidden">
-                <div className="absolute right-0 top-0 w-64 h-64 bg-premium-radial blur-3xl -mr-20 -mt-20 pointer-events-none" />
-                <div className="relative z-10">
-                    <h1 className="text-title">{lang === 'AR' ? 'لوحة المعلومات' : 'Dashboard'}</h1>
-                    <p className="font-medium text-text-secondary mt-2 flex items-center gap-2">
-                        <span>{lang === 'AR' ? 'مرحباً،' : 'Hello,'}</span>
-                        <span className="text-primary font-bold">{user?.fullName}</span>
-                    </p>
-                </div>
+            {/* ── Welcome header ───────────────────────────────────────────────── */}
+            <div>
+                <p className="text-sm font-semibold text-text-secondary mb-1">
+                    {isAr ? 'مرحباً،' : 'Welcome back,'}
+                </p>
+                <h1 className="text-3xl font-black tracking-tight text-text-primary">
+                    {user?.fullName}
+                </h1>
             </div>
 
-            {/* ── Single stat card (المواد الحالية) + ID Card ────────────────────── */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-
-                {/* Stat: Current courses */}
-                <div className="animate-in fade-in slide-in-from-bottom-4 fill-mode-both">
-                    <StatCard
-                        isLoading={loading}
-                        title={lang === 'AR' ? 'المواد الحالية' : 'Current Courses'}
-                        value={myCourses.length}
-                        icon={BookOpen}
-                        colorClass="bg-gold-gradient"
-                    />
+            {/* ════════════════════════════════════════════════════════════════════
+          HERO SECTION — VIP Student Card centered, 75% width
+      ════════════════════════════════════════════════════════════════════ */}
+            <section className="flex flex-col items-center gap-3">
+                <p className="text-[10px] font-black uppercase tracking-[.18em] text-text-secondary opacity-70">
+                    {isAr ? 'بطاقتي الجامعية' : 'University ID Card'}
+                </p>
+                <div style={{ width: 'min(75%, 420px)', maxWidth: '420px', minWidth: '280px' }}>
+                    <StudentIDCard />
                 </div>
+            </section>
 
-                {/* University ID Card — spans 2 cols on large screens */}
-                <div className="lg:col-span-2 flex justify-center lg:justify-start animate-in fade-in slide-in-from-bottom-4 delay-100 fill-mode-both">
-                    <div className="w-full max-w-sm lg:max-w-md xl:max-w-lg">
-                        <h2 className="text-xs font-black uppercase tracking-widest text-text-secondary mb-3" style={{ fontFamily: '"Cairo", sans-serif' }}>
-                            {lang === 'AR' ? 'بطاقتي الجامعية' : 'University ID Card'}
-                        </h2>
-                        <StudentIDCard />
+            {/* ════════════════════════════════════════════════════════════════════
+          STATS ROW — 3 equal cards below the VIP card
+      ════════════════════════════════════════════════════════════════════ */}
+            <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+
+                {/* Card 1 — المواد الحالية */}
+                <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-5 flex gap-4 items-center shadow-sm">
+                    <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
+                        style={{ background: 'rgba(212,175,55,0.12)' }}>
+                        <BookOpen size={20} style={{ color: '#C9A84C' }} strokeWidth={2} />
                     </div>
+                    <div>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-text-secondary opacity-80">
+                            {isAr ? 'المواد الحالية' : 'Current Courses'}
+                        </p>
+                        <p className="text-3xl font-black text-text-primary leading-none mt-0.5">
+                            {myCourses.length}
+                        </p>
+                    </div>
+                    {/* Gold top accent */}
+                    <div className="absolute top-0 left-4 right-4 h-[2px] rounded-full"
+                        style={{ background: 'linear-gradient(90deg,transparent,rgba(212,175,55,0.5),transparent)' }} />
                 </div>
 
-            </div>
-
-            {/* ── Analytics charts ───────────────────────────────────────────────── */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200 fill-mode-both">
-
-                {/* Attendance Pie Chart */}
-                <ChartBlock
-                    title={lang === 'AR' ? 'إحصاءات الحضور' : 'Attendance Overview'}
-                    subtitle={lang === 'AR' ? 'لجميع المواد الحالية' : 'Across all current courses'}
-                    icon={CheckCircle}
-                    isLoading={loading}
-                    isEmpty={attendanceData.length === 0}
-                    emptyMessage={lang === 'AR' ? 'لا توجد بيانات حضور مسجلة' : 'No attendance data recorded yet'}
-                >
-                    <PieChart>
-                        <Pie
-                            data={attendanceData}
-                            cx="50%" cy="50%"
-                            innerRadius={60} outerRadius={100}
-                            paddingAngle={5}
-                            dataKey="value"
-                            stroke="none"
-                            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                        >
-                            {attendanceData.map((entry, i) => (
-                                <Cell key={`cell-${i}`} fill={entry.color} />
-                            ))}
-                        </Pie>
-                        <Tooltip
-                            contentStyle={{ borderRadius: '16px', border: '1px solid var(--border-color)', backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)' }}
-                            itemStyle={{ fontWeight: 'bold' }}
-                        />
-                        <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ color: 'var(--text-secondary)' }} />
-                    </PieChart>
-                </ChartBlock>
-
-                {/* Grades Bar Chart */}
-                <ChartBlock
-                    title={lang === 'AR' ? 'أحدث الدرجات' : 'Recent Grades'}
-                    subtitle={lang === 'AR' ? 'درجات آخر 5 واجبات تم تصحيحها' : 'Scores for last 5 graded assignments'}
-                    icon={GraduationCap}
-                    isLoading={loading}
-                    isEmpty={gradesData.length === 0}
-                    emptyMessage={lang === 'AR' ? 'لا توجد واجبات مصححة' : 'No graded assignments yet'}
-                >
-                    <BarChart data={gradesData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" />
-                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--text-secondary)' }} />
-                        <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fill: 'var(--text-secondary)' }} />
-                        <Tooltip
-                            cursor={{ fill: 'var(--surface-bg)' }}
-                            contentStyle={{ borderRadius: '16px', border: '1px solid var(--border-color)', backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)' }}
-                            formatter={(value: any, _name: any, props: any) => [`${value} / ${props.payload.maxGrade}`, lang === 'AR' ? 'الدرجة' : 'Score']}
-                            labelFormatter={(label) => <span className="font-bold">{label}</span>}
-                        />
-                        <Bar dataKey="grade" fill="var(--primary)" radius={[6, 6, 0, 0]} barSize={40}>
-                            {gradesData.map((entry, i) => (
-                                <Cell key={`cell-${i}`} fill={entry.grade / entry.maxGrade >= 0.5 ? 'var(--success)' : '#f43f5e'} />
-                            ))}
-                        </Bar>
-                    </BarChart>
-                </ChartBlock>
-
-            </div>
-
-            {/* ── Quick links ────────────────────────────────────────────────────── */}
-            <div className="pt-4 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300 fill-mode-both">
-                <h2 className="text-section mb-6 flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-surface text-primary border border-border flex items-center justify-center">
-                        <History size={16} />
+                {/* Card 2 — إحصائيات الحضور */}
+                <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-5 flex gap-4 items-center shadow-sm">
+                    <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
+                        style={{ background: 'rgba(63,111,78,0.12)' }}>
+                        <CheckCircle size={20} style={{ color: '#3F6F4E' }} strokeWidth={2} />
                     </div>
-                    {lang === 'AR' ? 'الوصول السريع' : 'Quick Access'}
-                </h2>
-                <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
-                    {quickLinks.map((link, idx) => (
-                        <div key={idx} style={{ animationDelay: `${idx * 40 + 300}ms` }} className="animate-in zoom-in-95 duration-500 fill-mode-both">
-                            <QuickLink {...link} />
+                    <div>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-text-secondary opacity-80">
+                            {isAr ? 'نسبة الحضور' : 'Attendance Rate'}
+                        </p>
+                        <p className="text-3xl font-black text-text-primary leading-none mt-0.5">
+                            {attendancePct !== null ? `${attendancePct}%` : '—'}
+                        </p>
+                    </div>
+                    <div className="absolute top-0 left-4 right-4 h-[2px] rounded-full"
+                        style={{ background: 'linear-gradient(90deg,transparent,rgba(63,111,78,0.5),transparent)' }} />
+                </div>
+
+                {/* Card 3 — أحدث درجة */}
+                <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-5 flex gap-4 items-center shadow-sm">
+                    <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
+                        style={{ background: 'rgba(212,175,55,0.12)' }}>
+                        <TrendingUp size={20} style={{ color: '#C9A84C' }} strokeWidth={2} />
+                    </div>
+                    <div className="min-w-0">
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-text-secondary opacity-80">
+                            {isAr ? 'أحدث درجة' : 'Latest Grade'}
+                        </p>
+                        <p className="text-3xl font-black text-text-primary leading-none mt-0.5">
+                            {latestGrade ? `${latestGrade.grade}` : '—'}
+                        </p>
+                        {latestGrade && (
+                            <p className="text-[10px] text-text-secondary truncate mt-0.5">{latestGrade.name}</p>
+                        )}
+                    </div>
+                    <div className="absolute top-0 left-4 right-4 h-[2px] rounded-full"
+                        style={{ background: 'linear-gradient(90deg,transparent,rgba(212,175,55,0.5),transparent)' }} />
+                </div>
+            </section>
+
+            {/* ════════════════════════════════════════════════════════════════════
+          CHARTS — Attendance + Grades
+      ════════════════════════════════════════════════════════════════════ */}
+            <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+                {/* Attendance Pie */}
+                <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(63,111,78,0.12)' }}>
+                            <CheckCircle size={16} style={{ color: '#3F6F4E' }} strokeWidth={2} />
                         </div>
+                        <div>
+                            <p className="font-black text-sm text-text-primary">{isAr ? 'إحصاءات الحضور' : 'Attendance Overview'}</p>
+                            <p className="text-[10px] text-text-secondary opacity-70">{isAr ? 'لجميع المواد الحالية' : 'Across all current courses'}</p>
+                        </div>
+                    </div>
+                    {attendanceData.length > 0 ? (
+                        <ResponsiveContainer width="100%" height={200}>
+                            <PieChart>
+                                <Pie data={attendanceData} cx="50%" cy="50%" innerRadius={55} outerRadius={85}
+                                    paddingAngle={5} dataKey="value" stroke="none"
+                                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
+                                    {attendanceData.map((e, i) => <Cell key={i} fill={e.color} />)}
+                                </Pie>
+                                <Tooltip contentStyle={{ borderRadius: '12px', border: '1px solid var(--border-color)', backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)' }} />
+                                <Legend verticalAlign="bottom" height={28} iconType="circle" wrapperStyle={{ color: 'var(--text-secondary)', fontSize: '12px' }} />
+                            </PieChart>
+                        </ResponsiveContainer>
+                    ) : (
+                        <div className="h-[200px] flex items-center justify-center text-sm text-text-secondary opacity-60">
+                            {isAr ? 'لا توجد بيانات حضور مسجلة' : 'No attendance data yet'}
+                        </div>
+                    )}
+                </div>
+
+                {/* Grades Bar */}
+                <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(212,175,55,0.12)' }}>
+                            <GraduationCap size={16} style={{ color: '#C9A84C' }} strokeWidth={2} />
+                        </div>
+                        <div>
+                            <p className="font-black text-sm text-text-primary">{isAr ? 'أحدث الدرجات' : 'Recent Grades'}</p>
+                            <p className="text-[10px] text-text-secondary opacity-70">{isAr ? 'آخر 5 واجبات مصححة' : 'Last 5 graded assignments'}</p>
+                        </div>
+                    </div>
+                    {gradesData.length > 0 ? (
+                        <ResponsiveContainer width="100%" height={200}>
+                            <BarChart data={gradesData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" />
+                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'var(--text-secondary)' }} />
+                                <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fill: 'var(--text-secondary)', fontSize: 10 }} />
+                                <Tooltip cursor={{ fill: 'var(--surface-bg)' }}
+                                    contentStyle={{ borderRadius: '12px', border: '1px solid var(--border-color)', backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)' }}
+                                    formatter={(v: any, _, p: any) => [`${v} / ${p.payload.maxGrade}`, isAr ? 'الدرجة' : 'Score']} />
+                                <Bar dataKey="grade" radius={[6, 6, 0, 0]} barSize={32}>
+                                    {gradesData.map((e, i) => <Cell key={i} fill={e.grade / e.maxGrade >= 0.5 ? '#3F6F4E' : '#f43f5e'} />)}
+                                </Bar>
+                            </BarChart>
+                        </ResponsiveContainer>
+                    ) : (
+                        <div className="h-[200px] flex items-center justify-center text-sm text-text-secondary opacity-60">
+                            {isAr ? 'لا توجد واجبات مصححة' : 'No graded assignments yet'}
+                        </div>
+                    )}
+                </div>
+            </section>
+
+            {/* ════════════════════════════════════════════════════════════════════
+          QUICK ACCESS LINKS
+      ════════════════════════════════════════════════════════════════════ */}
+            <section>
+                <h2 className="text-xs font-black uppercase tracking-[.15em] text-text-secondary opacity-70 mb-4">
+                    {isAr ? 'الوصول السريع' : 'Quick Access'}
+                </h2>
+                <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+                    {quickLinks.map((link, i) => (
+                        <Link key={i} to={link.to}
+                            className="flex flex-col items-center gap-2.5 rounded-2xl border border-border bg-card p-4 hover:border-primary/40 hover:-translate-y-0.5 hover:shadow-md transition-all group">
+                            <div className="w-10 h-10 rounded-xl flex items-center justify-center"
+                                style={{ background: 'rgba(212,175,55,0.10)' }}>
+                                <link.icon size={18} style={{ color: '#C9A84C' }} strokeWidth={2} />
+                            </div>
+                            <span className="text-[10px] font-bold text-text-secondary text-center leading-tight group-hover:text-primary transition-colors">
+                                {link.title}
+                            </span>
+                        </Link>
                     ))}
                 </div>
-            </div>
+            </section>
 
         </div>
     );

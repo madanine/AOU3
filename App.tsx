@@ -37,6 +37,7 @@ import ChangePassword from './pages/admin/ChangePassword';
 import UniversityIdRegistry from './pages/admin/UniversityIdRegistry';
 import AdminExams from './pages/admin/Exams';
 import AdminTranscripts from './pages/admin/Transcripts';
+import SupervisorDashboard from './pages/supervisor/Dashboard';
 
 import MainLayout from './components/layout/MainLayout';
 
@@ -256,7 +257,7 @@ const App: React.FC = () => {
             } />
 
             {/* Supervisor Routes */}
-            <Route path="/supervisor/dashboard" element={<AdminDashboard />} />
+            <Route path="/supervisor/dashboard" element={<SupervisorDashboard />} />
             <Route path="/supervisor/attendance" element={<AdminAttendance />} />
             <Route path="/supervisor/assignments" element={<AdminAssignments />} />
             <Route path="/supervisor/grading" element={<AdminGrading />} />
