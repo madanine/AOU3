@@ -6,33 +6,39 @@ import { storage } from '../../storage';
 import { getCountryName } from '../../countries';
 import { Loader2 } from 'lucide-react';
 
-// Inject Amiri — a classical, prestigious Arabic typeface — for the name only.
-// Runs once; harmless if called multiple times (checks for existing link).
-function ensureAmiriFont() {
-    if (document.getElementById('amiri-font-link')) return;
+// ─────────────────────────────────────────────────────────────────────────────
+// Load Noto Naskh Arabic — refined, classical Arabic typeface (closest freely
+// available equivalent to DIN Next Arabic / Swissra aesthetics).
+// ─────────────────────────────────────────────────────────────────────────────
+function ensurePremiumFont() {
+    if (document.getElementById('noto-naskh-link')) return;
     const link = document.createElement('link');
-    link.id = 'amiri-font-link';
+    link.id = 'noto-naskh-link';
     link.rel = 'stylesheet';
-    link.href = 'https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap';
+    link.href = 'https://fonts.googleapis.com/css2?family=Noto+Naskh+Arabic:wght@400;500;600;700&display=swap';
     document.head.appendChild(link);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// LUXURY MEMBERSHIP STUDENT CARD
-// Design: VIP-level physical card aesthetic — ivory base, gold metal border,
-// generous breathing space, dominant name, no UI clutter.
-//
-// Flip rules (critical for RTL):
-// • Outer wrapper is ALWAYS dir="ltr" — keeps rotateY on correct X-axis.
-// • Arabic text uses dir="rtl" on inner content divs only.
-// • Back face: pre-rotated rotateY(180deg). Container adds 180deg → net 360 = readable.
-// ─────────────────────────────────────────────────────────────────────────────
+const HINT_KEY = 'aou3_card_hint_v2';
 
-const HINT_KEY = 'aou3_luxury_hint_v1';
+// ─────────────────────────────────────────────────────────────────────────────
+// RENDER ARCHITECTURE (solves the mirroring bug):
+//
+//  [Perspective wrapper  dir="ltr"]          ← must be ltr for correct X-axis
+//    [Flip container  preserve-3d]           ← rotates 180deg on click
+//      [Front face  backface-visibility:hidden]   ← NO overflow:hidden here!
+//        [Gold-frame wrapper]                ← gradient bg + 2px padding
+//          [Ivory inner card  overflow:hidden]    ← overflow HERE, not on face
+//      [Back face   backface-visibility:hidden  rotateY(180deg)]
+//        [Gold-frame wrapper]
+//          [Ivory inner card  overflow:hidden  logo only]
+//
+// Keeping overflow:hidden OFF the 3D-transformed face divs is the critical fix.
+// ─────────────────────────────────────────────────────────────────────────────
 
 const StudentIDCard: React.FC = () => {
     const { user, setUser, settings, t } = useApp();
-    const fileInputRef = useRef<HTMLInputElement>(null);
+    const fileRef = useRef<HTMLInputElement>(null);
 
     const [flipped, setFlipped] = useState(false);
     const [avatar, setAvatar] = useState<string | null>(user?.avatarUrl || null);
@@ -40,24 +46,17 @@ const StudentIDCard: React.FC = () => {
     const [hint, setHint] = useState(false);
 
     useEffect(() => {
-        ensureAmiriFont();
+        ensurePremiumFont();
         if (!localStorage.getItem(HINT_KEY)) {
             setHint(true);
-            const timer = setTimeout(() => {
-                setHint(false);
-                localStorage.setItem(HINT_KEY, 'true');
-            }, 4500);
-            return () => clearTimeout(timer);
+            const t = setTimeout(() => { setHint(false); localStorage.setItem(HINT_KEY, '1'); }, 4500);
+            return () => clearTimeout(t);
         }
     }, []);
 
-    // ── Photo upload ───────────────────────────────────────────────────────────
-    const onPhotoClick = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        fileInputRef.current?.click();
-    };
-
-    const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    // ── Photo upload ─────────────────────────────────────────────────────────
+    const onPhoto = (e: React.MouseEvent) => { e.stopPropagation(); fileRef.current?.click(); };
+    const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file || !user?.id) return;
         if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) return;
@@ -66,93 +65,95 @@ const StudentIDCard: React.FC = () => {
         try {
             const url = await supabaseService.uploadAvatar(user.id, file);
             setAvatar(url);
-            const updated = { ...user, avatarUrl: url };
-            setUser(updated);
-            storage.setAuthUser(updated);
-        } catch (err) { console.error('[Card upload]', err); }
+            const up = { ...user, avatarUrl: url };
+            setUser(up); storage.setAuthUser(up);
+        } catch (err) { console.error('[Card]', err); }
         finally { setUploading(false); e.target.value = ''; }
     };
 
-    // ── Data ───────────────────────────────────────────────────────────────────
+    // ── Data ─────────────────────────────────────────────────────────────────
     const logoSrc = settings.branding.logo || settings.branding.logoBase64 || null;
-    const nationalityAr = user?.nationality ? getCountryName(user.nationality, 'AR') : '—';
-    // Date — English digits always
-    const dobFormatted = user?.dateOfBirth
-        ? (() => {
-            const d = new Date(user.dateOfBirth);
-            const dd = String(d.getDate()).padStart(2, '0');
-            const mm = String(d.getMonth() + 1).padStart(2, '0');
-            const yyyy = d.getFullYear();
-            return `${dd} / ${mm} / ${yyyy}`;
-        })()
-        : '—';
-    // Major — Arabic label from translation map, never the raw slug
-    const majorAr = user?.major
-        ? (t.majorList[user.major as keyof typeof t.majorList] || user.major)
-        : '—';
+    const natAr = user?.nationality ? getCountryName(user.nationality, 'AR') : '—';
+    const majorAr = user?.major ? (t.majorList[user.major as keyof typeof t.majorList] || user.major) : '—';
+    const dob = (() => {
+        if (!user?.dateOfBirth) return '—';
+        const d = new Date(user.dateOfBirth);
+        const dd = String(d.getDate()).padStart(2, '0');
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        return `${d.getFullYear()} / ${mm} / ${dd}`;
+    })();
 
-    // ── Style constants ────────────────────────────────────────────────────────
-    const GOLD = '#C9A84C';
-    const GOLD2 = '#E8C96A';
-    const IVORY = '#FDFAF0';
-    const IVORY2 = '#F8F2DC';
+    // ── Design tokens ─────────────────────────────────────────────────────────
+    const FONT = '"Noto Naskh Arabic", "Cairo", serif';
+    const GOLD_A = '#C8A84B';
+    const GOLD_B = '#E8C96A';
+    const GOLD_C = '#F5E07A';
     const DARK = '#1A1710';
     const MUTED = '#7A7060';
-    const FONT = '"Cairo", "Segoe UI", sans-serif';
-    const GOLD_BORDER = `2px solid ${GOLD}`;
+    const IVORY = 'linear-gradient(160deg, #FEFDF6 0%, #FBF5E2 55%, #F6EED4 100%)';
 
-    const CARD_BG = `linear-gradient(160deg, ${IVORY} 0%, #FBF4E0 55%, ${IVORY2} 100%)`;
-    const GOLD_LINE = `linear-gradient(90deg, transparent 0%, ${GOLD} 20%, ${GOLD2} 50%, ${GOLD} 80%, transparent 100%)`;
+    // Metallic gradient border — used as background of outer frame div
+    const GOLD_FRAME = `linear-gradient(135deg, ${GOLD_A} 0%, ${GOLD_B} 22%, ${GOLD_C} 40%, ${GOLD_B} 58%, ${GOLD_A} 78%, ${GOLD_B} 88%, ${GOLD_A} 100%)`;
+    // Subtle diagonal shine overlay
+    const SHINE = 'linear-gradient(135deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.02) 35%, transparent 60%)';
 
-    // Shared face styles
-    const face: React.CSSProperties = {
-        position: 'absolute', inset: 0,
-        borderRadius: '18px',
-        overflow: 'hidden',
-        backfaceVisibility: 'hidden',
-        WebkitBackfaceVisibility: 'hidden',
-        background: CARD_BG,
-        // True metallic border — inset box-shadow for inner glow, solid border
-        border: `1.5px solid ${GOLD}`,
-        boxSizing: 'border-box',
-    };
-
-    // ── Label + Value pair ─────────────────────────────────────────────────────
-    const Field = ({ label, value, mono }: { label: string; value: string; mono?: boolean }) => (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+    // ── Reusable row: label + value ───────────────────────────────────────────
+    const Row = ({ label, value, monoValue }: { label: string; value: string; monoValue?: boolean }) => (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+            <span style={{ fontSize: '7.5px', fontWeight: 600, color: GOLD_A, fontFamily: FONT, letterSpacing: '.1em', textTransform: 'uppercase' }}>
+                {label}
+            </span>
             <span style={{
-                fontSize: '8px', fontWeight: 700, letterSpacing: '.15em',
-                textTransform: 'uppercase', color: GOLD, fontFamily: FONT,
-                opacity: 0.9,
-            }}>{label}</span>
-            <span style={{
-                fontSize: mono ? '13px' : '14px',
-                fontWeight: 800,
-                color: DARK,
-                fontFamily: mono ? '"Courier New", monospace' : FONT,
-                letterSpacing: mono ? '.05em' : '0',
-                lineHeight: 1.2,
-            }}>{value}</span>
+                fontSize: monoValue ? '12.5px' : '13px',
+                fontWeight: 700, color: DARK,
+                fontFamily: monoValue ? '"SF Mono","Courier New",monospace' : FONT,
+                letterSpacing: monoValue ? '.1em' : '0',
+                lineHeight: 1.25,
+            }}>
+                {value}
+            </span>
+        </div>
+    );
+
+    // ── Gold-framed card shell (used for both faces) ──────────────────────────
+    const Frame: React.FC<React.PropsWithChildren> = ({ children }) => (
+        // Outer: 2px gradient = metallic border
+        <div style={{
+            width: '100%', height: '100%',
+            background: GOLD_FRAME,
+            borderRadius: '18px',
+            padding: '2px',
+            boxSizing: 'border-box',
+            boxShadow: '0 0 0 1px rgba(201,168,75,0.15) inset',
+        }}>
+            {/* Inner ivory card — overflow:hidden clips content to rounded corners */}
+            <div style={{
+                width: '100%', height: '100%',
+                background: IVORY,
+                borderRadius: '16px',
+                overflow: 'hidden',
+                position: 'relative',
+            }}>
+                {/* Subtle shine overlay */}
+                <div style={{ position: 'absolute', inset: 0, background: SHINE, pointerEvents: 'none', zIndex: 1 }} />
+                {children}
+            </div>
         </div>
     );
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
-            <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" style={{ display: 'none' }} onChange={onFileChange} />
+            <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" style={{ display: 'none' }} onChange={onFile} />
 
-            {/* One-time hint */}
             {hint && (
-                <p style={{
-                    fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)',
-                    fontFamily: FONT, textAlign: 'center', direction: 'rtl', opacity: 0.9,
-                }}>
-                    اضغط على البطاقة لقلبها · اضغط على الصورة لتغييرها
+                <p style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-secondary)', fontFamily: FONT, textAlign: 'center', direction: 'rtl' }}>
+                    اضغط للقلب · اضغط على الصورة للتغيير
                 </p>
             )}
 
             {/*
-        IMPORTANT: dir="ltr" on the outer wrapper keeps rotateY() on the
-        physical X-axis — prevents RTL from mirroring the flip direction.
+        OUTER: dir="ltr" ensures rotateY() acts on the correct physical X-axis.
+        Without this, RTL would reverse the axis and the back face appears on the wrong side.
       */}
             <div
                 dir="ltr"
@@ -165,232 +166,165 @@ const StudentIDCard: React.FC = () => {
                     userSelect: 'none', WebkitUserSelect: 'none',
                 }}
             >
-                {/* Flip inner */}
+                {/* Flip container */}
                 <div style={{
-                    width: '100%', height: '100%', position: 'relative',
+                    width: '100%', height: '100%',
+                    position: 'relative',
                     transformStyle: 'preserve-3d',
-                    transition: 'transform 0.85s cubic-bezier(0.3, 0.1, 0.2, 1.0)',
+                    transition: 'transform 0.9s cubic-bezier(0.25, 0.1, 0.2, 1.0)',
                     transform: flipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
-                    borderRadius: '18px',
-                    // Outer glow
-                    filter: 'drop-shadow(0 0 20px rgba(201,168,76,0.18)) drop-shadow(0 10px 40px rgba(0,0,0,0.22))',
                 }}>
 
-                    {/* ═══════════════ FRONT ═══════════════════════════════════════════ */}
-                    <div style={face}>
-                        {/* Metallic inner glow rim */}
-                        <div style={{
-                            position: 'absolute', inset: '3px',
-                            borderRadius: '15px',
-                            border: '1px solid rgba(201,168,76,0.25)',
-                            pointerEvents: 'none', zIndex: 1,
-                        }} />
+                    {/* ═══════════════════════════════════════════════════════════════
+              FRONT FACE
+              backface-visibility:hidden + NO overflow:hidden on THIS div.
+          ═══════════════════════════════════════════════════════════════ */}
+                    <div style={{
+                        position: 'absolute', inset: 0,
+                        backfaceVisibility: 'hidden',
+                        WebkitBackfaceVisibility: 'hidden',
+                    }}>
+                        <Frame>
+                            {/* Content layer — above the shine (z-index 2) */}
+                            <div dir="rtl" style={{
+                                position: 'absolute', inset: 0,
+                                display: 'flex', flexDirection: 'row',
+                                padding: '14px 15px 13px',
+                                gap: '12px',
+                                alignItems: 'stretch',
+                                zIndex: 2,
+                            }}>
 
-                        {/* Top gold metallic stripe */}
-                        <div style={{
-                            position: 'absolute', top: 0, left: 0, right: 0, height: '6px',
-                            background: `linear-gradient(90deg, ${GOLD} 0%, ${GOLD2} 35%, #F5E07A 50%, ${GOLD2} 65%, ${GOLD} 100%)`,
-                            zIndex: 2,
-                        }} />
-                        {/* Bottom stripe */}
-                        <div style={{
-                            position: 'absolute', bottom: 0, left: 0, right: 0, height: '4px',
-                            background: `linear-gradient(90deg, ${GOLD} 0%, ${GOLD2} 50%, ${GOLD} 100%)`,
-                            zIndex: 2,
-                        }} />
+                                {/* ── Left: All text info ────────────────────────────────── */}
+                                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
 
-                        {/* Content — RTL for Arabic */}
-                        <div dir="rtl" style={{
-                            position: 'absolute', inset: '6px 0 4px 0',
-                            display: 'flex', flexDirection: 'row',
-                            padding: '14px 16px 12px',
-                            gap: '14px',
-                            alignItems: 'stretch',
-                        }}>
-
-                            {/* ── LEFT INFO AREA ─────────────────────────────── */}
-                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0', minWidth: 0 }}>
-
-                                {/* University header — logo + name + subtitle */}
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-                                    {logoSrc ? (
-                                        <img src={logoSrc} alt="" style={{ height: '28px', width: 'auto', objectFit: 'contain', flexShrink: 0 }} />
-                                    ) : (
-                                        <div style={{
-                                            width: '28px', height: '28px', borderRadius: '7px',
-                                            background: 'rgba(201,168,76,0.15)', display: 'flex',
-                                            alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                                        }}>
-                                            <span style={{ fontSize: '8px', fontWeight: 900, color: GOLD, fontFamily: FONT }}>AOU</span>
-                                        </div>
-                                    )}
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                                        <div style={{ fontSize: '9.5px', fontWeight: 900, color: DARK, lineHeight: 1.2, fontFamily: FONT }}>
-                                            الجامعة الأمريكية المفتوحة
-                                        </div>
-                                        {/* Subtitle — refined, not glued to title */}
-                                        <div style={{
-                                            fontSize: '7.5px', fontWeight: 700,
-                                            color: GOLD, lineHeight: 1.2,
-                                            fontFamily: FONT, letterSpacing: '.08em',
-                                            marginTop: '2px',
-                                        }}>
-                                            بطاقة الطالب
+                                    {/* University header */}
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '9px' }}>
+                                        {logoSrc ? (
+                                            <img src={logoSrc} alt="" style={{ height: '27px', width: 'auto', objectFit: 'contain', flexShrink: 0 }} />
+                                        ) : (
+                                            <div style={{ width: '27px', height: '27px', borderRadius: '7px', background: 'rgba(200,168,75,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                                <span style={{ fontSize: '8px', fontWeight: 700, color: GOLD_A, fontFamily: FONT }}>AOU</span>
+                                            </div>
+                                        )}
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                                            <span style={{ fontSize: '9px', fontWeight: 700, color: DARK, lineHeight: 1.2, fontFamily: FONT }}>
+                                                الجامعة الأمريكية المفتوحة
+                                            </span>
+                                            <span style={{ fontSize: '7.5px', fontWeight: 500, color: GOLD_A, lineHeight: 1.2, fontFamily: FONT, letterSpacing: '.06em', marginTop: '2px' }}>
+                                                بطاقة الطالب
+                                            </span>
                                         </div>
                                     </div>
-                                </div>
-                                {/* Gold separator */}
-                                <div style={{ height: '1px', background: GOLD_LINE, marginBottom: '10px' }} />
 
-                                {/* STUDENT NAME — dominant, Amiri for prestige */}
-                                <div style={{
-                                    fontSize: '20px', fontWeight: 700, color: DARK,
-                                    fontFamily: '"Amiri", "Cairo", serif',
-                                    lineHeight: 1.15, marginBottom: '4px',
-                                    letterSpacing: '0',
-                                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                                }}>
-                                    {user?.fullName || '—'}
-                                </div>
+                                    {/* Gold separator */}
+                                    <div style={{ height: '1px', background: `linear-gradient(90deg, rgba(200,168,75,0.7), transparent)`, marginBottom: '9px', flexShrink: 0 }} />
 
-                                {/* University ID — labeled */}
-                                <div style={{ marginBottom: '12px', display: 'flex', flexDirection: 'column', gap: '1px' }}>
-                                    <span style={{
-                                        fontSize: '7px', fontWeight: 700,
-                                        color: GOLD, letterSpacing: '.12em',
-                                        textTransform: 'uppercase', fontFamily: FONT,
-                                    }}>
-                                        الرقم الجامعي
-                                    </span>
-                                    <span style={{
-                                        fontSize: '13px', fontWeight: 800,
-                                        color: DARK,
-                                        fontFamily: '"Courier New", monospace',
-                                        letterSpacing: '.16em',
-                                    }}>
-                                        {user?.universityId || '—'}
-                                    </span>
-                                </div>
+                                    {/* Student name — dominant */}
+                                    <div style={{ fontSize: '21px', fontWeight: 700, color: DARK, fontFamily: FONT, lineHeight: 1.15, marginBottom: '3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flexShrink: 0 }}>
+                                        {user?.fullName || '—'}
+                                    </div>
 
-                                {/* Thin gold line separator */}
-                                <div style={{ height: '1px', background: `linear-gradient(90deg, rgba(201,168,76,0.5), transparent)`, marginBottom: '10px' }} />
+                                    {/* ID labeled */}
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0px', marginBottom: '9px', flexShrink: 0 }}>
+                                        <span style={{ fontSize: '7px', fontWeight: 600, color: GOLD_A, letterSpacing: '.12em', fontFamily: FONT }}>الرقم الجامعي</span>
+                                        <span style={{ fontSize: '12.5px', fontWeight: 700, color: DARK, fontFamily: '"SF Mono","Courier New",monospace', letterSpacing: '.14em' }}>
+                                            {user?.universityId || '—'}
+                                        </span>
+                                    </div>
 
-                                {/* Fields — 2 column grid */}
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 10px', flex: 1, alignContent: 'start' }}>
-                                    <Field label="الجنسية" value={nationalityAr} />
-                                    <Field label="تاريخ الميلاد" value={dobFormatted} mono />
-                                    <div style={{ gridColumn: '1 / -1' }}>
-                                        <Field label="التخصص" value={majorAr} />
+                                    {/* Fields — 2 col grid */}
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '7px 8px', flex: 1, alignContent: 'start' }}>
+                                        <Row label="الجنسية" value={natAr} />
+                                        <Row label="تاريخ الميلاد" value={dob} monoValue />
+                                        <div style={{ gridColumn: '1 / -1' }}>
+                                            <Row label="التخصص" value={majorAr} />
+                                        </div>
+                                    </div>
+
+                                    {/* Stage */}
+                                    <div style={{ marginTop: '8px', flexShrink: 0 }}>
+                                        <span style={{
+                                            display: 'inline-flex', alignItems: 'center',
+                                            background: 'rgba(200,168,75,0.09)',
+                                            border: '1px solid rgba(200,168,75,0.38)',
+                                            borderRadius: '5px', padding: '2px 9px',
+                                            fontSize: '8px', fontWeight: 700, color: '#8B6E1E',
+                                            fontFamily: FONT, letterSpacing: '.04em',
+                                        }}>
+                                            المرحلة: بكالوريوس
+                                        </span>
                                     </div>
                                 </div>
 
-                                {/* Stage badge — bottom */}
-                                <div style={{ marginTop: 'auto', paddingTop: '8px' }}>
-                                    <span style={{
-                                        display: 'inline-flex', alignItems: 'center',
-                                        background: 'rgba(201,168,76,0.10)',
-                                        border: `1px solid rgba(201,168,76,0.4)`,
-                                        borderRadius: '6px', padding: '3px 10px',
-                                        fontSize: '8.5px', fontWeight: 800,
-                                        color: '#9B7E2D', fontFamily: FONT, letterSpacing: '.05em',
+                                {/* ── Right: Photo — portrait ratio, 20% width ─────────── */}
+                                <div onClick={onPhoto} style={{ flexShrink: 0, width: '20%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                                    <div style={{
+                                        width: '100%', aspectRatio: '3/4',
+                                        borderRadius: '9px',
+                                        border: '1.5px solid rgba(200,168,75,0.45)',
+                                        overflow: 'hidden',
+                                        background: 'rgba(200,168,75,0.05)',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        boxShadow: 'inset 0 1px 4px rgba(0,0,0,0.05)',
                                     }}>
-                                        المرحلة: بكالوريوس
+                                        {uploading ? (
+                                            <Loader2 size={13} style={{ color: GOLD_A }} className="animate-spin" />
+                                        ) : avatar ? (
+                                            <img src={avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                                        ) : (
+                                            <svg viewBox="0 0 40 52" style={{ width: '58%', opacity: 0.14 }} fill={GOLD_A}>
+                                                <circle cx="20" cy="15" r="9" />
+                                                <path d="M2 48c0-9.94 8.06-18 18-18s18 8.06 18 18H2z" />
+                                            </svg>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </Frame>
+                    </div>
+
+                    {/* ═══════════════════════════════════════════════════════════════
+              BACK FACE
+              Pre-rotated 180deg → invisible when front shows.
+              Container flip +180 → net 360 = appears upright (NOT mirrored).
+              backface-visibility:hidden + NO overflow:hidden on this div.
+          ═══════════════════════════════════════════════════════════════ */}
+                    <div style={{
+                        position: 'absolute', inset: 0,
+                        backfaceVisibility: 'hidden',
+                        WebkitBackfaceVisibility: 'hidden',
+                        transform: 'rotateY(180deg)',
+                    }}>
+                        <Frame>
+                            {/* Back content layer */}
+                            <div style={{
+                                position: 'absolute', inset: 0,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                zIndex: 2,
+                            }}>
+                                {logoSrc ? (
+                                    <img
+                                        src={logoSrc}
+                                        alt=""
+                                        style={{
+                                            height: '50%', width: 'auto', objectFit: 'contain',
+                                            opacity: 0.28,
+                                            // Warm gold tone so it reads as an embossed seal
+                                            filter: 'sepia(1) saturate(2) hue-rotate(3deg) brightness(0.7)',
+                                        }}
+                                    />
+                                ) : (
+                                    <span style={{ fontSize: '54px', fontWeight: 700, color: 'rgba(200,168,75,0.20)', fontFamily: FONT, letterSpacing: '6px' }}>
+                                        AOU
                                     </span>
-                                </div>
+                                )}
                             </div>
-
-                            {/* ── PHOTO — portrait frame, RIGHT side in RTL ── */}
-                            <div
-                                onClick={onPhotoClick}
-                                style={{
-                                    flexShrink: 0, width: '25%',
-                                    display: 'flex', alignItems: 'center',
-                                    justifyContent: 'center', cursor: 'pointer',
-                                    paddingTop: '0px',
-                                }}
-                            >
-                                <div style={{
-                                    width: '100%', aspectRatio: '3/4',
-                                    borderRadius: '10px',
-                                    border: `1.5px solid rgba(201,168,76,0.5)`,
-                                    overflow: 'hidden',
-                                    background: 'rgba(201,168,76,0.05)',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    // Inner shadow for depth
-                                    boxShadow: 'inset 0 1px 4px rgba(0,0,0,0.06)',
-                                }}>
-                                    {uploading ? (
-                                        <Loader2 size={14} style={{ color: GOLD }} className="animate-spin" />
-                                    ) : avatar ? (
-                                        <img src={avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                                    ) : (
-                                        /* Minimal person silhouette */
-                                        <svg viewBox="0 0 40 52" style={{ width: '60%', opacity: 0.15 }} fill={GOLD}>
-                                            <circle cx="20" cy="15" r="9" />
-                                            <path d="M2 48c0-9.94 8.06-18 18-18s18 8.06 18 18H2z" />
-                                        </svg>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
+                        </Frame>
                     </div>
 
-                    {/* ═══════════════ BACK ════════════════════════════════════════════
-              Pre-rotated 180deg. Container flip adds 180 → net 360 = upright.
-              dir="ltr" on face, Arabic content has dir="rtl" inline.
-          ═══════════════════════════════════════════════════════════════════ */}
-                    <div style={{ ...face, transform: 'rotateY(180deg)' }}>
-                        {/* Top metallic stripe */}
-                        <div style={{
-                            position: 'absolute', top: 0, left: 0, right: 0, height: '6px',
-                            background: `linear-gradient(90deg, ${GOLD} 0%, ${GOLD2} 35%, #F5E07A 50%, ${GOLD2} 65%, ${GOLD} 100%)`,
-                        }} />
-                        {/* Bottom stripe */}
-                        <div style={{
-                            position: 'absolute', bottom: 0, left: 0, right: 0, height: '4px',
-                            background: `linear-gradient(90deg, ${GOLD} 0%, ${GOLD2} 50%, ${GOLD} 100%)`,
-                        }} />
-                        {/* Inner glow rim */}
-                        <div style={{
-                            position: 'absolute', inset: '3px',
-                            borderRadius: '15px',
-                            border: '1px solid rgba(201,168,76,0.2)',
-                            pointerEvents: 'none',
-                        }} />
-
-                        {/* Back = ONLY centered logo. No text. Physical card back feel. */}
-                        <div style={{
-                            position: 'absolute', inset: '6px 0 4px 0',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            pointerEvents: 'none',
-                        }}>
-                            {logoSrc ? (
-                                <img
-                                    src={logoSrc}
-                                    alt=""
-                                    style={{
-                                        height: '52%',
-                                        width: 'auto',
-                                        objectFit: 'contain',
-                                        opacity: 0.22,
-                                        filter: 'sepia(1) saturate(2.5) hue-rotate(5deg) brightness(0.75)',
-                                    }}
-                                />
-                            ) : (
-                                /* Fallback: AOU initials in large gold */
-                                <span style={{
-                                    fontSize: '52px', fontWeight: 900,
-                                    color: 'rgba(201,168,76,0.18)',
-                                    fontFamily: '"Amiri", serif',
-                                    letterSpacing: '6px',
-                                }}>AOU</span>
-                            )}
-                        </div>
-
-                    </div>
-
-                </div>{/* /inner */}
-            </div>{/* /outer */}
+                </div>{/* /flip container */}
+            </div>{/* /perspective wrapper */}
         </div>
     );
 };
