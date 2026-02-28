@@ -46,8 +46,9 @@ const uid = () => crypto.randomUUID();
 type Tab = 'list' | 'builder' | 'attempts' | 'grade' | 'search';
 
 const AdminExams: React.FC = () => {
-    const { lang, t } = useApp();
+    const { lang, t, settings } = useApp();
     const isAR = lang === 'AR';
+    const activeSemesterId = settings.activeSemesterId;
 
     const [tab, setTab] = useState<Tab>('list');
     const [exams, setExams] = useState<Exam[]>([]);
@@ -93,10 +94,15 @@ const AdminExams: React.FC = () => {
                 supabaseService.getExams(), supabaseService.getCourses(),
                 supabaseService.getSemesters(), supabaseService.getUsers()
             ]);
-            setExams(ex); setCourses(co); setSemesters(se); setStudents(st.filter(s => s.role === 'student'));
+            setExams(ex);
+            // FIX 1: Filter courses to active semester only — prevents ghost/orphan
+            // courses from appearing in the dropdown (e.g. 'qw' from a different semester)
+            setCourses(co.filter(c => !activeSemesterId || c.semesterId === activeSemesterId));
+            setSemesters(se);
+            setStudents(st.filter(s => s.role === 'student'));
         } catch (e: any) { setError(e.message); }
         setLoading(false);
-    }, []);
+    }, [activeSemesterId]);
 
     useEffect(() => { loadData(); }, [loadData]);
 
@@ -127,7 +133,9 @@ const AdminExams: React.FC = () => {
                 })));
             })();
         } else {
-            setExamForm({ totalMarks: 50 });
+            // FIX 2: Auto-populate semesterId from active semester so the user
+            // doesn't have to pick it manually (prevents 'all fields required' false block)
+            setExamForm({ totalMarks: 50, semesterId: activeSemesterId || '' });
             setDraftQuestions([]);
         }
         setExpandedQ(null);
@@ -221,10 +229,34 @@ const AdminExams: React.FC = () => {
     const handleDragEnd = () => setDragIdx(null);
 
     // ================ BATCH SAVE ================
-    const saveExamBatch = async () => {
-        if (!examForm.courseId || !examForm.semesterId || !examForm.title || !examForm.startAt || !examForm.endAt) {
-            setError(t.allFieldsRequired); return;
+    // FIX 3: Field-level validation — each field gets its own specific error message.
+    // The original single 'allFieldsRequired' check made it impossible to know what was missing.
+    const validateExamForm = (): boolean => {
+        if (!examForm.title?.trim()) {
+            setError(isAR ? 'يرجى إدخال عنوان الاختبار' : 'Exam title is required'); return false;
         }
+        if (!examForm.courseId) {
+            setError(isAR ? 'يرجى اختيار المادة' : 'Please select a course'); return false;
+        }
+        if (!examForm.semesterId) {
+            setError(isAR ? 'يرجى اختيار الفصل الدراسي' : 'Please select a semester'); return false;
+        }
+        if (!examForm.startAt) {
+            setError(isAR ? 'يرجى تحديد وقت البداية' : 'Start date/time is required'); return false;
+        }
+        if (!examForm.endAt) {
+            setError(isAR ? 'يرجى تحديد وقت النهاية' : 'End date/time is required'); return false;
+        }
+        const start = new Date(examForm.startAt);
+        const end = new Date(examForm.endAt);
+        if (isNaN(start.getTime())) { setError(isAR ? 'وقت البداية غير صالح' : 'Invalid start date/time'); return false; }
+        if (isNaN(end.getTime())) { setError(isAR ? 'وقت النهاية غير صالح' : 'Invalid end date/time'); return false; }
+        if (end <= start) { setError(isAR ? 'يجب أن يكون وقت النهاية بعد وقت البداية' : 'End time must be after start time'); return false; }
+        return true;
+    };
+
+    const saveExamBatch = async () => {
+        if (!validateExamForm()) return;
         setSaving(true); setError('');
         try {
             const savedExam = await supabaseService.upsertExam({
