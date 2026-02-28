@@ -15,38 +15,38 @@ const Attendance: React.FC = () => {
 
   const activeSemId = settings.activeSemesterId;
 
-  const myAttendance = enrollments.map(e => {
-    const course = courses.find(c => c.id === e.courseId)!;
-    const records = (attendance[course.id]?.[user?.id || '']) || Array(12).fill(null);
+  // BUG 3 FIX: Deduplicate enrollments by courseId — keep only the latest enrollment per course.
+  // Without this, students who re-registered produce duplicate rows (one per enrollment record).
+  const uniqueEnrollments = Object.values(
+    enrollments.reduce((acc, e) => {
+      // Keep the most recent enrollment for each courseId
+      if (!acc[e.courseId] || new Date(e.enrolledAt) > new Date(acc[e.courseId].enrolledAt)) {
+        acc[e.courseId] = e;
+      }
+      return acc;
+    }, {} as Record<string, typeof enrollments[0]>)
+  );
+
+  const myAttendance = uniqueEnrollments.flatMap(e => {
+    const course = courses.find(c => c.id === e.courseId);
+    if (!course) return []; // guard — flatMap drops empty arrays, TypeScript infers type correctly
+    const records: (boolean | null)[] = (attendance[course.id]?.[user?.id || '']) || Array(12).fill(null);
 
     const presentCount = records.filter(r => r === true).length;
     const absentCount = records.filter(r => r === false).length;
-    const recordedCount = presentCount + absentCount; // Total marked sessions
+    const recordedCount = presentCount + absentCount;
     const unrecordedCount = 12 - recordedCount;
-
-    // 20-point grading system: ONLY show final grade when ALL sessions are marked
     const attendanceGrade = unrecordedCount === 0 ? Math.max(0, 20 - (absentCount * 2)) : null;
 
-    // Participation Logic
-    const partRecords = (participation[course.id]?.[user?.id || '']) || Array(12).fill(null);
-    const participationCount = partRecords.filter((r: boolean | null) => r === true).length;
-    const participationGrade = Math.min(participationCount, 10);
-
+    const partRecords: (boolean | null)[] = (participation[course.id]?.[user?.id || '']) || Array(12).fill(null);
+    const participationGrade = Math.min(partRecords.filter(r => r === true).length, 10);
     const percentage = recordedCount > 0 ? Math.round((presentCount / recordedCount) * 100) : 0;
 
-    return {
-      course,
-      presentCount,
-      absentCount,
-      unrecordedCount,
-      recordedCount,
-      attendanceGrade,
-      percentage,
-      records,
-      participationGrade,
-      partRecords,
+    return [{
+      course, presentCount, absentCount, unrecordedCount, recordedCount,
+      attendanceGrade, percentage, records, participationGrade, partRecords,
       semesterId: e.semesterId
-    };
+    }];
   });
 
   // Group by semester
@@ -54,12 +54,21 @@ const Attendance: React.FC = () => {
   const previousSemestersAttendance = myAttendance.filter(a => a.semesterId !== activeSemId);
 
   // Group previous semesters
+  // BUG 4 FIX: Use semesterId as-is (may be undefined/empty for legacy data).
+  // Use a safe NO_SEM_KEY constant so we never display 'unknown' as a label.
+  const NO_SEM_KEY = '__no_semester__';
   const semesterGroups = previousSemestersAttendance.reduce((acc, item) => {
-    const semId = item.semesterId || 'unknown';
+    const semId = item.semesterId || NO_SEM_KEY;
     if (!acc[semId]) acc[semId] = [];
     acc[semId].push(item);
     return acc;
   }, {} as Record<string, typeof myAttendance>);
+
+  // Helper: resolve semester name from its ID
+  const getSemName = (id: string) => {
+    if (id === NO_SEM_KEY) return lang === 'AR' ? 'فصل غير محدد' : 'Unspecified Semester';
+    return semesters.find(s => s.id === id)?.name || (lang === 'AR' ? 'فصل غير محدد' : 'Unspecified Semester');
+  };
 
   // Sort semesters by created_at desc
   const sortedPreviousSemesters = Object.keys(semesterGroups).sort((a, b) => {
@@ -190,13 +199,12 @@ const Attendance: React.FC = () => {
               {lang === 'AR' ? 'الفصول السابقة' : 'Previous Semesters'}
             </h2>
             {sortedPreviousSemesters.map(semId => {
-              const semester = semesters.find(s => s.id === semId);
               const semesterAttendance = semesterGroups[semId];
 
               return (
                 <div key={semId} className="space-y-4">
                   <h3 className="text-sm font-bold text-text-secondary bg-surface px-4 py-2 rounded-xl w-fit">
-                    {semester?.name || semId}
+                    {getSemName(semId)}
                   </h3>
 
                   <div className="grid grid-cols-1 gap-4 opacity-80 filter saturate-50 hover:saturate-100 transition-all">

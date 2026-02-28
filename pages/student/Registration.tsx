@@ -29,12 +29,24 @@ const Registration: React.FC = () => {
     return unsub;
   }, []);
 
+  // BUG 1 FIX: Pre-populate pendingSelection on mount from current-semester enrollments.
+  // Without this, isEditing=true + empty pendingSelection → "Selected Courses" panel is always blank.
   useEffect(() => {
-    // Only set pending if empty (start fresh)
-    if (pendingSelection.size > 0 && confirmedEnrollments.length === 0) {
-      setPendingSelection(new Set());
+    if (isEditing && pendingSelection.size === 0) {
+      const currentIds = storage.getEnrollments()
+        .filter(e => e.studentId === user?.id && (!activeSemId || e.semesterId === activeSemId))
+        .map(e => e.courseId);
+      if (currentIds.length > 0) {
+        setPendingSelection(new Set(currentIds));
+      }
     }
-  }, [activeSemId]); // Reset on semester change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run once on mount only
+
+  useEffect(() => {
+    // Reset pending on semester change
+    setPendingSelection(new Set());
+  }, [activeSemId]);
 
   useEffect(() => {
     // If no confirmed enrollments for this semester, enable editing by default
@@ -104,22 +116,26 @@ const Registration: React.FC = () => {
           return prev;
         }
 
-        // RULE 2: Previous semester check (Check if taken in ANY OTHER semester)
-        // We removed the current semester ones from the list, so we only check others
-        const targetCourse = courses.find(c => c.id === courseId);
-        const alreadyTakenPrev = confirmedEnrollments.some(e =>
-          e.studentId === user?.id &&
-          e.semesterId !== activeSemId &&
-          courses.find(c => c.id === e.courseId)?.code === targetCourse?.code
-        );
+        // RULE 2: No-repeat-ever rule — block if same course CODE exists in ANY other semester.
+        // BUG 2 FIX: Only apply this check when activeSemId is a valid non-empty string.
+        // If activeSemId is undefined/null, "e.semesterId !== activeSemId" is true for ALL records
+        // (since every valid UUID !== undefined), causing false blocks for every course.
+        if (activeSemId) {
+          const targetCourse = courses.find(c => c.id === courseId);
+          const alreadyTakenPrev = confirmedEnrollments.some(e =>
+            e.studentId === user?.id &&
+            e.semesterId !== activeSemId &&
+            courses.find(c => c.id === e.courseId)?.code === targetCourse?.code
+          );
 
-        if (alreadyTakenPrev) {
-          setMessage({
-            text: lang === 'AR' ? 'لا يمكن تسجيل هذه المادة لأنها مسجلة في فصل سابق' : 'Course taken in previous semester',
-            type: 'error'
-          });
-          setTimeout(() => setMessage(null), 3000);
-          return prev;
+          if (alreadyTakenPrev) {
+            setMessage({
+              text: lang === 'AR' ? 'لا يمكن تسجيل هذه المادة لأنها مسجلة في فصل سابق' : 'Course taken in previous semester',
+              type: 'error'
+            });
+            setTimeout(() => setMessage(null), 3000);
+            return prev;
+          }
         }
 
         next.add(courseId);
