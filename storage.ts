@@ -45,7 +45,23 @@ export const storage = {
       }
       if (courses) localStorage.setItem(KEYS.COURSES, JSON.stringify(courses));
       if (enrollments) localStorage.setItem(KEYS.ENROLLMENTS, JSON.stringify(enrollments));
-      if (settings) localStorage.setItem(KEYS.SETTINGS, JSON.stringify(settings));
+      if (settings) {
+        localStorage.setItem(KEYS.SETTINGS, JSON.stringify(settings));
+        // ── activeSemesterId preservation ──────────────────────────────────────
+        // The version gate in getSettings() may reset settings to DEFAULT_SETTINGS
+        // which has no activeSemesterId, discarding what we just wrote from the DB.
+        // Re-read and patch so activeSemesterId is never lost through a gate reset.
+        const verified = storage.getSettings();
+        if (settings.activeSemesterId && !verified.activeSemesterId) {
+          const patched = {
+            ...verified,
+            activeSemesterId: settings.activeSemesterId,
+            defaultSemesterId: settings.defaultSemesterId ?? verified.defaultSemesterId,
+          };
+          localStorage.setItem(KEYS.SETTINGS, JSON.stringify(patched));
+        }
+      }
+
       if (semesters) localStorage.setItem(KEYS.SEMESTERS, JSON.stringify(semesters));
       if (assignments) localStorage.setItem(KEYS.ASSIGNMENTS, JSON.stringify(assignments));
       if (submissions) localStorage.setItem(KEYS.SUBMISSIONS, JSON.stringify(submissions));

@@ -212,14 +212,18 @@ export const supabaseService = {
     async getEnrollments() {
         const { data, error } = await supabase.from('enrollments').select('*');
         if (error) throw error;
-        return (data || []).map(e => ({
-            ...e,
-            studentId: e.student_id,
-            courseId: e.course_id,
-            enrolledAt: e.enrolled_at,
-            semesterId: e.semester_id
-        })) as Enrollment[];
+        return (data || [])
+            // Guard: exclude legacy records with no semester_id — they are orphaned ghost data
+            .filter(e => e.semester_id != null)
+            .map(e => ({
+                ...e,
+                studentId: e.student_id,
+                courseId: e.course_id,
+                enrolledAt: e.enrolled_at,
+                semesterId: e.semester_id
+            })) as Enrollment[];
     },
+
 
     async upsertEnrollment(enrollment: Enrollment) {
         const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(enrollment.id);
