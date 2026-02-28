@@ -38,6 +38,12 @@ const StudentAssignmentSubmission: React.FC = () => {
   const [essayAnswers, setEssayAnswers] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  // File validation constants
+  const MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MB
+  const ALLOWED_TYPES = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/zip', 'application/x-zip-compressed'];
+  const ALLOWED_EXTS = ['.pdf', '.docx', '.zip'];
 
   const activeSemId = settings.activeSemesterId;
 
@@ -58,13 +64,41 @@ const StudentAssignmentSubmission: React.FC = () => {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
-    if (f) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFile({ name: f.name, data: reader.result as string });
-      };
-      reader.readAsDataURL(f);
+    setUploadError(null);
+    if (!f) return;
+
+    // 1. File type validation (check both MIME type and extension)
+    const ext = '.' + f.name.split('.').pop()?.toLowerCase();
+    if (!ALLOWED_TYPES.includes(f.type) && !ALLOWED_EXTS.includes(ext)) {
+      setUploadError(
+        lang === 'AR'
+          ? 'نوع الملف غير مدعوم. الصيغ المسموحة: PDF، DOCX، ZIP.'
+          : 'Unsupported file type. Allowed formats: PDF, DOCX, ZIP.'
+      );
+      e.target.value = '';
+      return;
     }
+
+    // 2. File size validation — must come before reading
+    if (f.size > MAX_FILE_BYTES) {
+      setUploadError(
+        lang === 'AR'
+          ? 'حجم الملف يتجاوز الحد المسموح (10 ميغابايت).'
+          : 'File size exceeds the maximum allowed limit (10MB).'
+      );
+      e.target.value = '';
+      return;
+    }
+
+    // Validation passed — read file
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setFile({ name: f.name, data: reader.result as string });
+    };
+    reader.onerror = () => {
+      setUploadError(lang === 'AR' ? 'فشل قراءة الملف. حاول مجدداً.' : 'Could not read the file. Please try again.');
+    };
+    reader.readAsDataURL(f);
   };
 
   const calculateMCQGrade = (assignment: Assignment, answers: string[]) => {
@@ -117,10 +151,22 @@ const StudentAssignmentSubmission: React.FC = () => {
           }
         }, 2000);
       }, 800);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to submit assignment:', error);
       setIsSubmitting(false);
-      alert(lang === 'AR' ? 'فشل إرسال التكليف' : 'Failed to submit assignment');
+      // Identify specific failure reason — never silently fail
+      const msg = error?.message || '';
+      let userMsg: string;
+      if (msg.includes('network') || msg.includes('fetch') || msg.includes('Failed to fetch')) {
+        userMsg = lang === 'AR' ? 'فشل الاتصال بالخادم' : 'Server connection failed';
+      } else if (msg.includes('storage') || msg.includes('upload') || msg.includes('413')) {
+        userMsg = lang === 'AR' ? 'حجم الملف يتجاوز الحد المسموح (10 ميغابايت).' : 'File size exceeds the maximum allowed limit (10MB).';
+      } else if (msg) {
+        userMsg = msg;
+      } else {
+        userMsg = lang === 'AR' ? 'حدث خطأ غير متوقع' : 'Unexpected error occurred';
+      }
+      setUploadError(userMsg);
     }
   };
 
@@ -414,6 +460,12 @@ const StudentAssignmentSubmission: React.FC = () => {
               <form onSubmit={handleSubmit} className="p-8 space-y-8">
                 {selectedAssignment.type === 'file' && (
                   <div className="space-y-4">
+                    {uploadError && (
+                      <div className="flex items-center gap-3 px-5 py-3 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 text-sm font-bold">
+                        <AlertCircle size={18} className="shrink-0" />
+                        {uploadError}
+                      </div>
+                    )}
                     <label className="block w-full cursor-pointer group">
                       <div className="border-4 border-dashed border-border rounded-[2rem] p-12 flex flex-col items-center justify-center gap-4 group-hover:border-[var(--primary)] group-hover:bg-primary/10/30 transition-all">
                         <div className="w-20 h-20 bg-surface rounded-3xl flex items-center justify-center text-gray-300 group-hover:text-[var(--primary)] group-hover:bg-card transition-all shadow-sm">

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useApp } from '../../App';
 import { supabaseService } from '../../supabaseService';
@@ -28,7 +29,7 @@ const StudentTranscript: React.FC = () => {
 
     useEffect(() => { loadData(); }, [loadData]);
 
-    // Calculate cumulative GPA (out of 100)
+    // Cumulative GPA from ALL released semesters combined
     const allCourses = transcripts.flatMap(t => t.courses || []);
     const cumulativeGPA = allCourses.length > 0
         ? (allCourses.reduce((s, c) => s + c.finalScore, 0) / allCourses.length).toFixed(2)
@@ -38,15 +39,19 @@ const StudentTranscript: React.FC = () => {
         if (!transcriptRef.current) return;
         setExporting(true);
         try {
-            const canvas = await html2canvas(transcriptRef.current, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+            // Force light-mode capture regardless of system theme
+            const canvas = await html2canvas(transcriptRef.current, {
+                scale: 2,
+                useCORS: true,
+                backgroundColor: '#fdfaf4',
+                logging: false,
+            });
             const imgData = canvas.toDataURL('image/png');
             const pdf = new jsPDF('p', 'mm', 'a4');
             const pdfW = pdf.internal.pageSize.getWidth();
             const pdfH = pdf.internal.pageSize.getHeight();
-            const imgW = canvas.width;
-            const imgH = canvas.height;
-            const ratio = pdfW / imgW;
-            const scaledH = imgH * ratio;
+            const ratio = pdfW / canvas.width;
+            const scaledH = canvas.height * ratio;
 
             let yOffset = 0;
             while (yOffset < scaledH) {
@@ -66,12 +71,18 @@ const StudentTranscript: React.FC = () => {
 
     return (
         <div className="max-w-5xl mx-auto p-4 space-y-6" dir={isAR ? 'rtl' : 'ltr'}>
+            {/* Page header (outside transcript area) */}
             <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-black flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
-                    <GraduationCap size={28} /> {isAR ? 'كشف الدرجات' : 'Academic Transcript'}
+                    <GraduationCap size={28} /> {isAR ? 'كشف الدرجات' : 'Grade Report'}
                 </h1>
                 {transcripts.length > 0 && (
-                    <button onClick={exportPDF} disabled={exporting} className="px-4 py-2 rounded-xl bg-primary text-white font-bold text-sm hover:bg-primary/80 transition-all flex items-center gap-2">
+                    <button
+                        onClick={exportPDF}
+                        disabled={exporting}
+                        className="px-4 py-2 rounded-xl font-bold text-sm hover:opacity-90 transition-all flex items-center gap-2"
+                        style={{ background: '#c49642', color: '#fff' }}
+                    >
                         {exporting ? <Loader2 className="animate-spin" size={16} /> : <Download size={16} />}
                         {isAR ? 'تحميل PDF' : 'Export PDF'}
                     </button>
@@ -85,94 +96,231 @@ const StudentTranscript: React.FC = () => {
                     <p className="text-text-secondary text-sm mt-2">{isAR ? 'سيظهر كشف الدرجات بعد اعتماد الفصل من قبل الإدارة' : 'Transcript will appear after semester approval by administration'}</p>
                 </div>
             ) : (
-                <div ref={transcriptRef} className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden" style={{ direction: 'rtl', fontFamily: 'Tajawal, Arial, sans-serif' }}>
-                    {/* HEADER */}
-                    <div className="bg-gradient-to-l from-blue-900 to-blue-700 text-white p-6">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                                <img src={logoSrc} alt="Logo" className="h-16 w-auto object-contain" crossOrigin="anonymous" onError={e => { (e.target as HTMLImageElement).src = '/assets/logo.png'; }} />
+                /*
+                 * TRANSCRIPT DOCUMENT
+                 * Always rendered in light mode (white/ivory + dark text + gold accents)
+                 * regardless of the system dark-mode setting.
+                 */
+                <div
+                    ref={transcriptRef}
+                    dir="rtl"
+                    style={{
+                        background: '#fdfaf4',
+                        color: '#1a1a2e',
+                        fontFamily: '"Tajawal", "Cairo", Arial, sans-serif',
+                        borderRadius: '1rem',
+                        overflow: 'hidden',
+                        border: '1.5px solid #d4af6a',
+                        boxShadow: '0 4px 32px rgba(196,150,66,0.10)',
+                    }}
+                >
+                    {/* ──── HEADER ──── */}
+                    <div style={{
+                        background: 'linear-gradient(135deg, #f5edd8 0%, #fffdf5 60%, #f0e6c8 100%)',
+                        borderBottom: '2px solid #c49642',
+                        padding: '28px 32px',
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            {/* Logo + names */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                                <img
+                                    src={logoSrc}
+                                    alt="Logo"
+                                    style={{ height: '72px', width: 'auto', objectFit: 'contain' }}
+                                    crossOrigin="anonymous"
+                                    onError={e => { (e.target as HTMLImageElement).src = '/assets/logo.png'; }}
+                                />
                                 <div>
-                                    <h2 className="text-xl font-black">{settings.branding.siteNameAr || 'الجامعة الأمريكية المفتوحة'}</h2>
-                                    <p className="text-text-secondary text-sm">{settings.branding.siteNameEn || 'American Open University'}</p>
-                                </div>
-                            </div>
-                            <div className="text-left text-sm">
-                                <p className="font-bold text-lg">كشف الدرجات</p>
-                                <p className="text-text-secondary">Academic Transcript</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* STUDENT INFO */}
-                    <div className="p-6 border-b border-border bg-surface">
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                            <div><span className="text-text-secondary block">اسم الطالب</span><span className="font-bold">{user?.fullName}</span></div>
-                            <div><span className="text-text-secondary block">الرقم الجامعي</span><span className="font-bold">{user?.universityId}</span></div>
-                            <div><span className="text-text-secondary block">التخصص</span><span className="font-bold">{user?.major ? getMajorLabel(user.major) : '-'}</span></div>
-                            <div><span className="text-text-secondary block">المعدل التراكمي</span><span className="font-black text-lg text-primary">{cumulativeGPA}%</span></div>
-                        </div>
-                        <p className="text-xs text-text-secondary mt-3">تاريخ الطباعة: {new Date().toLocaleDateString('ar-SA')}</p>
-                    </div>
-
-                    {/* WATERMARK CONTAINER */}
-                    <div className="relative">
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.03] z-0">
-                            <img src={logoSrc} alt="" className="w-96" crossOrigin="anonymous" />
-                        </div>
-
-                        {/* SEMESTERS */}
-                        <div className="p-6 space-y-6 relative z-10">
-                            {transcripts.map((semester, sIdx) => (
-                                <div key={semester.id}>
-                                    <div className="flex items-center gap-3 mb-3">
-                                        <div className="bg-primary/20 text-primary px-3 py-1 rounded-full text-sm font-bold">{semester.semesterNameSnapshot}</div>
-                                        <div className="flex-1 h-px bg-border"></div>
-                                        <span className="text-sm text-text-secondary">معدل الفصل: <strong className="text-primary">{semester.semesterAverage?.toFixed(2) || '0.00'}%</strong></span>
+                                    <div style={{ fontSize: '22px', fontWeight: 900, color: '#1a1a2e', letterSpacing: '-0.5px' }}>
+                                        {settings.branding.siteNameAr || 'الجامعة الأمريكية المفتوحة'}
                                     </div>
-
-                                    <table className="w-full border-collapse text-sm">
-                                        <thead>
-                                            <tr className="bg-surface">
-                                                <th className="border border-border px-3 py-2 text-right">المادة</th>
-                                                <th className="border border-border px-3 py-2 text-center w-16">الحضور<br /><span className="text-[10px] text-text-secondary">20</span></th>
-                                                <th className="border border-border px-3 py-2 text-center w-16">المشاركة<br /><span className="text-[10px] text-text-secondary">10</span></th>
-                                                <th className="border border-border px-3 py-2 text-center w-16">الواجبات<br /><span className="text-[10px] text-text-secondary">20</span></th>
-                                                <th className="border border-border px-3 py-2 text-center w-16">الامتحان<br /><span className="text-[10px] text-text-secondary">50</span></th>
-                                                <th className="border border-border px-3 py-2 text-center w-16">المجموع<br /><span className="text-[10px] text-text-secondary">100</span></th>
-                                                <th className="border border-border px-3 py-2 text-center w-16">النسبة</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {(semester.courses || []).map(course => (
-                                                <tr key={course.id} className="hover:bg-surface">
-                                                    <td className="border border-border px-3 py-2 font-bold">
-                                                        {course.courseNameSnapshot}
-                                                        {course.courseCodeSnapshot && <span className="text-text-secondary text-xs mr-2">({course.courseCodeSnapshot})</span>}
-                                                    </td>
-                                                    <td className="border border-border px-3 py-2 text-center">{course.attendanceScore}</td>
-                                                    <td className="border border-border px-3 py-2 text-center">{course.participationScore}</td>
-                                                    <td className="border border-border px-3 py-2 text-center">{course.assignmentsScore}</td>
-                                                    <td className="border border-border px-3 py-2 text-center">{course.examScore ?? '-'}</td>
-                                                    <td className="border border-border px-3 py-2 text-center font-bold">{course.finalScore}</td>
-                                                    <td className="border border-border px-3 py-2 text-center">{course.percentage}%</td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
+                                    {/* Regional center line — required by user */}
+                                    <div style={{ fontSize: '14px', fontWeight: 700, color: '#c49642', marginTop: '4px' }}>
+                                        المركز الإقليمي الأول
+                                    </div>
                                 </div>
-                            ))}
+                            </div>
+
+                            {/* Gold divider + GPA panel */}
+                            <div style={{
+                                textAlign: 'center',
+                                padding: '12px 28px',
+                                border: '1.5px solid #c49642',
+                                borderRadius: '12px',
+                                background: 'rgba(196,150,66,0.06)',
+                            }}>
+                                <div style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '2px', color: '#9a7a30', textTransform: 'uppercase' }}>
+                                    {isAR ? 'المعدل التراكمي' : 'Cumulative GPA'}
+                                </div>
+                                <div style={{ fontSize: '32px', fontWeight: 900, color: '#c49642', lineHeight: 1.1 }}>
+                                    {cumulativeGPA}
+                                </div>
+                                <div style={{ fontSize: '11px', color: '#9a7a30', marginTop: '2px' }}>من 100</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* ──── STUDENT INFO ──── */}
+                    <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(3, 1fr)',
+                        gap: '0',
+                        borderBottom: '1.5px solid #e8d9b0',
+                        background: '#fffdf5',
+                    }}>
+                        {[
+                            { label: isAR ? 'اسم الطالب' : 'Student Name', value: user?.fullName },
+                            { label: isAR ? 'الرقم الجامعي' : 'University ID', value: user?.universityId },
+                            { label: isAR ? 'التخصص' : 'Major', value: user?.major ? getMajorLabel(user.major) : '—' },
+                        ].map((item, i, arr) => (
+                            <div
+                                key={i}
+                                style={{
+                                    padding: '16px 24px',
+                                    borderLeft: i < arr.length - 1 ? '1px solid #e8d9b0' : undefined,
+                                }}
+                            >
+                                <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '1.5px', color: '#9a7a30', textTransform: 'uppercase', marginBottom: '4px' }}>
+                                    {item.label}
+                                </div>
+                                <div style={{ fontSize: '15px', fontWeight: 800, color: '#1a1a2e' }}>{item.value || '—'}</div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* ──── WATERMARK + SEMESTERS ──── */}
+                    <div style={{ position: 'relative', padding: '28px 32px', display: 'flex', flexDirection: 'column', gap: '32px' }}>
+                        {/* Watermark */}
+                        <div style={{
+                            position: 'absolute', inset: 0,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            opacity: 0.025, pointerEvents: 'none', zIndex: 0,
+                        }}>
+                            <img src={logoSrc} alt="" style={{ width: '360px' }} crossOrigin="anonymous" />
                         </div>
 
-                        {/* FOOTER */}
-                        <div className="border-t border-border p-4 bg-surface text-center text-xs text-text-secondary">
-                            <p>هذه الوثيقة صادرة إلكترونياً من نظام {settings.branding.siteNameAr || 'الجامعة الأمريكية المفتوحة'}</p>
-                            <p className="mt-1">{settings.branding.footerText}</p>
-                        </div>
+                        {transcripts.map((semester, sIdx) => (
+                            <div key={semester.id} style={{ position: 'relative', zIndex: 1 }}>
+                                {/* Semester header */}
+                                <div style={{
+                                    display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px',
+                                }}>
+                                    <div style={{
+                                        background: '#c49642', color: '#fff',
+                                        padding: '4px 16px', borderRadius: '20px',
+                                        fontSize: '13px', fontWeight: 800,
+                                    }}>
+                                        {semester.semesterNameSnapshot}
+                                    </div>
+                                    <div style={{ flex: 1, height: '1px', background: '#e0cfa0' }} />
+                                    <span style={{ fontSize: '13px', color: '#6b5a2e', fontWeight: 700 }}>
+                                        {isAR ? 'معدل الفصل' : 'Semester Avg'}:{' '}
+                                        <strong style={{ color: '#c49642' }}>{semester.semesterAverage?.toFixed(2) || '0.00'}</strong>
+                                    </span>
+                                </div>
+
+                                {/* Courses table */}
+                                <table style={{
+                                    width: '100%',
+                                    borderCollapse: 'collapse',
+                                    fontSize: '13.5px',
+                                    border: '1.5px solid #d4b870',
+                                    borderRadius: '8px',
+                                    overflow: 'hidden',
+                                }}>
+                                    <thead>
+                                        <tr style={{ background: '#f5edd8' }}>
+                                            <th style={{ ...thStyle, textAlign: 'right', minWidth: '160px' }}>
+                                                {isAR ? 'المادة' : 'Course'}
+                                            </th>
+                                            <th style={{ ...thStyle, ...thCenter }}>
+                                                {isAR ? 'الحضور' : 'Attendance'}<br />
+                                                <span style={{ fontWeight: 600, color: '#9a7a30', fontSize: '11px' }}>20</span>
+                                            </th>
+                                            <th style={{ ...thStyle, ...thCenter }}>
+                                                {isAR ? 'المشاركة' : 'Participation'}<br />
+                                                <span style={{ fontWeight: 600, color: '#9a7a30', fontSize: '11px' }}>10</span>
+                                            </th>
+                                            <th style={{ ...thStyle, ...thCenter }}>
+                                                {isAR ? 'الواجبات' : 'Assignments'}<br />
+                                                <span style={{ fontWeight: 600, color: '#9a7a30', fontSize: '11px' }}>20</span>
+                                            </th>
+                                            <th style={{ ...thStyle, ...thCenter }}>
+                                                {isAR ? 'الامتحان' : 'Exam'}<br />
+                                                <span style={{ fontWeight: 600, color: '#9a7a30', fontSize: '11px' }}>50</span>
+                                            </th>
+                                            <th style={{ ...thStyle, ...thCenter, background: '#ede0b8' }}>
+                                                {isAR ? 'المجموع' : 'Total'}<br />
+                                                <span style={{ fontWeight: 600, color: '#9a7a30', fontSize: '11px' }}>100</span>
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {(semester.courses || []).map((course, cIdx) => (
+                                            <tr
+                                                key={course.id}
+                                                style={{ background: cIdx % 2 === 0 ? '#fffdf5' : '#faf5e8' }}
+                                            >
+                                                <td style={{ ...tdStyle, fontWeight: 700 }}>
+                                                    {course.courseNameSnapshot}
+                                                    {course.courseCodeSnapshot && (
+                                                        <span style={{ color: '#9a7a30', fontSize: '11px', marginRight: '6px' }}>
+                                                            ({course.courseCodeSnapshot})
+                                                        </span>
+                                                    )}
+                                                </td>
+                                                <td style={{ ...tdStyle, textAlign: 'center' }}>{course.attendanceScore}</td>
+                                                <td style={{ ...tdStyle, textAlign: 'center' }}>{course.participationScore}</td>
+                                                <td style={{ ...tdStyle, textAlign: 'center' }}>{course.assignmentsScore}</td>
+                                                <td style={{ ...tdStyle, textAlign: 'center' }}>{course.examScore ?? '—'}</td>
+                                                <td style={{ ...tdStyle, textAlign: 'center', fontWeight: 900, color: '#c49642', background: cIdx % 2 === 0 ? '#fdf4e0' : '#f8edcc' }}>
+                                                    {course.finalScore}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* ──── FOOTER ──── */}
+                    <div style={{
+                        borderTop: '1.5px solid #d4af6a',
+                        padding: '14px 32px',
+                        background: '#f5edd8',
+                        textAlign: 'center',
+                        fontSize: '12px',
+                        color: '#7a6230',
+                        fontWeight: 600,
+                    }}>
+                        <p>هذه الوثيقة صادرة إلكترونياً من نظام {settings.branding.siteNameAr || 'الجامعة الأمريكية المفتوحة'}</p>
+                        {settings.branding.footerText && (
+                            <p style={{ marginTop: '4px' }}>{settings.branding.footerText}</p>
+                        )}
                     </div>
                 </div>
             )}
         </div>
     );
+};
+
+// Shared cell style helpers (inline objects — no Tailwind — guaranteed light in PDF)
+const borderColor = '#d4b870';
+const thStyle: React.CSSProperties = {
+    border: `1px solid ${borderColor}`,
+    padding: '10px 14px',
+    fontWeight: 800,
+    color: '#4a3510',
+    fontSize: '13px',
+    letterSpacing: '0.3px',
+};
+const thCenter: React.CSSProperties = { textAlign: 'center', minWidth: '72px' };
+const tdStyle: React.CSSProperties = {
+    border: `1px solid ${borderColor}`,
+    padding: '10px 14px',
+    fontSize: '13px',
+    color: '#1a1a2e',
 };
 
 export default StudentTranscript;

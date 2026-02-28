@@ -1049,14 +1049,30 @@ export const supabaseService = {
                 const participatedCount = studentParticipation.filter(p => p.status === true).length;
                 const partScore = totalParticLectures > 0 ? Math.round((participatedCount / totalParticLectures) * 10) : 0;
 
-                // Assignments score (out of 20)
+                // Assignments score (out of 20 — cumulative, all assignments together equal 20 max)
+                // Grade format is either "x/y" (MCQ fraction) or a plain numeric string.
                 const studentSubmissions = allSubmissions.filter(s => s.course_id === courseId && s.student_id === studentId);
                 let assignScore = 0;
                 if (studentSubmissions.length > 0) {
-                    const grades = studentSubmissions.map(s => parseFloat(s.grade || '0'));
-                    const avgGrade = grades.reduce((a, b) => a + b, 0) / grades.length;
-                    assignScore = Math.round(Math.min(avgGrade, 100) / 100 * 20);
+                    // Helper: parse "x/y" → (x/y)*100, or plain "n" → n (treat as percentage)
+                    const parseGrade = (raw: string | null | undefined): number => {
+                        if (!raw) return 0;
+                        const trimmed = raw.trim();
+                        const fracMatch = trimmed.match(/^(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)$/);
+                        if (fracMatch) {
+                            const num = parseFloat(fracMatch[1]);
+                            const den = parseFloat(fracMatch[2]);
+                            return den > 0 ? (num / den) * 100 : 0;
+                        }
+                        const plain = parseFloat(trimmed);
+                        return isNaN(plain) ? 0 : plain;
+                    };
+                    // Sum all assignment scores (as percentages) then scale to 20
+                    const totalPct = studentSubmissions.reduce((sum, s) => sum + parseGrade(s.grade), 0);
+                    const avgPct = totalPct / studentSubmissions.length;
+                    assignScore = Math.min(Math.round(avgPct / 100 * 20), 20); // hard cap at 20
                 }
+
 
                 // Exam score (out of 50)
                 let examScore: number | null = null;

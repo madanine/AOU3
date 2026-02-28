@@ -199,30 +199,69 @@ const StudentExams: React.FC = () => {
                                 )}
 
                                 {q.type === 'matrix' && (
-                                    <div className="ml-11 overflow-x-auto">
-                                        <table className="text-sm border">
-                                            <thead><tr><th className="border p-2"></th>{q.options?.map(o => <th key={o.id} className="border p-2 text-center text-xs">{o.optionText}</th>)}</tr></thead>
-                                            <tbody>{q.matrixRows?.map((row, ri) => {
-                                                const rowSelections: string[] = (draftAnswers[q.id] || {})[ri.toString()] || [];
-                                                return (
-                                                    <tr key={ri}>
-                                                        <td className="border p-2 font-bold text-xs">{row}</td>
-                                                        {q.options?.map(o => {
-                                                            const isChecked = rowSelections.includes(o.id);
-                                                            return (
-                                                                <td key={o.id} className="border p-2 text-center">
-                                                                    <input type="checkbox" checked={isChecked} className="accent-primary w-4 h-4 cursor-pointer" onChange={() => {
-                                                                        const prev = { ...(draftAnswers[q.id] || {}) };
-                                                                        const current: string[] = prev[ri.toString()] || [];
-                                                                        prev[ri.toString()] = isChecked ? current.filter(id => id !== o.id) : [...current, o.id];
-                                                                        updateAnswer(q.id, prev);
-                                                                    }} />
-                                                                </td>
-                                                            );
-                                                        })}
-                                                    </tr>
-                                                );
-                                            })}</tbody>
+                                    <div className={`ml-11 overflow-x-auto rounded-2xl border-2 border-border`} style={{ printColorAdjust: 'exact', WebkitPrintColorAdjust: 'exact' } as React.CSSProperties}>
+                                        <table className="w-full border-collapse text-base" style={{ minWidth: '480px' }}>
+                                            <thead>
+                                                <tr style={{ background: 'var(--surface)' }}>
+                                                    {/* Row-label corner cell */}
+                                                    <th className="border-b-2 border-r-2 border-border px-5 py-4 text-right font-black text-xs uppercase tracking-widest" style={{ color: 'var(--text-secondary)', minWidth: '140px' }}>
+                                                        {isAR ? 'العبارة' : 'Statement'}
+                                                    </th>
+                                                    {q.options?.map(o => (
+                                                        <th key={o.id} className="border-b-2 border-r border-border px-4 py-4 text-center font-black text-sm" style={{ color: 'var(--text-primary)', minWidth: '120px' }}>
+                                                            {o.optionText}
+                                                        </th>
+                                                    ))}
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {q.matrixRows?.map((row, ri) => {
+                                                    const rowSelections: string[] = (draftAnswers[q.id] || {})[ri.toString()] || [];
+                                                    return (
+                                                        <tr key={ri} style={{ background: ri % 2 === 0 ? 'var(--card)' : 'var(--surface)' }}>
+                                                            {/* Row label */}
+                                                            <td className="border-r-2 border-b border-border px-5 py-4 font-bold text-sm" style={{ color: 'var(--text-primary)' }}>
+                                                                <span className="inline-flex items-center gap-2">
+                                                                    <span className="w-6 h-6 rounded-full bg-primary/10 text-primary text-xs flex items-center justify-center font-black flex-shrink-0">{ri + 1}</span>
+                                                                    {row}
+                                                                </span>
+                                                            </td>
+                                                            {q.options?.map(o => {
+                                                                const isChecked = rowSelections.includes(o.id);
+                                                                return (
+                                                                    <td key={o.id} className="border-r border-b border-border text-center p-2"
+                                                                        style={{ background: isChecked ? 'rgba(196,150,66,0.12)' : undefined }}>
+                                                                        <label className="flex items-center justify-center cursor-pointer w-full h-full min-h-[48px]">
+                                                                            <input
+                                                                                type="checkbox"
+                                                                                checked={isChecked}
+                                                                                className="sr-only"
+                                                                                onChange={() => {
+                                                                                    const prev = { ...(draftAnswers[q.id] || {}) };
+                                                                                    const current: string[] = prev[ri.toString()] || [];
+                                                                                    prev[ri.toString()] = isChecked ? current.filter(id => id !== o.id) : [...current, o.id];
+                                                                                    updateAnswer(q.id, prev);
+                                                                                }}
+                                                                            />
+                                                                            {/* Visual checkbox — gold accent when checked */}
+                                                                            <span className={`w-8 h-8 rounded-xl border-2 flex items-center justify-center transition-all duration-150 ${isChecked
+                                                                                ? 'border-[#c49642] bg-[#c49642] shadow-md'
+                                                                                : 'border-border bg-card hover:border-primary/50'
+                                                                                }`}>
+                                                                                {isChecked && (
+                                                                                    <svg viewBox="0 0 12 10" fill="none" className="w-4 h-4">
+                                                                                        <path d="M1 5l3.5 3.5L11 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                                                                    </svg>
+                                                                                )}
+                                                                            </span>
+                                                                        </label>
+                                                                    </td>
+                                                                );
+                                                            })}
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
                                         </table>
                                     </div>
                                 )}
