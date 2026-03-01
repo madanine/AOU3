@@ -40,10 +40,12 @@ const BORDER = '#d4b870';
 const thBase: React.CSSProperties = {
     border: `1px solid ${BORDER}`, padding: '10px 14px', fontWeight: 800,
     color: '#4a3510', fontSize: '13px', fontFamily: FONT, background: '#f5edd8',
+    verticalAlign: 'middle',
 };
 const tdBase: React.CSSProperties = {
     border: `1px solid ${BORDER}`, padding: '10px 14px', fontSize: '13px',
     color: '#1a1a2e', fontFamily: FONT, background: 'rgba(255,253,245,0.92)',
+    verticalAlign: 'middle',
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -177,12 +179,12 @@ const TranscriptContent = React.forwardRef<HTMLDivElement, ContentProps>(
                                                 background: '#c49642', color: '#fff',
                                                 padding: '4px 16px', borderRadius: 20,
                                                 fontSize: 13, fontWeight: 800, fontFamily: FONT,
-                                                display: 'inline-block',
+                                                display: 'inline-block', lineHeight: 1.5,
                                             }}>
                                                 {semester.semesterNameSnapshot}
                                             </div>
                                         </td>
-                                        <td style={{ borderBottom: '1px solid #e0cfa0', padding: 0 }} />
+                                        <td style={{ borderBottom: '1px solid #e0cfa0', padding: 0, verticalAlign: 'middle' }} />
                                         <td style={{ width: 1, whiteSpace: 'nowrap', padding: '0 0 0 10px', verticalAlign: 'middle', textAlign: 'left' }}>
                                             <span style={{ fontSize: 13, color: '#6b5a2e', fontWeight: 700, fontFamily: FONT }}>
                                                 {isAR ? 'معدل الفصل' : 'Avg'}:{' '}
