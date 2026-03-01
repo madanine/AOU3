@@ -314,6 +314,27 @@ const StudentTranscript: React.FC = () => {
         ? (allCourses.reduce((acc, c) => acc + c.finalScore, 0) / allCourses.length).toFixed(2)
         : '0.00';
 
+    // ── Counter animation for the summary card display ────────────────────────
+    // starts at 0.00 and counts up to cumulativeGPA over 1.4s with ease-out.
+    // The PDF export always uses the real `cumulativeGPA` — not this display value.
+    const [displayGPA, setDisplayGPA] = useState('0.00');
+    useEffect(() => {
+        const target = parseFloat(cumulativeGPA);
+        if (target === 0) { setDisplayGPA('0.00'); return; }
+        const duration = 1400;          // ms
+        const startTime = performance.now();
+        const raf = (now: number) => {
+            const elapsed = now - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            // ease-out cubic: starts fast, slows toward end
+            const eased = 1 - Math.pow(1 - progress, 3);
+            setDisplayGPA((target * eased).toFixed(2));
+            if (progress < 1) requestAnimationFrame(raf);
+        };
+        const id = requestAnimationFrame(raf);
+        return () => cancelAnimationFrame(id);
+    }, [cumulativeGPA]);
+
     const logoSrc = settings.branding.logo || settings.branding.logoBase64 || '/assets/logo.png';
     const majorLabel = user?.major ? getMajorLabel(user.major) : '—';
     const contentProps: ContentProps = {
@@ -447,7 +468,7 @@ const StudentTranscript: React.FC = () => {
                         <p className="text-sm font-bold" style={{ color: '#9a7a30' }}>
                             {isAR ? 'المعدل التراكمي' : 'Cumulative GPA'}
                         </p>
-                        <p className="text-5xl font-black mt-1" style={{ color: '#c49642' }}>{cumulativeGPA}%</p>
+                        <p className="text-5xl font-black mt-1" style={{ color: '#c49642', fontVariantNumeric: 'tabular-nums' }}>{displayGPA}%</p>
                         <p className="text-xs mt-2 opacity-70" style={{ color: '#9a7a30' }}>
                             {transcripts.length} {isAR ? 'فصل دراسي معتمد' : 'approved semester(s)'}
                             {'  ·  '}
