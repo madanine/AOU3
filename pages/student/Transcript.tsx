@@ -127,7 +127,7 @@ const TranscriptContent = React.forwardRef<HTMLDivElement, ContentProps>(
                             border: '1.5px solid #c49642', borderRadius: 12,
                             background: 'rgba(196,150,66,0.06)',
                         }}>
-                            <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 2, color: '#9a7a30', textTransform: 'uppercase', fontFamily: FONT }}>
+                            <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 0, color: '#9a7a30', fontFamily: FONT }}>
                                 {isAR ? 'المعدل التراكمي' : 'Cumulative GPA'}
                             </div>
                             <div style={{ fontSize: 32, fontWeight: 900, color: '#c49642', lineHeight: 1.1, fontFamily: FONT }}>
@@ -152,7 +152,7 @@ const TranscriptContent = React.forwardRef<HTMLDivElement, ContentProps>(
                             padding: '14px 24px',
                             borderLeft: i < arr.length - 1 ? '1px solid #e8d9b0' : undefined,
                         }}>
-                            <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 1.5, color: '#9a7a30', textTransform: 'uppercase', marginBottom: 4, fontFamily: FONT }}>
+                            <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 0, color: '#9a7a30', marginBottom: 4, fontFamily: FONT }}>
                                 {item.label}
                             </div>
                             <div style={{ fontSize: 14, fontWeight: 800, color: '#1a1a2e', fontFamily: FONT }}>
@@ -166,22 +166,34 @@ const TranscriptContent = React.forwardRef<HTMLDivElement, ContentProps>(
                 <div style={{ padding: '24px 32px', display: 'flex', flexDirection: 'column', gap: 28 }}>
                     {transcripts.map(semester => (
                         <div key={semester.id}>
-                            {/* Semester label + average — A1: avg as % */}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-                                <div style={{
-                                    background: '#c49642', color: '#fff', padding: '4px 16px',
-                                    borderRadius: 20, fontSize: 13, fontWeight: 800, fontFamily: FONT, flexShrink: 0,
-                                }}>
-                                    {semester.semesterNameSnapshot}
-                                </div>
-                                <div style={{ flex: 1, height: 1, background: '#e0cfa0' }} />
-                                <span style={{ fontSize: 13, color: '#6b5a2e', fontWeight: 700, fontFamily: FONT, flexShrink: 0 }}>
-                                    {isAR ? 'معدل الفصل' : 'Semester Avg'}:{' '}
-                                    <strong style={{ color: '#c49642' }}>
-                                        {semester.semesterAverage?.toFixed(2) || '0.00'}%
-                                    </strong>
-                                </span>
-                            </div>
+                            {/* Semester label + average
+                                Use a table row (not flex) — html2canvas renders tables reliably.
+                                3 cells: [badge] [divider line via border-bottom] [avg] */}
+                            <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 12 }}>
+                                <tbody>
+                                    <tr>
+                                        <td style={{ width: 1, whiteSpace: 'nowrap', padding: '0 10px 0 0', verticalAlign: 'middle' }}>
+                                            <div style={{
+                                                background: '#c49642', color: '#fff',
+                                                padding: '4px 16px', borderRadius: 20,
+                                                fontSize: 13, fontWeight: 800, fontFamily: FONT,
+                                                display: 'inline-block',
+                                            }}>
+                                                {semester.semesterNameSnapshot}
+                                            </div>
+                                        </td>
+                                        <td style={{ borderBottom: '1px solid #e0cfa0', padding: 0 }} />
+                                        <td style={{ width: 1, whiteSpace: 'nowrap', padding: '0 0 0 10px', verticalAlign: 'middle', textAlign: 'left' }}>
+                                            <span style={{ fontSize: 13, color: '#6b5a2e', fontWeight: 700, fontFamily: FONT }}>
+                                                {isAR ? 'معدل الفصل' : 'Avg'}:{' '}
+                                                <strong style={{ color: '#c49642' }}>
+                                                    {semester.semesterAverage?.toFixed(2) || '0.00'}%
+                                                </strong>
+                                            </span>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
 
                             {/* A2: unified row bg — no striping
                                 A3: course name only — no code
