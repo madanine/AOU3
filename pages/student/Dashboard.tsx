@@ -1,11 +1,10 @@
-
 import React, { useMemo, useState, useEffect } from 'react';
 import { useApp } from '../../App';
 import { storage } from '../../storage';
 import { Link } from 'react-router-dom';
 import {
     BookOpen, GraduationCap, ClipboardList, Calendar,
-    History, FileEdit, CheckCircle, Users, TrendingUp
+    History, FileEdit, CheckCircle, AlertCircle
 } from 'lucide-react';
 import StudentIDCard from '../../components/dashboard/StudentIDCard';
 import {
@@ -60,7 +59,16 @@ const StudentDashboard: React.FC = () => {
         return { presentCount: present, totalSessions: total };
     }, [data.attendances, myCourses, user?.id]);
 
-    const attendancePct = totalSessions > 0 ? Math.round((presentCount / totalSessions) * 100) : null;
+    // ── Unsubmitted assignments (B2) ─────────────────────────────────────────
+    // All assignments for the student's current semester courses that have no
+    // matching submission and are still before or on deadline.
+    const activeAssignments = data.assignments.filter(a =>
+        myCourses.some(c => c.id === a.courseId) &&
+        (!settings.activeSemesterId || a.semesterId === settings.activeSemesterId)
+    );
+    const unsubmittedCount = activeAssignments.filter(
+        a => !data.submissions.some(s => s.assignmentId === a.id)
+    ).length;
 
     // ── Pie chart data ────────────────────────────────────────────────────────
     const attendanceData = useMemo(() => {
@@ -72,7 +80,7 @@ const StudentDashboard: React.FC = () => {
         ];
     }, [presentCount, totalSessions, isAr]);
 
-    // ── Grades data ───────────────────────────────────────────────────────────
+    // ── Grades data ──────────────────────────────────────────────────────────
     const gradesData = useMemo(() =>
         data.submissions
             .filter(s => s.status === 'graded' && s.grade !== undefined && s.grade !== null)
@@ -81,15 +89,13 @@ const StudentDashboard: React.FC = () => {
                 const course = data.courses.find(c => c.id === asgn?.courseId);
                 return {
                     name: asgn ? asgn.title : '—',
-                    course: course ? translate(course, 'title') : '',
+                    course: course ? course.title : '', // Assuming course.title is directly available
                     grade: s.grade || 0,
                     maxGrade: (asgn as any)?.maxScore || 100,
                 };
             })
             .slice(-5),
-        [data.submissions, data.assignments, data.courses, translate]);
-
-    const latestGrade = gradesData.length > 0 ? gradesData[gradesData.length - 1] : null;
+        [data.submissions, data.assignments, data.courses]);
 
     // ── Quick links ───────────────────────────────────────────────────────────
     const quickLinks = [
@@ -129,7 +135,7 @@ const StudentDashboard: React.FC = () => {
             {/* ════════════════════════════════════════════════════════════════════
           STATS ROW — 3 equal cards below the VIP card
       ════════════════════════════════════════════════════════════════════ */}
-            <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <section className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 
                 {/* Card 1 — المواد الحالية */}
                 <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-5 flex gap-4 items-center shadow-sm">
@@ -145,48 +151,26 @@ const StudentDashboard: React.FC = () => {
                             {myCourses.length}
                         </p>
                     </div>
-                    {/* Gold top accent */}
                     <div className="absolute top-0 left-4 right-4 h-[2px] rounded-full"
                         style={{ background: 'linear-gradient(90deg,transparent,rgba(212,175,55,0.5),transparent)' }} />
                 </div>
 
-                {/* Card 2 — إحصائيات الحضور */}
+                {/* Card 2 — B2: Unsubmitted Assignments (real dynamic count) */}
                 <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-5 flex gap-4 items-center shadow-sm">
                     <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
-                        style={{ background: 'rgba(63,111,78,0.12)' }}>
-                        <CheckCircle size={20} style={{ color: '#3F6F4E' }} strokeWidth={2} />
+                        style={{ background: unsubmittedCount > 0 ? 'rgba(239,68,68,0.10)' : 'rgba(63,111,78,0.10)' }}>
+                        <AlertCircle size={20} style={{ color: unsubmittedCount > 0 ? '#ef4444' : '#3F6F4E' }} strokeWidth={2} />
                     </div>
                     <div>
                         <p className="text-[10px] font-bold uppercase tracking-widest text-text-secondary opacity-80">
-                            {isAr ? 'نسبة الحضور' : 'Attendance Rate'}
+                            {isAr ? 'واجبات غير مسلَّمة' : 'Unsubmitted Assignments'}
                         </p>
-                        <p className="text-3xl font-black text-text-primary leading-none mt-0.5">
-                            {attendancePct !== null ? `${attendancePct}%` : '—'}
+                        <p className="text-3xl font-black leading-none mt-0.5" style={{ color: unsubmittedCount > 0 ? '#ef4444' : 'var(--text-primary)' }}>
+                            {unsubmittedCount}
                         </p>
                     </div>
                     <div className="absolute top-0 left-4 right-4 h-[2px] rounded-full"
-                        style={{ background: 'linear-gradient(90deg,transparent,rgba(63,111,78,0.5),transparent)' }} />
-                </div>
-
-                {/* Card 3 — أحدث درجة */}
-                <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-5 flex gap-4 items-center shadow-sm">
-                    <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
-                        style={{ background: 'rgba(212,175,55,0.12)' }}>
-                        <TrendingUp size={20} style={{ color: '#C9A84C' }} strokeWidth={2} />
-                    </div>
-                    <div className="min-w-0">
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-text-secondary opacity-80">
-                            {isAr ? 'أحدث درجة' : 'Latest Grade'}
-                        </p>
-                        <p className="text-3xl font-black text-text-primary leading-none mt-0.5">
-                            {latestGrade ? `${latestGrade.grade}` : '—'}
-                        </p>
-                        {latestGrade && (
-                            <p className="text-[10px] text-text-secondary truncate mt-0.5">{latestGrade.name}</p>
-                        )}
-                    </div>
-                    <div className="absolute top-0 left-4 right-4 h-[2px] rounded-full"
-                        style={{ background: 'linear-gradient(90deg,transparent,rgba(212,175,55,0.5),transparent)' }} />
+                        style={{ background: unsubmittedCount > 0 ? 'linear-gradient(90deg,transparent,rgba(239,68,68,0.4),transparent)' : 'linear-gradient(90deg,transparent,rgba(63,111,78,0.4),transparent)' }} />
                 </div>
             </section>
 
@@ -209,12 +193,13 @@ const StudentDashboard: React.FC = () => {
                     {attendanceData.length > 0 ? (
                         <ResponsiveContainer width="100%" height={200}>
                             <PieChart>
+                                {/* B3: No inline labels to prevent mobile overlap — legend only */}
                                 <Pie data={attendanceData} cx="50%" cy="50%" innerRadius={55} outerRadius={85}
-                                    paddingAngle={5} dataKey="value" stroke="none"
-                                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
+                                    paddingAngle={5} dataKey="value" stroke="none">
                                     {attendanceData.map((e, i) => <Cell key={i} fill={e.color} />)}
                                 </Pie>
-                                <Tooltip contentStyle={{ borderRadius: '12px', border: '1px solid var(--border-color)', backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)' }} />
+                                <Tooltip contentStyle={{ borderRadius: '12px', border: '1px solid var(--border-color)', backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)' }}
+                                    formatter={(v: any, name: any) => [`${v} ${isAr ? 'جلسة' : 'sessions'}`, name]} />
                                 <Legend verticalAlign="bottom" height={28} iconType="circle" wrapperStyle={{ color: 'var(--text-secondary)', fontSize: '12px' }} />
                             </PieChart>
                         </ResponsiveContainer>
