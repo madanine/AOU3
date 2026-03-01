@@ -40,12 +40,12 @@ const BORDER = '#d4b870';
 const thBase: React.CSSProperties = {
     border: `1px solid ${BORDER}`, padding: '10px 14px', fontWeight: 800,
     color: '#4a3510', fontSize: '13px', fontFamily: FONT, background: '#f5edd8',
-    verticalAlign: 'middle',
+    verticalAlign: 'middle', lineHeight: '18px',
 };
 const tdBase: React.CSSProperties = {
     border: `1px solid ${BORDER}`, padding: '10px 14px', fontSize: '13px',
     color: '#1a1a2e', fontFamily: FONT, background: 'rgba(255,253,245,0.92)',
-    verticalAlign: 'middle',
+    verticalAlign: 'middle', lineHeight: '18px',
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -115,10 +115,10 @@ const TranscriptContent = React.forwardRef<HTMLDivElement, ContentProps>(
                                 onError={e => { (e.target as HTMLImageElement).src = '/assets/logo.png'; }}
                                 style={{ height: 64, width: 'auto', objectFit: 'contain', flexShrink: 0 }} />
                             <div style={{ minWidth: 0 }}>
-                                <div style={{ fontSize: 20, fontWeight: 900, color: '#1a1a2e', fontFamily: FONT }}>
+                                <div style={{ fontSize: 20, fontWeight: 900, color: '#1a1a2e', fontFamily: FONT, lineHeight: '28px' }}>
                                     {siteNameAr || 'الجامعة الأمريكية المفتوحة'}
                                 </div>
-                                <div style={{ fontSize: 13, fontWeight: 700, color: '#c49642', marginTop: 4, fontFamily: FONT }}>
+                                <div style={{ fontSize: 13, fontWeight: 700, color: '#c49642', marginTop: 4, fontFamily: FONT, lineHeight: '18px' }}>
                                     المركز الإقليمي الأول
                                 </div>
                             </div>
@@ -129,10 +129,10 @@ const TranscriptContent = React.forwardRef<HTMLDivElement, ContentProps>(
                             border: '1.5px solid #c49642', borderRadius: 12,
                             background: 'rgba(196,150,66,0.06)',
                         }}>
-                            <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 0, color: '#9a7a30', fontFamily: FONT }}>
+                            <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 0, color: '#9a7a30', fontFamily: FONT, lineHeight: '14px', marginBottom: 2 }}>
                                 {isAR ? 'المعدل التراكمي' : 'Cumulative GPA'}
                             </div>
-                            <div style={{ fontSize: 32, fontWeight: 900, color: '#c49642', lineHeight: 1.1, fontFamily: FONT }}>
+                            <div style={{ fontSize: 32, fontWeight: 900, color: '#c49642', lineHeight: '36px', fontFamily: FONT }}>
                                 {cumulativeGPA}%
                             </div>
                         </div>
@@ -154,10 +154,10 @@ const TranscriptContent = React.forwardRef<HTMLDivElement, ContentProps>(
                             padding: '14px 24px',
                             borderLeft: i < arr.length - 1 ? '1px solid #e8d9b0' : undefined,
                         }}>
-                            <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 0, color: '#9a7a30', marginBottom: 4, fontFamily: FONT }}>
+                            <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 0, color: '#9a7a30', marginBottom: 4, fontFamily: FONT, lineHeight: '12px' }}>
                                 {item.label}
                             </div>
-                            <div style={{ fontSize: 14, fontWeight: 800, color: '#1a1a2e', fontFamily: FONT }}>
+                            <div style={{ fontSize: 14, fontWeight: 800, color: '#1a1a2e', fontFamily: FONT, lineHeight: '20px' }}>
                                 {item.value || '—'}
                             </div>
                         </div>
@@ -179,14 +179,14 @@ const TranscriptContent = React.forwardRef<HTMLDivElement, ContentProps>(
                                                 background: '#c49642', color: '#fff',
                                                 padding: '4px 16px', borderRadius: 20,
                                                 fontSize: 13, fontWeight: 800, fontFamily: FONT,
-                                                display: 'inline-block', lineHeight: 1.5,
+                                                display: 'inline-block', lineHeight: '20px',
                                             }}>
                                                 {semester.semesterNameSnapshot}
                                             </div>
                                         </td>
                                         <td style={{ borderBottom: '1px solid #e0cfa0', padding: 0, verticalAlign: 'middle' }} />
                                         <td style={{ width: 1, whiteSpace: 'nowrap', padding: '0 0 0 10px', verticalAlign: 'middle', textAlign: 'left' }}>
-                                            <span style={{ fontSize: 13, color: '#6b5a2e', fontWeight: 700, fontFamily: FONT }}>
+                                            <span style={{ fontSize: 13, color: '#6b5a2e', fontWeight: 700, fontFamily: FONT, lineHeight: '20px', display: 'inline-block' }}>
                                                 {isAR ? 'معدل الفصل' : 'Avg'}:{' '}
                                                 <strong style={{ color: '#c49642' }}>
                                                     {semester.semesterAverage?.toFixed(2) || '0.00'}%
