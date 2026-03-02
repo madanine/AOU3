@@ -1,13 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../App';
-import { storage } from '../../storage';
+import { supabaseService } from '../../supabaseService';
 import { Course } from '../../types';
 import { Plus, Edit2, Trash2, X, BookOpen, Save, ToggleLeft, ToggleRight, Clock, User as DocIcon, MessageCircle, Video, Link } from 'lucide-react';
 import SemesterControls from '../../components/admin/SemesterControls';
 
 const AdminCourses: React.FC = () => {
   const { t, translate, settings, lang } = useApp();
-  const [allCourses, setAllCourses] = useState<Course[]>(storage.getCourses());
+  const [allCourses, setAllCourses] = useState<Course[]>([]);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState<Partial<Course>>({
@@ -26,7 +26,22 @@ const AdminCourses: React.FC = () => {
 
   const courses = allCourses.filter(c => c.semesterId === settings.activeSemesterId);
 
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const loadCourses = async () => {
+    setIsLoading(true);
+    try {
+      const dbCourses = await supabaseService.getCourses();
+      setAllCourses(dbCourses);
+    } catch (e) {
+      console.error(e);
+    }
+    setIsLoading(false);
+  };
+
+  useEffect(() => {
+    loadCourses();
+  }, [settings.activeSemesterId]);
 
   const handleOpenAdd = () => {
     setEditingCourse(null);
@@ -46,28 +61,30 @@ const AdminCourses: React.FC = () => {
 
   const handleDelete = async (id: string) => {
     if (confirm(t.deleteConfirm || (lang === 'AR' ? 'هل أنت متأكد من الحذف؟ لن تتمكن من التراجع.' : 'Are you sure? This cannot be undone.'))) {
-      await storage.deleteCourse(id);
+      await supabaseService.deleteCourse(id);
       setAllCourses(prev => prev.filter(c => c.id !== id));
     }
   };
 
   const toggleCourseRegistration = async (course: Course) => {
     const updated = { ...course, isRegistrationEnabled: !course.isRegistrationEnabled };
-    const newList = await storage.saveCourse(updated);
-    setAllCourses(newList);
+    await supabaseService.upsertCourse(updated);
+    setAllCourses(prev => prev.map(c => c.id === course.id ? updated : c));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
     const courseToSave: Course = {
       id: editingCourse?.id || crypto.randomUUID(),
       ...(formData as Course),
       semesterId: settings.activeSemesterId || '00000000-0000-0000-0000-000000000010'
     };
 
-    const updated = await storage.saveCourse(courseToSave);
-    setAllCourses(updated);
+    await supabaseService.upsertCourse(courseToSave);
+    await loadCourses();
     setIsModalOpen(false);
+    setIsLoading(false);
   };
 
   return (
