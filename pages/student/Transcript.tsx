@@ -40,12 +40,12 @@ const BORDER = '#d4b870';
 const thBase: React.CSSProperties = {
     border: `1px solid ${BORDER}`, padding: '10px 14px', fontWeight: 800,
     color: '#4a3510', fontSize: '13px', fontFamily: FONT, background: '#f5edd8',
-    verticalAlign: 'middle',
+    verticalAlign: 'middle', lineHeight: 1.4,
 };
 const tdBase: React.CSSProperties = {
     border: `1px solid ${BORDER}`, padding: '10px 14px', fontSize: '13px',
     color: '#1a1a2e', fontFamily: FONT, background: 'rgba(255,253,245,0.92)',
-    verticalAlign: 'middle',
+    verticalAlign: 'middle', lineHeight: 1.4,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -129,10 +129,10 @@ const TranscriptContent = React.forwardRef<HTMLDivElement, ContentProps>(
                             border: '1.5px solid #c49642', borderRadius: 12,
                             background: 'rgba(196,150,66,0.06)',
                         }}>
-                            <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 0, color: '#9a7a30', fontFamily: FONT }}>
+                            <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 0, color: '#9a7a30', fontFamily: FONT, lineHeight: 1.2, marginBottom: 2 }}>
                                 {isAR ? 'المعدل التراكمي' : 'Cumulative GPA'}
                             </div>
-                            <div style={{ fontSize: 32, fontWeight: 900, color: '#c49642', lineHeight: 1.1, fontFamily: FONT }}>
+                            <div style={{ fontSize: 32, fontWeight: 900, color: '#c49642', lineHeight: 1, fontFamily: FONT }}>
                                 {cumulativeGPA}%
                             </div>
                         </div>
@@ -154,10 +154,10 @@ const TranscriptContent = React.forwardRef<HTMLDivElement, ContentProps>(
                             padding: '14px 24px',
                             borderLeft: i < arr.length - 1 ? '1px solid #e8d9b0' : undefined,
                         }}>
-                            <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 0, color: '#9a7a30', marginBottom: 4, fontFamily: FONT }}>
+                            <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 0, color: '#9a7a30', marginBottom: 4, fontFamily: FONT, lineHeight: 1.2 }}>
                                 {item.label}
                             </div>
-                            <div style={{ fontSize: 14, fontWeight: 800, color: '#1a1a2e', fontFamily: FONT }}>
+                            <div style={{ fontSize: 14, fontWeight: 800, color: '#1a1a2e', fontFamily: FONT, lineHeight: 1.4 }}>
                                 {item.value || '—'}
                             </div>
                         </div>
@@ -177,16 +177,17 @@ const TranscriptContent = React.forwardRef<HTMLDivElement, ContentProps>(
                                         <td style={{ width: 1, whiteSpace: 'nowrap', padding: '0 10px 0 0', verticalAlign: 'middle' }}>
                                             <div style={{
                                                 background: '#c49642', color: '#fff',
-                                                padding: '4px 16px', borderRadius: 20,
+                                                padding: '6px 16px', borderRadius: 20,
                                                 fontSize: 13, fontWeight: 800, fontFamily: FONT,
-                                                display: 'inline-block', lineHeight: 1.5,
+                                                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                                                lineHeight: 1, minHeight: 28, boxSizing: 'border-box'
                                             }}>
                                                 {semester.semesterNameSnapshot}
                                             </div>
                                         </td>
                                         <td style={{ borderBottom: '1px solid #e0cfa0', padding: 0, verticalAlign: 'middle' }} />
                                         <td style={{ width: 1, whiteSpace: 'nowrap', padding: '0 0 0 10px', verticalAlign: 'middle', textAlign: 'left' }}>
-                                            <span style={{ fontSize: 13, color: '#6b5a2e', fontWeight: 700, fontFamily: FONT }}>
+                                            <span style={{ fontSize: 13, color: '#6b5a2e', fontWeight: 700, fontFamily: FONT, lineHeight: 1.4, display: 'inline-block' }}>
                                                 {isAR ? 'معدل الفصل' : 'Avg'}:{' '}
                                                 <strong style={{ color: '#c49642' }}>
                                                     {semester.semesterAverage?.toFixed(2) || '0.00'}%
