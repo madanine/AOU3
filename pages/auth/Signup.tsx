@@ -391,21 +391,6 @@ const SignupPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Passport Number */}
-              <div className="md:col-span-2 space-y-1">
-                <label className="text-[10px] font-black uppercase tracking-widest ml-1 block text-text-secondary">{t.passportNumber}</label>
-                <div className="relative group">
-                  <input
-                    type="text"
-                    required
-                    value={formData.passportNumber}
-                    onChange={(e) => setFormData({ ...formData, passportNumber: e.target.value })}
-                    placeholder="A12345678"
-                    className={inputClasses}
-                  />
-                </div>
-              </div>
-
               {/* Gender */}
               <div className="md:col-span-2 space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-widest ml-1 block text-text-secondary">{(t as any).gender}</label>
@@ -416,8 +401,8 @@ const SignupPage: React.FC = () => {
                       type="button"
                       onClick={() => setFormData({ ...formData, gender: g })}
                       className={`py-3 px-4 rounded-xl border-2 font-black text-sm transition-all ${formData.gender === g
-                          ? 'border-primary bg-primary/10 text-primary'
-                          : 'border-border text-text-secondary hover:border-primary/50'
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-border text-text-secondary hover:border-primary/50'
                         }`}
                     >
                       {g === 'male' ? (lang === 'AR' ? '♂ ذكر' : '♂ Male') : (lang === 'AR' ? '♀ أنثى' : '♀ Female')}
