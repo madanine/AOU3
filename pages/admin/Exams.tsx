@@ -79,6 +79,8 @@ const AdminExams: React.FC = () => {
     const [showExcForm, setShowExcForm] = useState(false);
     const [excStudentId, setExcStudentId] = useState('');
     const [excUntil, setExcUntil] = useState('');
+    const [manualScore, setManualScore] = useState<number | null>(null);
+    const [savingManual, setSavingManual] = useState(false);
 
     // Student search
     const [studentSearchTerm, setStudentSearchTerm] = useState('');
@@ -369,10 +371,23 @@ const AdminExams: React.FC = () => {
 
     const openGrading = async (attempt: ExamAttempt) => {
         setSelectedAttempt(attempt); setTab('grade');
+        setManualScore(attempt.totalScore ?? null);
         try {
             const [a, q] = await Promise.all([supabaseService.getExamAnswers(attempt.id), supabaseService.getExamQuestions(attempt.examId)]);
             setAnswers(a); setGradingQ(q);
         } catch (e: any) { setError(e.message); }
+    };
+
+    const saveManualScore = async () => {
+        if (!selectedAttempt || manualScore === null) return;
+        setSavingManual(true);
+        try {
+            await supabaseService.updateAttemptScore(selectedAttempt.id, manualScore);
+            setSelectedAttempt(prev => prev ? { ...prev, totalScore: manualScore } : prev);
+            setAttempts(prev => prev.map(a => a.id === selectedAttempt.id ? { ...a, totalScore: manualScore } : a));
+            flash(isAR ? 'تم حفظ الدرجة بنجاح' : 'Score saved successfully');
+        } catch (e: any) { setError(e.message); }
+        setSavingManual(false);
     };
 
     const gradeEssay = async (answerId: string, marks: number, maxMarks: number) => {
@@ -877,9 +892,41 @@ const AdminExams: React.FC = () => {
                             );
                         })}
                     </div>
-                    <div className="mt-4 flex items-center gap-3">
+                    <div className="mt-6 flex items-center gap-3">
                         <button className={btnGray} onClick={() => { setTab('attempts'); setSelectedAttempt(null); }}>{isAR ? '← رجوع' : '← Back'}</button>
                         <span className="font-bold text-lg">{isAR ? 'المجموع:' : 'Total:'} {answers.reduce((s, a) => s + (a.awardedMarks || 0), 0)}/50</span>
+                    </div>
+
+                    {/* ─── Manual Score Override ─── */}
+                    <div className="mt-6 p-5 rounded-2xl border-2 border-primary/30 bg-primary/5">
+                        <h3 className="text-sm font-black text-text-primary mb-1">
+                            {isAR ? 'ضبط الدرجة يدوياً' : 'Manual Score Override'}
+                        </h3>
+                        <p className="text-xs text-text-secondary mb-3">
+                            {isAR
+                                ? 'يمكنك تغيير الدرجة النهائية يدوياً (مثلاً إضافة نقاط مكافأة). تلغي تلقائياً عند إصدار النتائج.'
+                                : 'You can override the final score manually (e.g. add bonus points). Auto-grading runs again on result release.'}
+                        </p>
+                        <div className="flex items-center gap-3">
+                            <input
+                                type="number"
+                                min={0}
+                                max={999}
+                                value={manualScore ?? ''}
+                                onChange={e => setManualScore(parseInt(e.target.value) || 0)}
+                                className="w-28 px-3 py-2 border-2 border-primary/30 rounded-xl text-lg font-black text-center bg-surface text-text-primary focus:outline-none focus:border-primary transition-all"
+                                placeholder="0"
+                            />
+                            <span className="text-sm font-bold text-text-secondary">/50</span>
+                            <button
+                                onClick={saveManualScore}
+                                disabled={savingManual || manualScore === null}
+                                className="px-5 py-2 bg-primary text-white font-black rounded-xl text-sm flex items-center gap-2 hover:opacity-90 transition-all disabled:opacity-50"
+                            >
+                                {savingManual ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                                {isAR ? 'حفظ الدرجة' : 'Save Score'}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

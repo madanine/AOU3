@@ -37,6 +37,7 @@ const Profile: React.FC = () => {
     nationality: user?.nationality || '',
     passportNumber: user?.passportNumber || '',
     dateOfBirth: user?.dateOfBirth || '',
+    gender: (user?.gender || '') as 'male' | 'female' | '',
   });
 
   const [nationalitySearch, setNationalitySearch] = useState(
@@ -166,8 +167,8 @@ const Profile: React.FC = () => {
       {message && (
         <div
           className={`p-4 rounded-2xl border font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 animate-in slide-in-from-top-4 ${message.type === 'success'
-              ? 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20'
-              : 'bg-red-500/10 text-red-500 border-red-500/20'
+            ? 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20'
+            : 'bg-red-500/10 text-red-500 border-red-500/20'
             }`}
         >
           {message.type === 'success' ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
@@ -386,6 +387,24 @@ const Profile: React.FC = () => {
                         placeholder="A12345678"
                         className={INPUT_CLS}
                       />
+                    </div>
+                  </div>
+
+                  {/* Gender — read-only display for students */}
+                  <div className="space-y-2 md:col-span-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest ml-1 text-text-secondary">{(t as any).gender}</label>
+                    <div className="grid grid-cols-2 gap-3">
+                      {(['male', 'female'] as const).map(g => (
+                        <div
+                          key={g}
+                          className={`py-4 px-4 rounded-xl border-2 font-black text-sm text-center cursor-not-allowed ${formData.gender === g
+                              ? 'border-primary bg-primary/10 text-primary'
+                              : 'border-border text-text-secondary opacity-30'
+                            }`}
+                        >
+                          {g === 'male' ? (lang === 'AR' ? '♂ ذكر' : '♂ Male') : (lang === 'AR' ? '♀ أنثى' : '♀ Female')}
+                        </div>
+                      ))}
                     </div>
                   </div>
 

@@ -64,6 +64,7 @@ const AdminExport: React.FC = () => {
             [t.nationality]: s?.nationality ? getCountryName(s.nationality, lang) : '—',
             [t.dateOfBirth]: s?.dateOfBirth || '—',
             [t.passportNumber]: s?.passportNumber || '—',
+            [(t as any).gender]: s?.gender ? ((t as any)[s.gender] || s.gender) : '—',
             [t.major]: s?.major ? (t.majorList[s.major] || s.major) : '—',
             [t.courseCode]: c?.code || e.courseId,
             [t.courseTitle]: lang === 'AR' ? (c?.title_ar || c?.title) : (c?.title || c?.title_ar),

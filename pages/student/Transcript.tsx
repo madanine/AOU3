@@ -392,18 +392,17 @@ const StudentTranscript: React.FC = () => {
                     const isDesktop = !/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
                     const style = clonedDoc.createElement('style');
-                    style.textContent = `* { font-family: "Cairo","Tajawal",Arial,sans-serif !important; }`;
-
-                    // Specific optical fix for desktop (Windows/Mac) font baseline bugs in html2canvas
-                    if (isDesktop) {
-                        style.textContent += `
-                            .pdf-text-adjust {
-                                position: relative !important;
-                                top: -0.18em !important;
-                                display: inline-block;
-                            }
-                        `;
-                    }
+                    style.textContent = `
+                        * { font-family: "Cairo","Tajawal",Arial,sans-serif !important; }
+                        .pdf-text-adjust {
+                            display: inline-block;
+                            line-height: normal;
+                            vertical-align: middle;
+                        }
+                        td, th {
+                            vertical-align: middle !important;
+                        }
+                    `;
 
                     clonedDoc.head.appendChild(style);
 

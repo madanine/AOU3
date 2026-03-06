@@ -22,6 +22,7 @@ const AdminStudents: React.FC = () => {
     nationality: '',
     passportNumber: '',
     dateOfBirth: '',
+    gender: '' as 'male' | 'female' | '',
     password: ''
   });
 
@@ -48,7 +49,7 @@ const AdminStudents: React.FC = () => {
 
   const handleOpenAdd = () => {
     setEditingUser(null);
-    setFormData({ fullName: '', universityId: '', email: '', phone: '', major: '', nationality: '', dateOfBirth: '', password: '' });
+    setFormData({ fullName: '', universityId: '', email: '', phone: '', major: '', nationality: '', dateOfBirth: '', gender: '', password: '' });
     setNationalitySearch('');
     setIsModalOpen(true);
   };
@@ -136,6 +137,7 @@ const AdminStudents: React.FC = () => {
               <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-text-secondary">{t.fullName}</th>
               <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-text-secondary">{t.universityId}</th>
               <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-text-secondary">{t.nationality}</th>
+              <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-text-secondary">{(t as any).gender}</th>
               <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-text-secondary">{t.dateOfBirth}</th>
               <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-text-secondary">{lang === 'AR' ? 'الحالة' : 'Status'}</th>
               <th className="px-6 py-5"></th>
@@ -159,6 +161,11 @@ const AdminStudents: React.FC = () => {
                 <td className="px-6 py-4">
                   <span className="text-[10px] font-bold text-text-secondary">
                     {student.nationality ? getCountryName(student.nationality, lang) : '—'}
+                  </span>
+                </td>
+                <td className="px-6 py-4">
+                  <span className="text-[10px] font-bold text-text-secondary">
+                    {student.gender ? ((t as any)[student.gender] || student.gender) : '—'}
                   </span>
                 </td>
                 <td className="px-6 py-4">
@@ -366,6 +373,26 @@ const AdminStudents: React.FC = () => {
                       onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
                       className="w-full pl-10 pr-4 py-3 rounded-xl border border-border outline-none font-bold text-sm bg-surface text-text-primary focus:ring-2 focus:ring-primary transition-all"
                     />
+                  </div>
+                </div>
+
+                {/* Gender Field */}
+                <div className="md:col-span-2 space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest ml-1 text-text-secondary">{(t as any).gender}</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    {(['male', 'female'] as const).map(g => (
+                      <button
+                        key={g}
+                        type="button"
+                        onClick={() => setFormData({ ...formData, gender: g })}
+                        className={`py-3 px-4 rounded-xl border-2 font-black text-sm transition-all ${formData.gender === g
+                            ? 'border-primary bg-primary/10 text-primary'
+                            : 'border-border text-text-secondary hover:border-primary/50'
+                          }`}
+                      >
+                        {g === 'male' ? (lang === 'AR' ? '♂ ذكر' : '♂ Male') : (lang === 'AR' ? '♀ أنثى' : '♀ Female')}
+                      </button>
+                    ))}
                   </div>
                 </div>
               </div>

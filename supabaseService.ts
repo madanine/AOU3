@@ -33,6 +33,7 @@ export const supabaseService = {
                 nationality: userData.nationality || null,
                 date_of_birth: userData.date_of_birth || null,
                 passport_number: userData.passport_number || null,
+                gender: userData.gender || null,
                 password: password,
                 created_at: new Date().toISOString()
             }, { onConflict: 'id' });
@@ -68,6 +69,7 @@ export const supabaseService = {
             nationality: data.nationality,
             dateOfBirth: data.date_of_birth,
             passportNumber: data.passport_number,
+            gender: data.gender || undefined,
             assignedCourses: data.assigned_courses,
             supervisorPermissions: data.supervisor_permissions,
             permissions: data.admin_permissions,
@@ -119,6 +121,7 @@ export const supabaseService = {
             nationality: p.nationality,
             dateOfBirth: p.date_of_birth,
             passportNumber: p.passport_number,
+            gender: p.gender || undefined,
             assignedCourses: p.assigned_courses,
             supervisorPermissions: p.supervisor_permissions,
             permissions: p.admin_permissions,
@@ -143,6 +146,7 @@ export const supabaseService = {
             nationality: user.nationality || null,
             date_of_birth: user.dateOfBirth || null,
             passport_number: user.passportNumber || null,
+            gender: user.gender || null,
             password: user.password,
             assigned_courses: user.assignedCourses || [],
             supervisor_permissions: user.supervisorPermissions || null,

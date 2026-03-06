@@ -15,6 +15,7 @@ export interface User {
   nationality?: string;
   dateOfBirth?: string;
   passportNumber?: string;
+  gender?: 'male' | 'female';
   createdAt: string;
   assignedCourses?: string[];
   supervisorPermissions?: {

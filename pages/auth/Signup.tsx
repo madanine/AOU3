@@ -20,6 +20,7 @@ const SignupPage: React.FC = () => {
     major: '' as Major | '',
     nationality: '',
     passportNumber: '',
+    gender: '' as 'male' | 'female' | '',
   });
 
   const [error, setError] = useState('');
@@ -74,6 +75,13 @@ const SignupPage: React.FC = () => {
     // Validate Passport Number
     if (!formData.passportNumber) {
       setError(lang === 'AR' ? 'رقم جواز السفر مطلوب' : 'Passport number is required');
+      setIsLoading(false);
+      return;
+    }
+
+    // Validate Gender
+    if (!formData.gender) {
+      setError(lang === 'AR' ? 'يرجى اختيار الجنس' : 'Please select gender');
       setIsLoading(false);
       return;
     }
@@ -133,7 +141,8 @@ const SignupPage: React.FC = () => {
         major: formData.major,
         nationality: formData.nationality,
         passport_number: formData.passportNumber || null,
-        date_of_birth: dobString
+        date_of_birth: dobString,
+        gender: formData.gender || null,
       });
 
       if (authUser) {
@@ -382,7 +391,40 @@ const SignupPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Date of Birth (Wheel Picker) */}
+              {/* Passport Number */}
+              <div className="md:col-span-2 space-y-1">
+                <label className="text-[10px] font-black uppercase tracking-widest ml-1 block text-text-secondary">{t.passportNumber}</label>
+                <div className="relative group">
+                  <input
+                    type="text"
+                    required
+                    value={formData.passportNumber}
+                    onChange={(e) => setFormData({ ...formData, passportNumber: e.target.value })}
+                    placeholder="A12345678"
+                    className={inputClasses}
+                  />
+                </div>
+              </div>
+
+              {/* Gender */}
+              <div className="md:col-span-2 space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest ml-1 block text-text-secondary">{(t as any).gender}</label>
+                <div className="grid grid-cols-2 gap-3">
+                  {(['male', 'female'] as const).map(g => (
+                    <button
+                      key={g}
+                      type="button"
+                      onClick={() => setFormData({ ...formData, gender: g })}
+                      className={`py-3 px-4 rounded-xl border-2 font-black text-sm transition-all ${formData.gender === g
+                          ? 'border-primary bg-primary/10 text-primary'
+                          : 'border-border text-text-secondary hover:border-primary/50'
+                        }`}
+                    >
+                      {g === 'male' ? (lang === 'AR' ? '♂ ذكر' : '♂ Male') : (lang === 'AR' ? '♀ أنثى' : '♀ Female')}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <div className="md:col-span-2 space-y-1">
                 <label className="text-[10px] font-black uppercase tracking-widest ml-1 block text-text-secondary">{t.dateOfBirth}</label>
                 <div className="grid grid-cols-3 gap-3">
