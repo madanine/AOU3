@@ -390,6 +390,30 @@ const AdminExams: React.FC = () => {
         setSavingManual(false);
     };
 
+    // Compute expected marks for auto-graded question types (previewed before release)
+    const getEffectiveMarks = (ans: ExamAnswer | undefined, q: ExamQuestion): number => {
+        if (!ans) return 0;
+        if (q.type === 'mcq' || q.type === 'true_false') {
+            const correct = q.options?.find(o => o.isCorrect);
+            return correct && ans.selectedOptionId === correct.id ? q.marks : 0;
+        }
+        if (q.type === 'matrix') {
+            if (q.matrixAnswers && ans.matrixSelections) {
+                const rows = Object.keys(q.matrixAnswers);
+                let totalCorrect = 0, totalCells = 0;
+                rows.forEach(r => {
+                    const correctSet = new Set(q.matrixAnswers![r] || []);
+                    const selectedSet = new Set(ans.matrixSelections![r] || []);
+                    totalCells += correctSet.size;
+                    correctSet.forEach(c => { if (selectedSet.has(c)) totalCorrect++; });
+                });
+                return totalCells > 0 ? Math.round((totalCorrect / totalCells) * q.marks) : 0;
+            }
+            return 0;
+        }
+        return ans.awardedMarks || 0; // essay: use stored value
+    };
+
     const gradeEssay = async (answerId: string, marks: number, maxMarks: number) => {
         const m = Math.min(Math.max(0, marks), maxMarks);
         try {
@@ -852,7 +876,17 @@ const AdminExams: React.FC = () => {
                                             <p className="font-bold text-text-primary text-sm">{q.questionText}</p>
                                             <p className="text-[10px] uppercase font-black text-text-secondary mt-1">{q.marks} {t.marks} • {qTypeLabel[q.type]}</p>
                                         </div>
-                                        {ans && <span className={`px-3 py-1.5 rounded-xl text-xs font-black shadow-sm ${ans.isCorrect ? 'bg-success/10 text-success border border-success/20' : ans.isCorrect === false ? 'bg-red-500/10 text-red-500 border border-red-500/20' : 'bg-surface border-border text-text-secondary'}`}>{ans.awardedMarks ?? '?'}/{q.marks}</span>}
+                                        {ans && (() => {
+                                            const effective = getEffectiveMarks(ans, q);
+                                            const isAuto = q.type === 'mcq' || q.type === 'true_false' || q.type === 'matrix';
+                                            const correct = isAuto ? effective === q.marks : ans.isCorrect;
+                                            return (
+                                                <span className={`px-3 py-1.5 rounded-xl text-xs font-black shadow-sm ${correct ? 'bg-success/10 text-success border border-success/20'
+                                                        : (isAuto || ans.isCorrect === false) ? 'bg-red-500/10 text-red-500 border border-red-500/20'
+                                                            : 'bg-surface border-border text-text-secondary'
+                                                    }`}>{isAuto ? effective : (ans.awardedMarks ?? '?')}/{q.marks}</span>
+                                            );
+                                        })()}
                                     </div>
                                     {(q.type === 'mcq' || q.type === 'true_false') && (
                                         <div className="ml-12 space-y-2">
@@ -894,7 +928,7 @@ const AdminExams: React.FC = () => {
                     </div>
                     <div className="mt-6 flex items-center gap-3">
                         <button className={btnGray} onClick={() => { setTab('attempts'); setSelectedAttempt(null); }}>{isAR ? '← رجوع' : '← Back'}</button>
-                        <span className="font-bold text-lg">{isAR ? 'المجموع:' : 'Total:'} {answers.reduce((s, a) => s + (a.awardedMarks || 0), 0)}/50</span>
+                        <span className="font-bold text-lg">{isAR ? 'المجموع:' : 'Total:'} {gradingQ.reduce((s, q) => s + getEffectiveMarks(answers.find(a => a.questionId === q.id), q), 0)}/{gradingQ.reduce((s, q) => s + q.marks, 0)}</span>
                     </div>
 
                     {/* ─── Manual Score Override ─── */}
