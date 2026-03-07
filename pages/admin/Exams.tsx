@@ -882,8 +882,8 @@ const AdminExams: React.FC = () => {
                                             const correct = isAuto ? effective === q.marks : ans.isCorrect;
                                             return (
                                                 <span className={`px-3 py-1.5 rounded-xl text-xs font-black shadow-sm ${correct ? 'bg-success/10 text-success border border-success/20'
-                                                        : (isAuto || ans.isCorrect === false) ? 'bg-red-500/10 text-red-500 border border-red-500/20'
-                                                            : 'bg-surface border-border text-text-secondary'
+                                                    : (isAuto || ans.isCorrect === false) ? 'bg-red-500/10 text-red-500 border border-red-500/20'
+                                                        : 'bg-surface border-border text-text-secondary'
                                                     }`}>{isAuto ? effective : (ans.awardedMarks ?? '?')}/{q.marks}</span>
                                             );
                                         })()}
@@ -892,10 +892,35 @@ const AdminExams: React.FC = () => {
                                         <div className="ml-12 space-y-2">
                                             {q.options?.map(o => {
                                                 const selected = ans?.selectedOptionId === o.id;
-                                                return (<div key={o.id} className={`px-4 py-3 rounded-xl text-xs font-bold transition-all shadow-sm ${o.isCorrect ? 'bg-success/10 border border-success/30 text-text-primary' : selected ? 'bg-red-500/10 border border-red-500/30 text-text-primary' : 'bg-card border border-border text-text-secondary'}`}>
-                                                    {selected && (o.isCorrect ? <CheckCircle size={16} className="inline mr-2 text-success" /> : <XCircle size={16} className="inline mr-2 text-red-500" />)}
-                                                    {o.optionText}
-                                                </div>);
+                                                return (
+                                                    <div key={o.id} className={`px-4 py-3 rounded-xl text-xs font-bold flex items-center justify-between gap-3 transition-all ${selected && o.isCorrect
+                                                            ? 'bg-success/10 border-2 border-success text-text-primary'           // ✅ selected + correct
+                                                            : selected && !o.isCorrect
+                                                                ? 'bg-red-500/10 border-2 border-red-500 text-text-primary'        // ❌ selected + wrong
+                                                                : o.isCorrect
+                                                                    ? 'bg-success/5 border border-dashed border-success/50 text-text-secondary'  // correct but NOT selected
+                                                                    : 'bg-card border border-border text-text-secondary'           // neither
+                                                        }`}>
+                                                        <span className="flex items-center gap-2">
+                                                            {selected && o.isCorrect && <CheckCircle size={15} className="text-success shrink-0" />}
+                                                            {selected && !o.isCorrect && <XCircle size={15} className="text-red-500 shrink-0" />}
+                                                            {!selected && o.isCorrect && <CheckCircle size={15} className="text-success/40 shrink-0" />}
+                                                            {o.optionText}
+                                                        </span>
+                                                        <span className="flex items-center gap-1.5 shrink-0">
+                                                            {selected && (
+                                                                <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest ${o.isCorrect ? 'bg-success text-white' : 'bg-red-500 text-white'}`}>
+                                                                    {isAR ? 'إجابة الطالب' : 'Student'}
+                                                                </span>
+                                                            )}
+                                                            {o.isCorrect && (
+                                                                <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest bg-success/20 text-success border border-success/30">
+                                                                    {isAR ? 'صحيح' : 'Correct'}
+                                                                </span>
+                                                            )}
+                                                        </span>
+                                                    </div>
+                                                );
                                             })}
                                         </div>
                                     )}

@@ -891,9 +891,13 @@ export const supabaseService = {
             matrix_selections: a.matrixSelections || null,
             is_correct: a.isCorrect ?? null,
             awarded_marks: a.awardedMarks ?? null,
-            ...(a.id && /^[0-9a-f]{8}-/i.test(a.id) ? { id: a.id } : {})
         }));
-        const { error } = await supabase.from('exam_answers').upsert(payloads);
+        // Use onConflict so re-submits UPDATE the existing row instead of
+        // inserting a duplicate (which would cause getExamAnswers to return
+        // a stale/empty row as the 'first' result for that question).
+        const { error } = await supabase
+            .from('exam_answers')
+            .upsert(payloads, { onConflict: 'attempt_id,question_id' });
         if (error) throw error;
     },
 
