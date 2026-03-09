@@ -1,5 +1,5 @@
 
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { useApp } from '../../App';
 import { storage } from '../../storage';
 import { supabaseService } from '../../supabaseService';
@@ -56,7 +56,16 @@ const Profile: React.FC = () => {
   // ── Avatar upload state ────────────────────────────────────────────────────
   const [avatarUrl, setAvatarUrl] = useState<string | null>(user?.avatarUrl || null);
   const [avatarUploading, setAvatarUploading] = useState(false);
+  const [showAvatarHint, setShowAvatarHint] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Show hint briefly then auto-hide
+  useEffect(() => {
+    const t1 = setTimeout(() => setShowAvatarHint(true), 400);
+    const t2 = setTimeout(() => setShowAvatarHint(false), 3800);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, []);
+
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -78,9 +87,20 @@ const Profile: React.FC = () => {
       setMessage({ text: lang === 'AR' ? 'تم تحديث الصورة بنجاح' : 'Profile photo updated!', type: 'success' });
       setTimeout(() => setMessage(null), 3000);
     } catch (err) {
-      console.error(err);
-      setMessage({ text: lang === 'AR' ? 'فشل رفع الصورة' : 'Photo upload failed', type: 'error' });
-      setTimeout(() => setMessage(null), 3000);
+      // Fallback: store as base64 locally so photo still shows
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const b64 = ev.target?.result as string;
+        if (b64) {
+          setAvatarUrl(b64);
+          const up = { ...user!, avatarUrl: b64 };
+          setUser(up);
+          storage.setAuthUser(up);
+          setMessage({ text: lang === 'AR' ? 'تم حفظ الصورة محلياً' : 'Photo saved locally', type: 'success' });
+          setTimeout(() => setMessage(null), 3000);
+        }
+      };
+      reader.readAsDataURL(file);
     } finally {
       setAvatarUploading(false);
     }
@@ -234,7 +254,8 @@ const Profile: React.FC = () => {
                     <GraduationCap size={14} className="text-primary/70" />
                     {t.majorList[user?.major as keyof typeof t.majorList] || user?.major}
                   </p>
-                  <p className="text-[11px] font-semibold text-text-secondary mt-2 opacity-60">
+                  <p className="text-[11px] font-semibold text-text-secondary mt-2 transition-opacity duration-700"
+                    style={{ opacity: showAvatarHint ? 1 : 0, pointerEvents: 'none' }}>
                     {lang === 'AR' ? 'اضغط على الصورة لتغييرها' : 'Click the photo to change it'}
                   </p>
                 </div>
@@ -398,8 +419,8 @@ const Profile: React.FC = () => {
                         <div
                           key={g}
                           className={`py-4 px-4 rounded-xl border-2 font-black text-sm text-center cursor-not-allowed ${formData.gender === g
-                              ? 'border-primary bg-primary/10 text-primary'
-                              : 'border-border text-text-secondary opacity-30'
+                            ? 'border-primary bg-primary/10 text-primary'
+                            : 'border-border text-text-secondary opacity-30'
                             }`}
                         >
                           {g === 'male' ? (lang === 'AR' ? '♂ ذكر' : '♂ Male') : (lang === 'AR' ? '♀ أنثى' : '♀ Female')}

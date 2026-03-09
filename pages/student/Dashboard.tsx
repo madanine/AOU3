@@ -8,8 +8,7 @@ import {
 } from 'lucide-react';
 import StudentIDCard from '../../components/dashboard/StudentIDCard';
 import {
-    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-    ResponsiveContainer, PieChart, Pie, Cell, Legend
+    PieChart, Pie, Cell, Tooltip, ResponsiveContainer
 } from 'recharts';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -80,22 +79,7 @@ const StudentDashboard: React.FC = () => {
         ];
     }, [presentCount, totalSessions, isAr]);
 
-    // ── Grades data ──────────────────────────────────────────────────────────
-    const gradesData = useMemo(() =>
-        data.submissions
-            .filter(s => s.status === 'graded' && s.grade !== undefined && s.grade !== null)
-            .map(s => {
-                const asgn = data.assignments.find(a => a.id === s.assignmentId);
-                const course = data.courses.find(c => c.id === asgn?.courseId);
-                return {
-                    name: asgn ? asgn.title : '—',
-                    course: course ? course.title : '', // Assuming course.title is directly available
-                    grade: s.grade || 0,
-                    maxGrade: (asgn as any)?.maxScore || 100,
-                };
-            })
-            .slice(-5),
-        [data.submissions, data.assignments, data.courses]);
+    const attendancePct = totalSessions > 0 ? Math.round((presentCount / totalSessions) * 100) : null;
 
     // ── Quick links ───────────────────────────────────────────────────────────
     const quickLinks = [
@@ -121,13 +105,13 @@ const StudentDashboard: React.FC = () => {
             </div>
 
             {/* ════════════════════════════════════════════════════════════════════
-          HERO SECTION — VIP Student Card centered, 75% width
+          HERO SECTION — ID Card full-width on mobile
       ════════════════════════════════════════════════════════════════════ */}
             <section className="flex flex-col items-center gap-3">
                 <p className="text-[10px] font-black uppercase tracking-[.18em] text-text-secondary opacity-70">
                     {isAr ? 'بطاقتي الجامعية' : 'University ID Card'}
                 </p>
-                <div style={{ width: 'min(75%, 420px)', maxWidth: '420px', minWidth: '280px' }}>
+                <div style={{ width: '100%', maxWidth: '480px' }}>
                     <StudentIDCard />
                 </div>
             </section>
@@ -175,13 +159,11 @@ const StudentDashboard: React.FC = () => {
             </section>
 
             {/* ════════════════════════════════════════════════════════════════════
-          CHARTS — Attendance + Grades
+          ATTENDANCE CHART
       ════════════════════════════════════════════════════════════════════ */}
-            <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-                {/* Attendance Pie */}
+            <section>
                 <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-                    <div className="flex items-center gap-3 mb-4">
+                    <div className="flex items-center gap-3 mb-5">
                         <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(63,111,78,0.12)' }}>
                             <CheckCircle size={16} style={{ color: '#3F6F4E' }} strokeWidth={2} />
                         </div>
@@ -191,57 +173,58 @@ const StudentDashboard: React.FC = () => {
                         </div>
                     </div>
                     {attendanceData.length > 0 ? (
-                        <ResponsiveContainer width="100%" height={200}>
-                            <PieChart>
-                                {/* B3: No inline labels to prevent mobile overlap — legend only */}
-                                <Pie data={attendanceData} cx="50%" cy="50%" innerRadius={55} outerRadius={85}
-                                    paddingAngle={5} dataKey="value" stroke="none">
-                                    {attendanceData.map((e, i) => <Cell key={i} fill={e.color} />)}
-                                </Pie>
-                                <Tooltip contentStyle={{ borderRadius: '12px', border: '1px solid var(--border-color)', backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)' }}
-                                    formatter={(v: any, name: any) => [`${v} ${isAr ? 'جلسة' : 'sessions'}`, name]} />
-                                <Legend verticalAlign="bottom" height={28} iconType="circle" wrapperStyle={{ color: 'var(--text-secondary)', fontSize: '12px' }} />
-                            </PieChart>
-                        </ResponsiveContainer>
+                        <div className="flex flex-col sm:flex-row items-center gap-6">
+                            {/* Donut with percentage in center */}
+                            <div style={{ position: 'relative', width: 200, height: 200, flexShrink: 0 }}>
+                                <ResponsiveContainer width={200} height={200}>
+                                    <PieChart>
+                                        <Pie data={attendanceData} cx="50%" cy="50%" innerRadius={68} outerRadius={90}
+                                            paddingAngle={4} dataKey="value" stroke="none" startAngle={90} endAngle={-270}>
+                                            {attendanceData.map((e, i) => <Cell key={i} fill={e.color} />)}
+                                        </Pie>
+                                        <Tooltip
+                                            contentStyle={{ borderRadius: '12px', border: '1px solid var(--border-color)', backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)' }}
+                                            formatter={(v: any, name: any) => [`${v} ${isAr ? 'جلسة' : 'sessions'}`, name]} />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                                {/* Percentage centered in donut */}
+                                <div style={{
+                                    position: 'absolute', inset: 0,
+                                    display: 'flex', flexDirection: 'column',
+                                    alignItems: 'center', justifyContent: 'center',
+                                    pointerEvents: 'none'
+                                }}>
+                                    <span style={{ fontSize: '32px', fontWeight: 900, color: '#3F6F4E', lineHeight: 1 }}>{attendancePct}%</span>
+                                    <span style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-secondary)', marginTop: '3px' }}>{isAr ? 'نسبة الحضور' : 'Attendance'}</span>
+                                </div>
+                            </div>
+                            {/* Legend + stats */}
+                            <div className="flex flex-col gap-4 flex-1">
+                                {attendanceData.map((item) => (
+                                    <div key={item.name} className="flex items-center justify-between gap-4">
+                                        <div className="flex items-center gap-2">
+                                            <div style={{ width: 12, height: 12, borderRadius: '50%', background: item.color, flexShrink: 0 }} />
+                                            <span className="text-sm font-bold text-text-primary">{item.name}</span>
+                                        </div>
+                                        <span className="text-2xl font-black" style={{ color: item.color }}>{item.value}</span>
+                                    </div>
+                                ))}
+                                <div className="border-t border-border pt-3">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-xs font-bold text-text-secondary">{isAr ? 'إجمالي الجلسات' : 'Total Sessions'}</span>
+                                        <span className="text-lg font-black text-text-primary">{totalSessions}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     ) : (
                         <div className="h-[200px] flex items-center justify-center text-sm text-text-secondary opacity-60">
                             {isAr ? 'لا توجد بيانات حضور مسجلة' : 'No attendance data yet'}
                         </div>
                     )}
                 </div>
-
-                {/* Grades Bar */}
-                <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-                    <div className="flex items-center gap-3 mb-4">
-                        <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(212,175,55,0.12)' }}>
-                            <GraduationCap size={16} style={{ color: '#C9A84C' }} strokeWidth={2} />
-                        </div>
-                        <div>
-                            <p className="font-black text-sm text-text-primary">{isAr ? 'أحدث الدرجات' : 'Recent Grades'}</p>
-                            <p className="text-[10px] text-text-secondary opacity-70">{isAr ? 'آخر 5 واجبات مصححة' : 'Last 5 graded assignments'}</p>
-                        </div>
-                    </div>
-                    {gradesData.length > 0 ? (
-                        <ResponsiveContainer width="100%" height={200}>
-                            <BarChart data={gradesData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" />
-                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'var(--text-secondary)' }} />
-                                <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fill: 'var(--text-secondary)', fontSize: 10 }} />
-                                <Tooltip cursor={{ fill: 'var(--surface-bg)' }}
-                                    contentStyle={{ borderRadius: '12px', border: '1px solid var(--border-color)', backgroundColor: 'var(--card-bg)', color: 'var(--text-primary)' }}
-                                    formatter={(v: any, _, p: any) => [`${v} / ${p.payload.maxGrade}`, isAr ? 'الدرجة' : 'Score']} />
-                                <Bar dataKey="grade" radius={[6, 6, 0, 0]} barSize={32}>
-                                    {gradesData.map((e, i) => <Cell key={i} fill={e.grade / e.maxGrade >= 0.5 ? '#3F6F4E' : '#f43f5e'} />)}
-                                </Bar>
-                            </BarChart>
-                        </ResponsiveContainer>
-                    ) : (
-                        <div className="h-[200px] flex items-center justify-center text-sm text-text-secondary opacity-60">
-                            {isAr ? 'لا توجد واجبات مصححة' : 'No graded assignments yet'}
-                        </div>
-                    )}
-                </div>
             </section>
+
 
             {/* ════════════════════════════════════════════════════════════════════
           QUICK ACCESS LINKS

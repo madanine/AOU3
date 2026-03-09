@@ -40,21 +40,13 @@ const BORDER = '#d4b870';
 const thBase: React.CSSProperties = {
     border: `1px solid ${BORDER}`, padding: '10px 14px', fontWeight: 800,
     color: '#4a3510', fontSize: '13px', fontFamily: FONT, background: '#f5edd8',
-    verticalAlign: 'middle',
+    verticalAlign: 'middle', lineHeight: '1.4', display: 'table-cell'
 };
 const tdBase: React.CSSProperties = {
     border: `1px solid ${BORDER}`, padding: '10px 14px', fontSize: '13px',
     color: '#1a1a2e', fontFamily: FONT, background: 'rgba(255,253,245,0.92)',
-    verticalAlign: 'middle',
+    verticalAlign: 'middle', lineHeight: '1.4', display: 'table-cell'
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Optical baseline adjustment component. 
-// Used to wrap text so we can lift it via CSS selectively on Desktop PDF exports.
-// ─────────────────────────────────────────────────────────────────────────────
-const T: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-    <span className="pdf-text-adjust">{children}</span>
-);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TranscriptContent — the actual document markup.
@@ -125,10 +117,10 @@ const TranscriptContent = React.forwardRef<HTMLDivElement, ContentProps>(
                                 style={{ height: 64, width: 'auto', objectFit: 'contain', flexShrink: 0 }} />
                             <div style={{ minWidth: 0 }}>
                                 <div style={{ fontSize: 20, fontWeight: 900, color: '#1a1a2e', fontFamily: FONT }}>
-                                    <T>{siteNameAr || 'الجامعة الأمريكية المفتوحة'}</T>
+                                    {siteNameAr || 'الجامعة الأمريكية المفتوحة'}
                                 </div>
                                 <div style={{ fontSize: 13, fontWeight: 700, color: '#c49642', marginTop: 4, fontFamily: FONT }}>
-                                    <T>المركز الإقليمي الأول</T>
+                                    المركز الإقليمي الأول
                                 </div>
                             </div>
                         </div>
@@ -139,9 +131,9 @@ const TranscriptContent = React.forwardRef<HTMLDivElement, ContentProps>(
                             background: 'rgba(196,150,66,0.06)',
                         }}>
                             <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 0, color: '#9a7a30', fontFamily: FONT }}>
-                                <T>{isAR ? 'المعدل التراكمي' : 'Cumulative GPA'}</T>
+                                {isAR ? 'المعدل التراكمي' : 'Cumulative GPA'}
                             </div>
-                            <div className="pdf-text-adjust" style={{ fontSize: 32, fontWeight: 900, color: '#c49642', lineHeight: 1.1, fontFamily: FONT }}>
+                            <div style={{ fontSize: 32, fontWeight: 900, color: '#c49642', lineHeight: 1.1, fontFamily: FONT }}>
                                 {exportMode ? cumulativeGPA : displayGPA}%
                             </div>
                         </div>
@@ -164,10 +156,10 @@ const TranscriptContent = React.forwardRef<HTMLDivElement, ContentProps>(
                             borderLeft: i < arr.length - 1 ? '1px solid #e8d9b0' : undefined,
                         }}>
                             <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 0, color: '#9a7a30', marginBottom: 4, fontFamily: FONT }}>
-                                <T>{item.label}</T>
+                                {item.label}
                             </div>
                             <div style={{ fontSize: 14, fontWeight: 800, color: '#1a1a2e', fontFamily: FONT }}>
-                                <T>{item.value || '—'}</T>
+                                {item.value || '—'}
                             </div>
                         </div>
                     ))}
@@ -190,18 +182,18 @@ const TranscriptContent = React.forwardRef<HTMLDivElement, ContentProps>(
                                                 fontSize: 13, fontWeight: 800, fontFamily: FONT,
                                                 display: 'inline-block', lineHeight: 1.5,
                                             }}>
-                                                <T>{semester.semesterNameSnapshot}</T>
+                                                {semester.semesterNameSnapshot}
                                             </div>
                                         </td>
                                         <td style={{ borderBottom: '1px solid #e0cfa0', padding: 0, verticalAlign: 'middle' }} />
                                         <td style={{ width: 1, whiteSpace: 'nowrap', padding: '0 0 0 10px', verticalAlign: 'middle', textAlign: 'left' }}>
                                             <span style={{ fontSize: 13, color: '#6b5a2e', fontWeight: 700, fontFamily: FONT }}>
-                                                <T>
-                                                    {isAR ? 'معدل الفصل' : 'Avg'}:{' '}
-                                                    <strong style={{ color: '#c49642' }}>
-                                                        {semester.semesterAverage?.toFixed(2) || '0.00'}%
-                                                    </strong>
-                                                </T>
+
+                                                {isAR ? 'معدل الفصل' : 'Avg'}:{' '}
+                                                <strong style={{ color: '#c49642' }}>
+                                                    {semester.semesterAverage?.toFixed(2) || '0.00'}%
+                                                </strong>
+
                                             </span>
                                         </td>
                                     </tr>
@@ -229,27 +221,27 @@ const TranscriptContent = React.forwardRef<HTMLDivElement, ContentProps>(
                                 <thead>
                                     <tr>
                                         <th style={{ ...thBase, textAlign: 'right', minWidth: exportMode ? undefined : 140 }}>
-                                            <T>{isAR ? 'المادة' : 'Course'}</T>
+                                            {isAR ? 'المادة' : 'Course'}
                                         </th>
                                         <th style={{ ...thBase, textAlign: 'center', minWidth: exportMode ? undefined : 70 }}>
-                                            <T>{isAR ? 'الحضور' : 'Att.'}</T><br />
-                                            <small style={{ fontWeight: 600, color: '#9a7a30', fontSize: 11 }}><T>20</T></small>
+                                            {isAR ? 'الحضور' : 'Att.'}<br />
+                                            <small style={{ fontWeight: 600, color: '#9a7a30', fontSize: 11 }}>20</small>
                                         </th>
                                         <th style={{ ...thBase, textAlign: 'center', minWidth: exportMode ? undefined : 70 }}>
-                                            <T>{isAR ? 'المشاركة' : 'Part.'}</T><br />
-                                            <small style={{ fontWeight: 600, color: '#9a7a30', fontSize: 11 }}><T>10</T></small>
+                                            {isAR ? 'المشاركة' : 'Part.'}<br />
+                                            <small style={{ fontWeight: 600, color: '#9a7a30', fontSize: 11 }}>10</small>
                                         </th>
                                         <th style={{ ...thBase, textAlign: 'center', minWidth: exportMode ? undefined : 70 }}>
-                                            <T>{isAR ? 'الواجبات' : 'Asgn.'}</T><br />
-                                            <small style={{ fontWeight: 600, color: '#9a7a30', fontSize: 11 }}><T>20</T></small>
+                                            {isAR ? 'الواجبات' : 'Asgn.'}<br />
+                                            <small style={{ fontWeight: 600, color: '#9a7a30', fontSize: 11 }}>20</small>
                                         </th>
                                         <th style={{ ...thBase, textAlign: 'center', minWidth: exportMode ? undefined : 70 }}>
-                                            <T>{isAR ? 'الامتحان' : 'Exam'}</T><br />
-                                            <small style={{ fontWeight: 600, color: '#9a7a30', fontSize: 11 }}><T>50</T></small>
+                                            {isAR ? 'الامتحان' : 'Exam'}<br />
+                                            <small style={{ fontWeight: 600, color: '#9a7a30', fontSize: 11 }}>50</small>
                                         </th>
                                         <th style={{ ...thBase, textAlign: 'center', background: '#ede0b8' }}>
-                                            <T>{isAR ? 'المجموع' : 'Total'}</T><br />
-                                            <small style={{ fontWeight: 600, color: '#9a7a30', fontSize: 11 }}><T>100</T></small>
+                                            {isAR ? 'المجموع' : 'Total'}<br />
+                                            <small style={{ fontWeight: 600, color: '#9a7a30', fontSize: 11 }}>100</small>
                                         </th>
                                     </tr>
                                 </thead>
@@ -257,14 +249,14 @@ const TranscriptContent = React.forwardRef<HTMLDivElement, ContentProps>(
                                     {(semester.courses || []).map(course => (
                                         <tr key={course.id} style={{ background: 'rgba(255,253,245,0.75)' }}>
                                             <td style={{ ...tdBase, fontWeight: 700, textAlign: 'right' }}>
-                                                <T>{course.courseNameSnapshot}</T>
+                                                {course.courseNameSnapshot}
                                             </td>
-                                            <td style={{ ...tdBase, textAlign: 'center' }}><T>{course.attendanceScore}</T></td>
-                                            <td style={{ ...tdBase, textAlign: 'center' }}><T>{course.participationScore}</T></td>
-                                            <td style={{ ...tdBase, textAlign: 'center' }}><T>{course.assignmentsScore}</T></td>
-                                            <td style={{ ...tdBase, textAlign: 'center' }}><T>{course.examScore ?? '—'}</T></td>
+                                            <td style={{ ...tdBase, textAlign: 'center' }}>{course.attendanceScore}</td>
+                                            <td style={{ ...tdBase, textAlign: 'center' }}>{course.participationScore}</td>
+                                            <td style={{ ...tdBase, textAlign: 'center' }}>{course.assignmentsScore}</td>
+                                            <td style={{ ...tdBase, textAlign: 'center' }}>{course.examScore ?? '—'}</td>
                                             <td style={{ ...tdBase, textAlign: 'center', fontWeight: 900, color: '#c49642', background: 'rgba(253,244,224,0.85)' }}>
-                                                <T>{course.finalScore}</T>
+                                                {course.finalScore}
                                             </td>
                                         </tr>
                                     ))}
@@ -280,8 +272,8 @@ const TranscriptContent = React.forwardRef<HTMLDivElement, ContentProps>(
                     background: 'rgba(245,237,216,0.9)', textAlign: 'center',
                     fontSize: 11, color: '#7a6230', fontWeight: 600, fontFamily: FONT,
                 }}>
-                    <p><T>هذه الوثيقة صادرة إلكترونياً من نظام {siteNameAr || 'الجامعة الأمريكية المفتوحة'}</T></p>
-                    {footerText && <p style={{ marginTop: 4 }}><T>{footerText}</T></p>}
+                    <p>هذه الوثيقة صادرة إلكترونياً من نظام {siteNameAr || 'الجامعة الأمريكية المفتوحة'}</p>
+                    {footerText && <p style={{ marginTop: 4 }}>{footerText}</p>}
                 </div>
             </div>
         </div>

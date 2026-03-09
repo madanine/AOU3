@@ -179,6 +179,66 @@
         0 4px 16px rgba(212, 175, 55, 0.25),
         inset 0 1px 0 rgba(255, 255, 255, 0.12);
     }
+
+    /* ── Dark mode contrast fixes ─────────────────────────────────────────── */
+
+    /* Icon wrapper backgrounds (rgba gold on dark = too faint → boost opacity) */
+    html.dark [style*="rgba(212,175,55,0.1"],
+    html.dark [style*="rgba(212, 175, 55, 0.1"] {
+      background-color: rgba(212, 175, 55, 0.18) !important;
+    }
+    html.dark [style*="rgba(200,168,75,0.1"],
+    html.dark [style*="rgba(200, 168, 75, 0.1"] {
+      background-color: rgba(200, 168, 75, 0.18) !important;
+    }
+
+    /* Stat cards: gold-accent icon wrapper in dark mode */
+    html.dark [style*="rgba(212,175,55,0.12"],
+    html.dark [style*="rgba(212, 175, 55, 0.12"] {
+      background-color: rgba(212, 175, 55, 0.22) !important;
+    }
+
+    /* Badge/pill text on gold backgrounds must be dark (not white) in both modes */
+    .bg-gold-gradient.text-white {
+      color: #fff !important;
+    }
+
+    /* In dark mode, elements that hardcode white text on gold backgrounds */
+    html.dark .text-primary {
+      color: var(--primary) !important;
+    }
+
+    /* Ensure text-text-secondary stays legible on gold light backgrounds in dark mode */
+    html.dark .text-text-secondary {
+      color: var(--text-secondary);
+    }
+
+    /* Fix: primary-colored sections with text that needs dark contrast in dark mode */
+    html.dark [class*="text-primary/"] {
+      color: var(--primary);
+    }
+
+    /* Sidebar/nav active label: gold bg + light text visible in dark */
+    html.dark .bg-primary\/10 {
+      background-color: rgba(212, 175, 55, 0.15) !important;
+    }
+
+    /* Input fields in dark mode — ensure readable text */
+    html.dark input,
+    html.dark select,
+    html.dark textarea {
+      color: var(--text-primary);
+      background-color: var(--surface-bg);
+    }
+
+    /* Badge text on success (green) in dark mode */
+    html.dark [class*="bg-success\/"] {
+      color: #7EC99A;
+    }
+
+    html.dark [class*="text-success"] {
+      color: #6DBF8A !important;
+    }
   </style>
   <script type="importmap">
 {
