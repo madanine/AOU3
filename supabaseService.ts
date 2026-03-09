@@ -110,6 +110,15 @@ export const supabaseService = {
         return publicUrl;
     },
 
+    async removeAvatar(userId: string): Promise<void> {
+        const { error: dbError } = await supabase
+            .from('profiles')
+            .update({ avatar_url: null })
+            .eq('id', userId);
+
+        if (dbError) throw dbError;
+    },
+
     async getUsers() {
         const { data, error } = await supabase.from('profiles').select('*');
         if (error) throw error;

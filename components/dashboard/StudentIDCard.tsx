@@ -36,20 +36,39 @@ const StudentIDCard: React.FC = () => {
     const [avatar, setAvatar] = useState<string | null>(user?.avatarUrl || null);
     const [uploading, setUploading] = useState(false);
     const [showHint, setShowHint] = useState(false);
+    const [showPhotoMenu, setShowPhotoMenu] = useState(false);
 
     useEffect(() => {
         ensureCairo();
         // Show hint briefly, then auto-hide
-        const t1 = setTimeout(() => setShowHint(true), 300);
-        const t2 = setTimeout(() => setShowHint(false), 3500);
+        const t1 = setTimeout(() => setShowHint(true), 500);
+        const t2 = setTimeout(() => setShowHint(false), 5000);
         return () => { clearTimeout(t1); clearTimeout(t2); };
     }, []);
 
     // ── Photo upload ─────────────────────────────────────────────────────────
-    const onPhoto = (e: React.MouseEvent) => {
+    const onPhotoClick = (e: React.MouseEvent) => {
         e.stopPropagation();
-        fileRef.current?.click();
+        setShowPhotoMenu(true);
     };
+
+    const onRemovePhoto = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!user?.id) return;
+        setUploading(true);
+        setShowPhotoMenu(false);
+        try {
+            await supabaseService.removeAvatar(user.id);
+            setAvatar(null);
+            const up = { ...user, avatarUrl: null };
+            setUser(up); storage.setAuthUser(up);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setUploading(false);
+        }
+    };
+
     const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file || !user?.id) return;
@@ -95,11 +114,11 @@ const StudentIDCard: React.FC = () => {
     const GOLD_B = '#E8C96A';
     const GOLD_C = '#F5E07A';
     const DARK = '#1A1710';
-    const IVORY = 'linear-gradient(160deg, #FEFDF6 0%, #FBF5E2 55%, #F6EED4 100%)';
-    const GOLD_FRAME_BG = `linear-gradient(135deg, ${GOLD_A} 0%, ${GOLD_B} 22%, ${GOLD_C} 40%, ${GOLD_B} 58%, ${GOLD_A} 78%, ${GOLD_B} 88%, ${GOLD_A} 100%)`;
+    const IVORY = 'linear-gradient(160deg, #FFFFFF 0%, #FAF5E8 40%, #EFE1C1 100%)';
+    const GOLD_FRAME_BG = `linear-gradient(135deg, ${GOLD_A} 0%, ${GOLD_B} 22%, ${GOLD_C} 40%, #FFFFFF 50%, ${GOLD_C} 60%, ${GOLD_B} 78%, ${GOLD_A} 100%)`;
     const GLOSS = `
-        radial-gradient(ellipse at 30% 20%, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0.08) 35%, transparent 65%),
-        linear-gradient(135deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.04) 35%, transparent 60%)
+        radial-gradient(ellipse at 70% 20%, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.15) 30%, transparent 60%),
+        linear-gradient(105deg, transparent 20%, rgba(255,255,255,0.4) 25%, rgba(255,255,255,0.8) 30%, rgba(255,255,255,0.15) 35%, transparent 40%)
     `;
 
     // ── Gold-framed card shell ────────────────────────────────────────────────
@@ -196,87 +215,90 @@ const StudentIDCard: React.FC = () => {
                             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
 
                                 {/* University header */}
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '6px', flexShrink: 0 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', flexShrink: 0 }}>
                                     {logoSrc ? (
-                                        <img src={logoSrc} alt="" style={{ height: '26px', width: 'auto', objectFit: 'contain', flexShrink: 0 }} />
+                                        <img src={logoSrc} alt="" style={{ height: '32px', width: 'auto', objectFit: 'contain', flexShrink: 0 }} />
                                     ) : (
-                                        <div style={{ width: '26px', height: '26px', borderRadius: '7px', background: 'rgba(200,168,75,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                            <span style={{ fontSize: '7px', fontWeight: 700, color: GOLD_A, fontFamily: FONT }}>AOU</span>
+                                        <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(200,168,75,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                            <span style={{ fontSize: '9px', fontWeight: 700, color: GOLD_A, fontFamily: FONT }}>AOU</span>
                                         </div>
                                     )}
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', minWidth: 0 }}>
-                                        <span style={{ fontSize: '9.5px', fontWeight: 800, color: DARK, lineHeight: 1.2, fontFamily: FONT, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                        <span style={{ fontSize: '13px', fontWeight: 900, color: DARK, lineHeight: 1.2, fontFamily: FONT, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                             {settings.branding.siteNameAr || 'الجامعة الأمريكية المفتوحة'}
                                         </span>
-                                        <span style={{ fontSize: '7px', fontWeight: 600, color: GOLD_A, lineHeight: 1.2, fontFamily: FONT, letterSpacing: '.05em' }}>
+                                        <span style={{ fontSize: '10px', fontWeight: 700, color: GOLD_A, lineHeight: 1.2, fontFamily: FONT, letterSpacing: '.02em' }}>
+                                            المركز الإقليمي الأول
+                                        </span>
+                                        <span style={{ fontSize: '8.5px', fontWeight: 600, color: 'rgba(26,23,16,0.6)', lineHeight: 1.2, fontFamily: FONT, letterSpacing: '.05em' }}>
                                             بطاقة طالب جامعي
                                         </span>
                                     </div>
                                 </div>
 
                                 {/* Gold separator */}
-                                <div style={{ height: '1px', background: `linear-gradient(90deg, rgba(200,168,75,0.7), transparent)`, marginBottom: '7px', flexShrink: 0 }} />
+                                <div style={{ height: '1.5px', background: `linear-gradient(90deg, rgba(200,168,75,0.8), transparent)`, marginBottom: '8px', flexShrink: 0 }} />
 
                                 {/* Student name */}
                                 <div style={{
-                                    fontSize: 'clamp(13px, 3.5vw, 17px)', fontWeight: 800, color: DARK,
-                                    fontFamily: FONT, lineHeight: 1.15, marginBottom: '5px',
+                                    fontSize: 'clamp(15px, 4vw, 19px)', fontWeight: 900, color: DARK,
+                                    fontFamily: FONT, lineHeight: 1.15, marginBottom: '8px',
                                     whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flexShrink: 0,
                                 }}>
                                     {user?.fullName || '—'}
                                 </div>
 
                                 {/* University ID */}
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0px', marginBottom: '6px', flexShrink: 0 }}>
-                                    <span style={{ fontSize: '7px', fontWeight: 700, color: GOLD_A, letterSpacing: '.12em', fontFamily: FONT }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', marginBottom: '8px', flexShrink: 0 }}>
+                                    <span style={{ fontSize: '8px', fontWeight: 700, color: GOLD_A, letterSpacing: '.12em', fontFamily: FONT }}>
                                         الرقم الجامعي
                                     </span>
-                                    <span style={{ fontSize: '12px', fontWeight: 700, color: DARK, fontFamily: '"SF Mono","Courier New",monospace', letterSpacing: '.14em' }}>
+                                    <span style={{ fontSize: '14px', fontWeight: 800, color: DARK, fontFamily: '"SF Mono","Courier New",monospace', letterSpacing: '.14em' }}>
                                         {user?.universityId || '—'}
                                     </span>
                                 </div>
 
                                 {/* Fields grid */}
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '5px 6px', flex: 1, alignContent: 'start', overflow: 'hidden' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 8px', flex: 1, alignContent: 'start', overflow: 'hidden' }}>
                                     {/* Nationality */}
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', overflow: 'hidden' }}>
-                                        <span style={{ fontSize: '6.5px', fontWeight: 600, color: GOLD_A, fontFamily: FONT, letterSpacing: '.10em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>الجنسية</span>
-                                        <span style={{ fontSize: '11px', fontWeight: 700, color: DARK, fontFamily: FONT, lineHeight: 1.25, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{natAr}</span>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', overflow: 'hidden' }}>
+                                        <span style={{ fontSize: '7.5px', fontWeight: 700, color: GOLD_A, fontFamily: FONT, letterSpacing: '.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>الجنسية</span>
+                                        <span style={{ fontSize: '13px', fontWeight: 800, color: DARK, fontFamily: FONT, lineHeight: 1.25, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{natAr}</span>
                                     </div>
                                     {/* DOB */}
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', overflow: 'hidden' }}>
-                                        <span style={{ fontSize: '6.5px', fontWeight: 600, color: GOLD_A, fontFamily: FONT, letterSpacing: '.10em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>تاريخ الميلاد</span>
-                                        <span style={{ fontSize: '10px', fontWeight: 700, color: DARK, fontFamily: '"SF Mono","Courier New",monospace', letterSpacing: '.10em', lineHeight: 1.25 }}>{dob}</span>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', overflow: 'hidden' }}>
+                                        <span style={{ fontSize: '7.5px', fontWeight: 700, color: GOLD_A, fontFamily: FONT, letterSpacing: '.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>تاريخ الميلاد</span>
+                                        <span style={{ fontSize: '12px', fontWeight: 800, color: DARK, fontFamily: '"SF Mono","Courier New",monospace', letterSpacing: '.08em', lineHeight: 1.25 }}>{dob}</span>
                                     </div>
                                     {/* Major — full width */}
-                                    <div style={{ gridColumn: '1 / -1', display: 'flex', flexDirection: 'column', gap: '1px', overflow: 'hidden' }}>
-                                        <span style={{ fontSize: '6.5px', fontWeight: 600, color: GOLD_A, fontFamily: FONT, letterSpacing: '.10em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>التخصص</span>
-                                        <span style={{ fontSize: '11px', fontWeight: 700, color: DARK, fontFamily: FONT, lineHeight: 1.25, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{majorAr}</span>
+                                    <div style={{ gridColumn: '1 / -1', display: 'flex', flexDirection: 'column', gap: '2px', overflow: 'hidden' }}>
+                                        <span style={{ fontSize: '7.5px', fontWeight: 700, color: GOLD_A, fontFamily: FONT, letterSpacing: '.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>التخصص</span>
+                                        <span style={{ fontSize: '13px', fontWeight: 800, color: DARK, fontFamily: FONT, lineHeight: 1.25, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{majorAr}</span>
                                     </div>
                                 </div>
                             </div>
 
                             {/* ── Photo area ──────────────────────── */}
                             <div
-                                onClick={onPhoto}
-                                title="اضغط لتغيير الصورة"
-                                style={{ flexShrink: 0, width: '21%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                                onClick={onPhotoClick}
+                                title="اضغط لتغيير أو إزالة الصورة"
+                                style={{ flexShrink: 0, width: '26%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', position: 'relative' }}
                             >
                                 <div style={{
                                     width: '100%', aspectRatio: '3/4',
-                                    borderRadius: '8px',
-                                    border: `1.5px solid rgba(200,168,75,0.5)`,
+                                    borderRadius: '10px',
+                                    border: `2px solid rgba(200,168,75,0.6)`,
                                     overflow: 'hidden',
-                                    background: 'rgba(200,168,75,0.05)',
+                                    background: 'rgba(200,168,75,0.08)',
                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    boxShadow: 'inset 0 1px 4px rgba(0,0,0,0.06)',
+                                    boxShadow: '0 4px 12px rgba(0,0,0,0.1), inset 0 2px 6px rgba(0,0,0,0.08)',
                                 }}>
                                     {uploading ? (
-                                        <Loader2 size={13} style={{ color: GOLD_A }} className="animate-spin" />
+                                        <Loader2 size={16} style={{ color: GOLD_A }} className="animate-spin" />
                                     ) : avatar ? (
                                         <img src={avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                                     ) : (
-                                        <svg viewBox="0 0 40 52" style={{ width: '58%', opacity: 0.18 }} fill={GOLD_A}>
+                                        <svg viewBox="0 0 40 52" style={{ width: '60%', opacity: 0.2 }} fill={GOLD_A}>
                                             <circle cx="20" cy="15" r="9" />
                                             <path d="M2 48c0-9.94 8.06-18 18-18s18 8.06 18 18H2z" />
                                         </svg>
@@ -315,14 +337,14 @@ const StudentIDCard: React.FC = () => {
                                     src={logoSrc}
                                     alt=""
                                     style={{
-                                        height: '48%', width: 'auto', objectFit: 'contain',
-                                        opacity: 0.60,
-                                        filter: 'sepia(0.8) saturate(1.8) hue-rotate(3deg) brightness(0.75)',
+                                        height: '65%', width: 'auto', objectFit: 'contain',
+                                        opacity: 0.70,
+                                        filter: 'sepia(0.8) saturate(1.8) hue-rotate(3deg) brightness(0.85)',
                                         position: 'relative', zIndex: 1,
                                     }}
                                 />
                             ) : (
-                                <span style={{ fontSize: '48px', fontWeight: 700, color: `rgba(200,168,75,0.25)`, fontFamily: FONT, letterSpacing: '6px', position: 'relative', zIndex: 1 }}>
+                                <span style={{ fontSize: '64px', fontWeight: 700, color: `rgba(200,168,75,0.3)`, fontFamily: FONT, letterSpacing: '8px', position: 'relative', zIndex: 1 }}>
                                     AOU
                                 </span>
                             )}
@@ -331,6 +353,59 @@ const StudentIDCard: React.FC = () => {
                 </div>
 
             </div>{/* /perspective wrapper */}
+
+            {/* Photo Action Menu Overlay */}
+            {showPhotoMenu && (
+                <div
+                    onClick={() => setShowPhotoMenu(false)}
+                    style={{
+                        position: 'fixed', inset: 0, zIndex: 9999,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(2px)',
+                        fontFamily: FONT,
+                    }}>
+                    <div
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
+                            background: '#fff', borderRadius: '16px', width: '85%', maxWidth: '260px',
+                            overflow: 'hidden', display: 'flex', flexDirection: 'column',
+                            boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+                            border: '1px solid rgba(200,168,75,0.3)'
+                        }}
+                        dir="rtl"
+                    >
+                        <div style={{ padding: '16px', textAlign: 'center', borderBottom: '1px solid #ebebeb', fontSize: '15px', fontWeight: 800, color: '#1a1a2e', background: '#fcfaf5' }}>
+                            خيارات الصورة الشخصية
+                        </div>
+                        <button
+                            onClick={(e) => { e.stopPropagation(); setShowPhotoMenu(false); fileRef.current?.click(); }}
+                            style={{ padding: '16px', fontSize: '15px', fontWeight: 700, color: '#c8a84b', borderBottom: '1px solid #ebebeb', background: 'transparent', width: '100%', textAlign: 'center', cursor: 'pointer', transition: 'background 0.2s' }}
+                            onMouseOver={(e) => e.currentTarget.style.background = '#fafafa'}
+                            onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                        >
+                            تغيير الصورة
+                        </button>
+                        {avatar && (
+                            <button
+                                onClick={onRemovePhoto}
+                                style={{ padding: '16px', fontSize: '15px', fontWeight: 700, color: '#ef4444', borderBottom: '1px solid #ebebeb', background: 'transparent', width: '100%', textAlign: 'center', cursor: 'pointer', transition: 'background 0.2s' }}
+                                onMouseOver={(e) => e.currentTarget.style.background = '#fafafa'}
+                                onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                            >
+                                إزالة الصورة
+                            </button>
+                        )}
+                        <button
+                            onClick={(e) => { e.stopPropagation(); setShowPhotoMenu(false); }}
+                            style={{ padding: '16px', fontSize: '15px', fontWeight: 700, color: '#6b7280', background: 'transparent', width: '100%', textAlign: 'center', cursor: 'pointer', transition: 'background 0.2s' }}
+                            onMouseOver={(e) => e.currentTarget.style.background = '#fafafa'}
+                            onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                        >
+                            إلغاء
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
