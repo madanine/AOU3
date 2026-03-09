@@ -214,103 +214,109 @@ const StudentIDCard: React.FC = () => {
                     <Frame>
                         <div dir="rtl" style={{
                             position: 'absolute', inset: 0,
-                            display: 'flex', flexDirection: 'row',
-                            padding: '12px 12px 10px',
-                            gap: '10px',
+                            display: 'flex', flexDirection: 'column',
+                            padding: '10px 12px 12px',
                             zIndex: 2,
                         }}>
-                            {/* ── Text info ───────────────────────────── */}
-                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
-
-                                {/* University header */}
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', flexShrink: 0 }}>
-                                    {logoSrc ? (
-                                        <img src={logoSrc} alt="" style={{ height: '42px', width: 'auto', objectFit: 'contain', flexShrink: 0 }} />
-                                    ) : (
-                                        <div style={{ width: '42px', height: '42px', borderRadius: '8px', background: 'rgba(200,168,75,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                            <span style={{ fontSize: '12px', fontWeight: 700, color: GOLD_A, fontFamily: FONT }}>AOU</span>
-                                        </div>
-                                    )}
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', minWidth: 0 }}>
-                                        <span style={{ fontSize: '9px', fontWeight: 800, color: '#C8A84B', background: 'rgba(200,168,75,0.1)', padding: '2px 6px', borderRadius: '4px', width: 'fit-content', marginBottom: '2px', fontFamily: FONT, letterSpacing: '.05em' }}>
-                                            بطاقة الطالب الجامعية
-                                        </span>
-                                        <span style={{ fontSize: '13px', fontWeight: 900, color: DARK, lineHeight: 1.2, fontFamily: FONT, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                            {settings.branding.siteNameAr || 'الجامعة الأمريكية المفتوحة'}
-                                        </span>
-                                        <span style={{ fontSize: '9.5px', fontWeight: 700, color: 'rgba(26,23,16,0.6)', lineHeight: 1.2, fontFamily: FONT, letterSpacing: '.02em' }}>
-                                            المركز الإقليمي الأول
-                                        </span>
-                                    </div>
-                                </div>
-
-                                {/* Gold separator */}
-                                <div style={{ height: '1.5px', background: `linear-gradient(90deg, rgba(200,168,75,0.8), transparent)`, marginBottom: '8px', flexShrink: 0 }} />
-
-                                {/* Student name */}
-                                <div style={{
-                                    fontSize: 'clamp(15px, 4vw, 19px)', fontWeight: 900, color: DARK,
-                                    fontFamily: FONT, lineHeight: 1.4, paddingBottom: '3px', marginBottom: '5px',
-                                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flexShrink: 0,
-                                }}>
-                                    {user?.fullName || '—'}
-                                </div>
-
-                                {/* University ID */}
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', marginBottom: '8px', flexShrink: 0 }}>
-                                    <span style={{ fontSize: '8px', fontWeight: 700, color: GOLD_A, letterSpacing: '.12em', fontFamily: FONT }}>
-                                        الرقم الجامعي
-                                    </span>
-                                    <span style={{ fontSize: '14px', fontWeight: 800, color: DARK, fontFamily: '"SF Mono","Courier New",monospace', letterSpacing: '.14em' }}>
-                                        {user?.universityId || '—'}
-                                    </span>
-                                </div>
-
-                                {/* Fields grid */}
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 8px', flex: 1, alignContent: 'start', overflow: 'hidden' }}>
-                                    {/* Nationality */}
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', overflow: 'hidden' }}>
-                                        <span style={{ fontSize: '7.5px', fontWeight: 700, color: GOLD_A, fontFamily: FONT, letterSpacing: '.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>الجنسية</span>
-                                        <span style={{ fontSize: '13px', fontWeight: 800, color: DARK, fontFamily: FONT, lineHeight: 1.25, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{natAr}</span>
-                                    </div>
-                                    {/* DOB */}
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', overflow: 'hidden' }}>
-                                        <span style={{ fontSize: '7.5px', fontWeight: 700, color: GOLD_A, fontFamily: FONT, letterSpacing: '.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>تاريخ الميلاد</span>
-                                        <span style={{ fontSize: '12px', fontWeight: 800, color: DARK, fontFamily: '"SF Mono","Courier New",monospace', letterSpacing: '.08em', lineHeight: 1.25 }}>{dob}</span>
-                                    </div>
-                                    {/* Major — full width */}
-                                    <div style={{ gridColumn: '1 / -1', display: 'flex', flexDirection: 'column', gap: '2px', overflow: 'hidden' }}>
-                                        <span style={{ fontSize: '7.5px', fontWeight: 700, color: GOLD_A, fontFamily: FONT, letterSpacing: '.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>التخصص</span>
-                                        <span style={{ fontSize: '13px', fontWeight: 800, color: DARK, fontFamily: FONT, lineHeight: 1.25, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{majorAr}</span>
-                                    </div>
-                                </div>
+                            {/* Centered Top Badge */}
+                            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px', flexShrink: 0 }}>
+                                <span style={{ fontSize: '9.5px', fontWeight: 800, color: '#C8A84B', background: 'rgba(200,168,75,0.1)', padding: '3px 10px', borderRadius: '6px', fontFamily: FONT, letterSpacing: '.05em' }}>
+                                    بطاقة الطالب الجامعية
+                                </span>
                             </div>
 
-                            {/* ── Photo area ──────────────────────── */}
-                            <div
-                                onClick={onPhotoClick}
-                                title="اضغط لتغيير أو إزالة الصورة"
-                                style={{ flexShrink: 0, width: '31%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', position: 'relative' }}
-                            >
-                                <div style={{
-                                    width: '100%', aspectRatio: '3/4',
-                                    borderRadius: '10px',
-                                    border: `2px solid rgba(200,168,75,0.6)`,
-                                    overflow: 'hidden',
-                                    background: 'rgba(200,168,75,0.08)',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    boxShadow: '0 4px 12px rgba(0,0,0,0.1), inset 0 2px 6px rgba(0,0,0,0.08)',
-                                }}>
-                                    {uploading ? (
-                                        <Loader2 size={16} style={{ color: GOLD_A }} className="animate-spin" />
-                                    ) : avatar ? (
-                                        <img src={avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                                    ) : (
-                                        <svg viewBox="0 0 40 52" style={{ width: '60%', opacity: 0.2 }} fill={GOLD_A}>
-                                            <circle cx="20" cy="15" r="9" />
-                                            <path d="M2 48c0-9.94 8.06-18 18-18s18 8.06 18 18H2z" />
-                                        </svg>
-                                    )}
+                            {/* Row for text and photo */}
+                            <div style={{ display: 'flex', flexDirection: 'row', gap: '10px', flex: 1, minHeight: 0 }}>
+                                {/* ── Text info ───────────────────────────── */}
+                                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
+
+                                    {/* University header */}
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', flexShrink: 0 }}>
+                                        {logoSrc ? (
+                                            <img src={logoSrc} alt="" style={{ height: '36px', width: 'auto', objectFit: 'contain', flexShrink: 0 }} />
+                                        ) : (
+                                            <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: 'rgba(200,168,75,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                                <span style={{ fontSize: '11px', fontWeight: 700, color: GOLD_A, fontFamily: FONT }}>AOU</span>
+                                            </div>
+                                        )}
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', minWidth: 0, flex: 1 }}>
+                                            <span style={{ fontSize: '12.5px', fontWeight: 900, color: DARK, lineHeight: 1.3, fontFamily: FONT, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                                {settings.branding.siteNameAr || 'الجامعة الأمريكية المفتوحة'}
+                                            </span>
+                                            <span style={{ fontSize: '9px', fontWeight: 700, color: 'rgba(26,23,16,0.6)', lineHeight: 1.2, fontFamily: FONT, letterSpacing: '.02em' }}>
+                                                المركز الإقليمي الأول
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* Gold separator */}
+                                    <div style={{ height: '1.5px', background: `linear-gradient(90deg, rgba(200,168,75,0.8), transparent)`, marginBottom: '8px', flexShrink: 0 }} />
+
+                                    {/* Student name */}
+                                    <div style={{
+                                        fontSize: 'clamp(14px, 4vw, 18px)', fontWeight: 900, color: DARK,
+                                        fontFamily: FONT, lineHeight: 1.5, paddingBottom: '2px', marginBottom: '4px',
+                                        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flexShrink: 0,
+                                    }}>
+                                        {user?.fullName || '—'}
+                                    </div>
+
+                                    {/* University ID */}
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', marginBottom: '6px', flexShrink: 0 }}>
+                                        <span style={{ fontSize: '8px', fontWeight: 700, color: GOLD_A, letterSpacing: '.12em', fontFamily: FONT }}>
+                                            الرقم الجامعي
+                                        </span>
+                                        <span style={{ fontSize: '13.5px', fontWeight: 800, color: DARK, fontFamily: '"SF Mono","Courier New",monospace', letterSpacing: '.14em', lineHeight: 1 }}>
+                                            {user?.universityId || '—'}
+                                        </span>
+                                    </div>
+
+                                    {/* Fields grid */}
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: '6px 8px', flex: 1, alignContent: 'start' }}>
+                                        {/* Nationality */}
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                            <span style={{ fontSize: '7.5px', fontWeight: 700, color: GOLD_A, fontFamily: FONT, letterSpacing: '.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>الجنسية</span>
+                                            <span style={{ fontSize: '12.5px', fontWeight: 800, color: DARK, fontFamily: FONT, lineHeight: 1.5, paddingBottom: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{natAr}</span>
+                                        </div>
+                                        {/* DOB */}
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                            <span style={{ fontSize: '7.5px', fontWeight: 700, color: GOLD_A, fontFamily: FONT, letterSpacing: '.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>تاريخ الميلاد</span>
+                                            <span style={{ fontSize: '11.5px', fontWeight: 800, color: DARK, lineHeight: 1.5, paddingBottom: '2px', fontFamily: '"SF Mono","Courier New",monospace', letterSpacing: '.08em' }}>{dob}</span>
+                                        </div>
+                                        {/* Major — full width */}
+                                        <div style={{ gridColumn: '1 / -1', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                            <span style={{ fontSize: '7.5px', fontWeight: 700, color: GOLD_A, fontFamily: FONT, letterSpacing: '.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>التخصص</span>
+                                            <span style={{ fontSize: '12.5px', fontWeight: 800, color: DARK, fontFamily: FONT, lineHeight: 1.5, paddingBottom: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{majorAr}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* ── Photo area ──────────────────────── */}
+                                <div
+                                    onClick={onPhotoClick}
+                                    title="اضغط لتغيير أو إزالة الصورة"
+                                    style={{ flexShrink: 0, width: '28%', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: '2px', cursor: 'pointer', position: 'relative' }}
+                                >
+                                    <div style={{
+                                        width: '100%', aspectRatio: '3/4',
+                                        borderRadius: '10px',
+                                        border: `2px solid rgba(200,168,75,0.6)`,
+                                        overflow: 'hidden',
+                                        background: 'rgba(200,168,75,0.08)',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        boxShadow: '0 4px 12px rgba(0,0,0,0.1), inset 0 2px 6px rgba(0,0,0,0.08)',
+                                    }}>
+                                        {uploading ? (
+                                            <Loader2 size={16} style={{ color: GOLD_A }} className="animate-spin" />
+                                        ) : avatar ? (
+                                            <img src={avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                                        ) : (
+                                            <svg viewBox="0 0 40 52" style={{ width: '60%', opacity: 0.2 }} fill={GOLD_A}>
+                                                <circle cx="20" cy="15" r="9" />
+                                                <path d="M2 48c0-9.94 8.06-18 18-18s18 8.06 18 18H2z" />
+                                            </svg>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         </div>
