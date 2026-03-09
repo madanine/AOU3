@@ -114,7 +114,10 @@ const StudentIDCard: React.FC = () => {
     const GOLD_B = '#E8C96A';
     const GOLD_C = '#F5E07A';
     const DARK = '#1A1710';
-    const IVORY = 'linear-gradient(160deg, #FFFFFF 0%, #FAF5E8 40%, #EFE1C1 100%)';
+    const LUXURY_BG = `
+        url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23c8a84b' fill-opacity='0.05' fill-rule='evenodd'%3E%3Ccircle cx='3' cy='3' r='3'/%3E%3Ccircle cx='13' cy='13' r='3'/%3E%3C/g%3E%3C/svg%3E"),
+        linear-gradient(145deg, #ffffff 0%, #fdfaf2 40%, #f3e6c3 80%, #e6d091 100%)
+    `;
     const GOLD_FRAME_BG = `linear-gradient(135deg, ${GOLD_A} 0%, ${GOLD_B} 22%, ${GOLD_C} 40%, #FFFFFF 50%, ${GOLD_C} 60%, ${GOLD_B} 78%, ${GOLD_A} 100%)`;
     const GLOSS = `
         radial-gradient(ellipse at 70% 20%, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.15) 30%, transparent 60%),
@@ -133,7 +136,7 @@ const StudentIDCard: React.FC = () => {
         }}>
             <div style={{
                 width: '100%', height: '100%',
-                background: IVORY,
+                background: LUXURY_BG,
                 borderRadius: '15.5px',
                 overflow: 'hidden',
                 position: 'relative',
@@ -164,16 +167,21 @@ const StudentIDCard: React.FC = () => {
             <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" style={{ display: 'none' }} onChange={onFile} />
 
             {/* Transient hint — shows briefly then fades */}
-            <p style={{
-                fontSize: '11px', fontWeight: 500, color: 'var(--text-secondary)',
-                fontFamily: FONT, textAlign: 'center', direction: 'rtl',
+            <div style={{
+                height: showHint ? '18px' : '0px',
                 opacity: showHint ? 1 : 0,
-                transition: 'opacity 0.6s ease',
+                transition: 'all 0.6s ease',
+                overflow: 'hidden',
                 pointerEvents: 'none',
-                marginBottom: '-4px',
             }}>
-                اضغط للقلب · اضغط على الصورة للتغيير
-            </p>
+                <p style={{
+                    fontSize: '11px', fontWeight: 500, color: 'var(--text-secondary)',
+                    fontFamily: FONT, textAlign: 'center', direction: 'rtl',
+                    margin: 0,
+                }}>
+                    اضغط للقلب · اضغط على الصورة للتغيير
+                </p>
+            </div>
 
             {/*
               dir="ltr" is essential: ensures rotateY acts on physical X-axis.
@@ -217,21 +225,21 @@ const StudentIDCard: React.FC = () => {
                                 {/* University header */}
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', flexShrink: 0 }}>
                                     {logoSrc ? (
-                                        <img src={logoSrc} alt="" style={{ height: '32px', width: 'auto', objectFit: 'contain', flexShrink: 0 }} />
+                                        <img src={logoSrc} alt="" style={{ height: '42px', width: 'auto', objectFit: 'contain', flexShrink: 0 }} />
                                     ) : (
-                                        <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(200,168,75,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                            <span style={{ fontSize: '9px', fontWeight: 700, color: GOLD_A, fontFamily: FONT }}>AOU</span>
+                                        <div style={{ width: '42px', height: '42px', borderRadius: '8px', background: 'rgba(200,168,75,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                            <span style={{ fontSize: '12px', fontWeight: 700, color: GOLD_A, fontFamily: FONT }}>AOU</span>
                                         </div>
                                     )}
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', minWidth: 0 }}>
+                                        <span style={{ fontSize: '9px', fontWeight: 800, color: '#C8A84B', background: 'rgba(200,168,75,0.1)', padding: '2px 6px', borderRadius: '4px', width: 'fit-content', marginBottom: '2px', fontFamily: FONT, letterSpacing: '.05em' }}>
+                                            بطاقة الطالب الجامعية
+                                        </span>
                                         <span style={{ fontSize: '13px', fontWeight: 900, color: DARK, lineHeight: 1.2, fontFamily: FONT, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                             {settings.branding.siteNameAr || 'الجامعة الأمريكية المفتوحة'}
                                         </span>
-                                        <span style={{ fontSize: '10px', fontWeight: 700, color: GOLD_A, lineHeight: 1.2, fontFamily: FONT, letterSpacing: '.02em' }}>
+                                        <span style={{ fontSize: '9.5px', fontWeight: 700, color: 'rgba(26,23,16,0.6)', lineHeight: 1.2, fontFamily: FONT, letterSpacing: '.02em' }}>
                                             المركز الإقليمي الأول
-                                        </span>
-                                        <span style={{ fontSize: '8.5px', fontWeight: 600, color: 'rgba(26,23,16,0.6)', lineHeight: 1.2, fontFamily: FONT, letterSpacing: '.05em' }}>
-                                            بطاقة طالب جامعي
                                         </span>
                                     </div>
                                 </div>
@@ -242,7 +250,7 @@ const StudentIDCard: React.FC = () => {
                                 {/* Student name */}
                                 <div style={{
                                     fontSize: 'clamp(15px, 4vw, 19px)', fontWeight: 900, color: DARK,
-                                    fontFamily: FONT, lineHeight: 1.15, marginBottom: '8px',
+                                    fontFamily: FONT, lineHeight: 1.4, paddingBottom: '3px', marginBottom: '5px',
                                     whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flexShrink: 0,
                                 }}>
                                     {user?.fullName || '—'}
@@ -282,7 +290,7 @@ const StudentIDCard: React.FC = () => {
                             <div
                                 onClick={onPhotoClick}
                                 title="اضغط لتغيير أو إزالة الصورة"
-                                style={{ flexShrink: 0, width: '26%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', position: 'relative' }}
+                                style={{ flexShrink: 0, width: '31%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', position: 'relative' }}
                             >
                                 <div style={{
                                     width: '100%', aspectRatio: '3/4',
