@@ -183,6 +183,31 @@ const StudentIDCard: React.FC = () => {
                 </p>
             </div>
 
+            <style>{`
+                .student-id-wrapper {
+                    width: 100%;
+                    aspect-ratio: 1.586 / 1;
+                    perspective: 1200px;
+                    position: relative;
+                    cursor: pointer;
+                    user-select: none;
+                    -webkit-user-select: none;
+                    min-height: 180px;
+                    --scale-f: 1;
+                }
+                @media (min-width: 768px) {
+                    .student-id-wrapper {
+                        aspect-ratio: 1.85 / 1;
+                        --scale-f: 1.15;
+                    }
+                }
+                @media (min-width: 1024px) {
+                    .student-id-wrapper {
+                        aspect-ratio: 2.15 / 1;
+                        --scale-f: 1.35;
+                    }
+                }
+            `}</style>
             {/*
               dir="ltr" is essential: ensures rotateY acts on physical X-axis.
               perspective here (not on flip wrapper) so each face gets correct depth.
@@ -190,18 +215,8 @@ const StudentIDCard: React.FC = () => {
             */}
             <div
                 dir="ltr"
+                className="student-id-wrapper"
                 onClick={() => setFlipped(f => !f)}
-                style={{
-                    width: '100%',
-                    aspectRatio: '1.586 / 1',
-                    perspective: '1200px',
-                    position: 'relative',
-                    cursor: 'pointer',
-                    userSelect: 'none',
-                    WebkitUserSelect: 'none',
-                    // Minimum height to ensure all content fits
-                    minHeight: '180px',
-                }}
             >
                 {/* ═══ FRONT FACE ══════════════════════════════════════════════
                     rotateY: 0 (visible) → 180 (hidden behind)
@@ -218,75 +233,77 @@ const StudentIDCard: React.FC = () => {
                             padding: '10px 12px 12px',
                             zIndex: 2,
                         }}>
-                            {/* Centered Top Badge */}
-                            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px', flexShrink: 0 }}>
-                                <span style={{ fontSize: '9.5px', fontWeight: 800, color: '#C8A84B', background: 'rgba(200,168,75,0.1)', padding: '3px 10px', borderRadius: '6px', fontFamily: FONT, letterSpacing: '.05em' }}>
-                                    بطاقة الطالب الجامعية
-                                </span>
-                            </div>
-
                             {/* Row for text and photo */}
                             <div style={{ display: 'flex', flexDirection: 'row', gap: '10px', flex: 1, minHeight: 0 }}>
                                 {/* ── Text info ───────────────────────────── */}
                                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
 
                                     {/* University header */}
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', flexShrink: 0 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 'calc(8px * var(--scale-f))', marginBottom: 'calc(8px * var(--scale-f))', flexShrink: 0 }}>
                                         {logoSrc ? (
-                                            <img src={logoSrc} alt="" style={{ height: '36px', width: 'auto', objectFit: 'contain', flexShrink: 0 }} />
+                                            <img src={logoSrc} alt="" style={{ height: 'calc(44px * var(--scale-f))', width: 'auto', objectFit: 'contain', flexShrink: 0 }} />
                                         ) : (
-                                            <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: 'rgba(200,168,75,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                                <span style={{ fontSize: '11px', fontWeight: 700, color: GOLD_A, fontFamily: FONT }}>AOU</span>
+                                            <div style={{ width: 'calc(44px * var(--scale-f))', height: 'calc(44px * var(--scale-f))', borderRadius: 'calc(8px * var(--scale-f))', background: 'rgba(200,168,75,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                                <span style={{ fontSize: 'calc(13px * var(--scale-f))', fontWeight: 700, color: GOLD_A, fontFamily: FONT }}>AOU</span>
                                             </div>
                                         )}
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', minWidth: 0, flex: 1 }}>
-                                            <span style={{ fontSize: '12.5px', fontWeight: 900, color: DARK, lineHeight: 1.3, fontFamily: FONT, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                            <span style={{ fontSize: 'calc(14.5px * var(--scale-f))', fontWeight: 900, color: DARK, lineHeight: 1.3, fontFamily: FONT, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                                                 {settings.branding.siteNameAr || 'الجامعة الأمريكية المفتوحة'}
                                             </span>
-                                            <span style={{ fontSize: '9px', fontWeight: 700, color: 'rgba(26,23,16,0.6)', lineHeight: 1.2, fontFamily: FONT, letterSpacing: '.02em' }}>
+                                            <span style={{ fontSize: 'calc(10.5px * var(--scale-f))', fontWeight: 700, color: 'rgba(26,23,16,0.6)', lineHeight: 1.2, fontFamily: FONT, letterSpacing: '.02em' }}>
                                                 المركز الإقليمي الأول
                                             </span>
                                         </div>
                                     </div>
 
                                     {/* Gold separator */}
-                                    <div style={{ height: '1.5px', background: `linear-gradient(90deg, rgba(200,168,75,0.8), transparent)`, marginBottom: '8px', flexShrink: 0 }} />
+                                    <div style={{ height: '1.5px', background: `linear-gradient(90deg, rgba(200,168,75,0.8), transparent)`, marginBottom: 'calc(8px * var(--scale-f))', flexShrink: 0 }} />
 
                                     {/* Student name */}
                                     <div style={{
-                                        fontSize: 'clamp(14px, 4vw, 18px)', fontWeight: 900, color: DARK,
-                                        fontFamily: FONT, lineHeight: 1.5, paddingBottom: '2px', marginBottom: '4px',
+                                        fontSize: 'clamp(calc(15px * var(--scale-f)), 4vw, calc(20px * var(--scale-f)))', fontWeight: 900, color: DARK,
+                                        fontFamily: FONT, lineHeight: 1.5, paddingBottom: '2px', marginBottom: 'calc(8px * var(--scale-f))',
                                         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flexShrink: 0,
                                     }}>
                                         {user?.fullName || '—'}
                                     </div>
 
-                                    {/* University ID */}
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', marginBottom: '6px', flexShrink: 0 }}>
-                                        <span style={{ fontSize: '8px', fontWeight: 700, color: GOLD_A, letterSpacing: '.12em', fontFamily: FONT }}>
-                                            الرقم الجامعي
-                                        </span>
-                                        <span style={{ fontSize: '13.5px', fontWeight: 800, color: DARK, fontFamily: '"SF Mono","Courier New",monospace', letterSpacing: '.14em', lineHeight: 1 }}>
-                                            {user?.universityId || '—'}
-                                        </span>
-                                    </div>
+                                    {/* Fields grid - 2 Columns (Right: ID & Nationality, Left: Major & DOB) */}
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: 'calc(8px * var(--scale-f)) calc(12px * var(--scale-f))', flex: 1, alignContent: 'start' }}>
 
-                                    {/* Fields grid */}
-                                    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: '6px 8px', flex: 1, alignContent: 'start' }}>
-                                        {/* Nationality */}
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                            <span style={{ fontSize: '7.5px', fontWeight: 700, color: GOLD_A, fontFamily: FONT, letterSpacing: '.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>الجنسية</span>
-                                            <span style={{ fontSize: '12.5px', fontWeight: 800, color: DARK, fontFamily: FONT, lineHeight: 1.5, paddingBottom: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{natAr}</span>
+                                        {/* Right Column: ID & Nationality */}
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 'calc(8px * var(--scale-f))' }}>
+                                            {/* University ID */}
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                                                <span style={{ fontSize: 'calc(8px * var(--scale-f))', fontWeight: 700, color: GOLD_A, letterSpacing: '.12em', fontFamily: FONT }}>
+                                                    الرقم الجامعي
+                                                </span>
+                                                <span style={{ fontSize: 'calc(14px * var(--scale-f))', fontWeight: 800, color: DARK, fontFamily: '"SF Mono","Courier New",monospace', letterSpacing: '.14em', lineHeight: 1 }}>
+                                                    {user?.universityId || '—'}
+                                                </span>
+                                            </div>
+
+                                            {/* Nationality */}
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                                <span style={{ fontSize: 'calc(7.5px * var(--scale-f))', fontWeight: 700, color: GOLD_A, fontFamily: FONT, letterSpacing: '.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>الجنسية</span>
+                                                <span style={{ fontSize: 'calc(13px * var(--scale-f))', fontWeight: 800, color: DARK, fontFamily: FONT, lineHeight: 1.5, paddingBottom: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{natAr}</span>
+                                            </div>
                                         </div>
-                                        {/* DOB */}
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                            <span style={{ fontSize: '7.5px', fontWeight: 700, color: GOLD_A, fontFamily: FONT, letterSpacing: '.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>تاريخ الميلاد</span>
-                                            <span style={{ fontSize: '11.5px', fontWeight: 800, color: DARK, lineHeight: 1.5, paddingBottom: '2px', fontFamily: '"SF Mono","Courier New",monospace', letterSpacing: '.08em' }}>{dob}</span>
-                                        </div>
-                                        {/* Major — full width */}
-                                        <div style={{ gridColumn: '1 / -1', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                            <span style={{ fontSize: '7.5px', fontWeight: 700, color: GOLD_A, fontFamily: FONT, letterSpacing: '.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>التخصص</span>
-                                            <span style={{ fontSize: '12.5px', fontWeight: 800, color: DARK, fontFamily: FONT, lineHeight: 1.5, paddingBottom: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{majorAr}</span>
+
+                                        {/* Left Column: Major & DOB */}
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 'calc(8px * var(--scale-f))' }}>
+                                            {/* Major */}
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                                <span style={{ fontSize: 'calc(7.5px * var(--scale-f))', fontWeight: 700, color: GOLD_A, fontFamily: FONT, letterSpacing: '.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>التخصص</span>
+                                                <span style={{ fontSize: 'calc(13px * var(--scale-f))', fontWeight: 800, color: DARK, fontFamily: FONT, lineHeight: 1.3, paddingBottom: '2px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', wordBreak: 'break-word', whiteSpace: 'normal' }}>{majorAr}</span>
+                                            </div>
+
+                                            {/* DOB */}
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                                <span style={{ fontSize: 'calc(7.5px * var(--scale-f))', fontWeight: 700, color: GOLD_A, fontFamily: FONT, letterSpacing: '.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>تاريخ الميلاد</span>
+                                                <span style={{ fontSize: 'calc(12px * var(--scale-f))', fontWeight: 800, color: DARK, lineHeight: 1.5, paddingBottom: '2px', fontFamily: '"SF Mono","Courier New",monospace', letterSpacing: '.08em' }}>{dob}</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
