@@ -79,7 +79,8 @@ const AdminExams: React.FC = () => {
     const [showExcForm, setShowExcForm] = useState(false);
     const [excStudentId, setExcStudentId] = useState('');
     const [excUntil, setExcUntil] = useState('');
-    const [manualScore, setManualScore] = useState<number | null>(null);
+    const [bonusMarks, setBonusMarks] = useState<number>(0);
+    const [autoComputedScore, setAutoComputedScore] = useState<number | null>(null);
     const [savingManual, setSavingManual] = useState(false);
 
     // Student search
@@ -280,17 +281,39 @@ const AdminExams: React.FC = () => {
 
             // Insert all draft questions + options in batch
             for (const dq of draftQuestions) {
+                // FIX: Pre-generate real DB IDs for options so we can remap matrixAnswers
+                // before saving the question. Previously, matrixAnswers stored draft _uids
+                // which never matched the real DB option IDs at grading time.
+                const optionIdMap: Record<string, string> = {};
+                const realOptions = dq.options.map((opt, i) => {
+                    const realId = uid();
+                    optionIdMap[opt._uid] = realId;
+                    return { realId, opt, i };
+                });
+
+                // Remap matrixAnswers from draft _uids → real DB option IDs
+                const fixedMatrixAnswers: Record<string, string[]> | undefined =
+                    dq.type === 'matrix' && dq.matrixAnswers
+                        ? Object.fromEntries(
+                            Object.entries(dq.matrixAnswers).map(([rowIdx, draftUids]) => [
+                                rowIdx,
+                                (draftUids as string[]).map(u => optionIdMap[u] ?? u)
+                            ])
+                        )
+                        : dq.matrixAnswers;
+
+                // Save the question with corrected matrixAnswers
                 const savedQ = await supabaseService.upsertExamQuestion({
                     id: uid(), examId: savedExam.id, type: dq.type,
                     questionText: dq.questionText, marks: dq.marks,
                     orderIndex: dq.orderIndex, matrixRows: dq.matrixRows,
-                    matrixAnswers: dq.matrixAnswers, createdAt: new Date().toISOString()
+                    matrixAnswers: fixedMatrixAnswers, createdAt: new Date().toISOString()
                 } as ExamQuestion);
 
-                for (let i = 0; i < dq.options.length; i++) {
-                    const opt = dq.options[i];
+                // Save options using the pre-generated real IDs
+                for (const { realId, opt, i } of realOptions) {
                     await supabaseService.upsertExamOption({
-                        id: uid(), questionId: savedQ.id, optionText: opt.optionText,
+                        id: realId, questionId: savedQ.id, optionText: opt.optionText,
                         isCorrect: opt.isCorrect, orderIndex: i
                     } as ExamOption);
                 }
@@ -371,7 +394,8 @@ const AdminExams: React.FC = () => {
 
     const openGrading = async (attempt: ExamAttempt) => {
         setSelectedAttempt(attempt); setTab('grade');
-        setManualScore(attempt.totalScore ?? null);
+        setBonusMarks(0);
+        setAutoComputedScore(null);
         try {
             const [a, q] = await Promise.all([supabaseService.getExamAnswers(attempt.id), supabaseService.getExamQuestions(attempt.examId)]);
             setAnswers(a); setGradingQ(q);
@@ -379,12 +403,20 @@ const AdminExams: React.FC = () => {
     };
 
     const saveManualScore = async () => {
-        if (!selectedAttempt || manualScore === null) return;
+        if (!selectedAttempt) return;
         setSavingManual(true);
         try {
-            await supabaseService.updateAttemptScore(selectedAttempt.id, manualScore);
-            setSelectedAttempt(prev => prev ? { ...prev, totalScore: manualScore } : prev);
-            setAttempts(prev => prev.map(a => a.id === selectedAttempt.id ? { ...a, totalScore: manualScore } : a));
+            // Compute auto-grade total from objective questions
+            const autoTotal = gradingQ.reduce((sum, q) => {
+                const ans = answers.find(a => a.questionId === q.id);
+                return sum + getEffectiveMarks(ans, q);
+            }, 0);
+            // Add bonus marks on top of auto-graded score
+            const finalScore = autoTotal + bonusMarks;
+            setAutoComputedScore(autoTotal);
+            await supabaseService.updateAttemptScore(selectedAttempt.id, finalScore);
+            setSelectedAttempt(prev => prev ? { ...prev, totalScore: finalScore } : prev);
+            setAttempts(prev => prev.map(a => a.id === selectedAttempt.id ? { ...a, totalScore: finalScore } : a));
             flash(isAR ? 'تم حفظ الدرجة بنجاح' : 'Score saved successfully');
         } catch (e: any) { setError(e.message); }
         setSavingManual(false);
@@ -429,6 +461,63 @@ const AdminExams: React.FC = () => {
             setExceptions(await supabaseService.getExamExceptions(selectedExamId));
             setShowExcForm(false); setExcStudentId(''); setExcUntil('');
         } catch (e: any) { setError(e.message); }
+    };
+
+    // ================ AUTO-GRADE ALL (Preview, before release) ================
+    // Runs the same grading logic as releaseResults but:
+    //   - Does NOT set isResultsReleased on the exam (students can't see yet)
+    //   - Saves totalScore per attempt to Supabase so admins can review
+    const [gradingAll, setGradingAll] = useState(false);
+    const autoGradeAll = async () => {
+        if (!selectedExamId) return;
+        if (!confirm(isAR
+            ? 'سيتم احتساب الدرجات تلقائياً لجميع المحاولات المسلّمة وحفظها. هل تريد المتابعة؟'
+            : 'Auto-grade will compute and save scores for all submitted attempts. Continue?')) return;
+        setGradingAll(true);
+        try {
+            const qs = await supabaseService.getExamQuestions(selectedExamId);
+            const atts = await supabaseService.getExamAttempts(selectedExamId);
+            const submitted = atts.filter(a => a.isSubmitted);
+            for (const att of submitted) {
+                const ans = await supabaseService.getExamAnswers(att.id);
+                let total = 0;
+                for (const a of ans) {
+                    const q = qs.find(x => x.id === a.questionId);
+                    if (!q) continue;
+                    if (q.type === 'mcq' || q.type === 'true_false') {
+                        const correct = q.options?.find(o => o.isCorrect);
+                        const isCorrect = !!(correct && a.selectedOptionId === correct.id);
+                        const marks = isCorrect ? q.marks : 0;
+                        await supabaseService.gradeExamAnswer(a.id, marks, isCorrect);
+                        total += marks;
+                    } else if (q.type === 'matrix') {
+                        if (q.matrixAnswers && a.matrixSelections) {
+                            const rows = Object.keys(q.matrixAnswers);
+                            let totalCorrect = 0, totalCells = 0;
+                            rows.forEach(r => {
+                                const correctSet = new Set(q.matrixAnswers![r] || []);
+                                const selectedSet = new Set(a.matrixSelections![r] || []);
+                                totalCells += correctSet.size;
+                                correctSet.forEach(c => { if (selectedSet.has(c)) totalCorrect++; });
+                            });
+                            const marks = totalCells > 0 ? Math.round((totalCorrect / totalCells) * q.marks) : 0;
+                            await supabaseService.gradeExamAnswer(a.id, marks, totalCorrect === totalCells);
+                            total += marks;
+                        }
+                    } else if (q.type === 'essay') {
+                        total += a.awardedMarks || 0;
+                    }
+                }
+                await supabaseService.updateAttemptScore(att.id, total);
+            }
+            // Reload attempts list so scores are reflected immediately in the table
+            const refreshed = await supabaseService.getExamAttempts(selectedExamId);
+            setAttempts(refreshed);
+            flash(isAR
+                ? `تم احتساب درجات ${submitted.length} محاولة بنجاح`
+                : `Auto-graded ${submitted.length} attempt(s) successfully`);
+        } catch (e: any) { setError(e.message); }
+        setGradingAll(false);
     };
 
     // ================ EXPORT GRADES ================
@@ -813,9 +902,20 @@ const AdminExams: React.FC = () => {
             {/* ====== ATTEMPTS TAB ====== */}
             {tab === 'attempts' && (
                 <div className={card}>
-                    <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
                         <h2 className="text-xl font-bold">{isAR ? 'محاولات الطلاب' : 'Student Attempts'}</h2>
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 flex-wrap">
+                            {/* Auto-Grade: computes scores for all submitted attempts & saves to Supabase */}
+                            {/* Does NOT release results to students — admin reviews first */}
+                            <button
+                                className={`${btnGreen} disabled:opacity-50`}
+                                onClick={autoGradeAll}
+                                disabled={gradingAll || attempts.filter(a => a.isSubmitted).length === 0}
+                                title={isAR ? 'احتساب الدرجات تلقائياً لجميع المحاولات المسلّمة (دون إصدار النتائج)' : 'Compute scores for all submitted attempts without releasing results to students'}
+                            >
+                                {gradingAll ? <Loader2 size={16} className="animate-spin" /> : <Award size={16} />}
+                                {isAR ? 'تصحيح تلقائي' : 'Auto-Grade All'}
+                            </button>
                             <button className={btnGray} onClick={() => { const exam = exams.find(e => e.id === selectedExamId); if (exam) exportExamGrades(exam); }}><Download size={16} />{t.exportGrades}</button>
                             <button className={btnGray} onClick={() => setShowExcForm(!showExcForm)}><Clock size={16} />{isAR ? 'تمديد وقت' : 'Time Extension'}</button>
                         </div>
@@ -894,12 +994,12 @@ const AdminExams: React.FC = () => {
                                                 const selected = ans?.selectedOptionId === o.id;
                                                 return (
                                                     <div key={o.id} className={`px-4 py-3 rounded-xl text-xs font-bold flex items-center justify-between gap-3 transition-all ${selected && o.isCorrect
-                                                            ? 'bg-success/10 border-2 border-success text-text-primary'           // ✅ selected + correct
-                                                            : selected && !o.isCorrect
-                                                                ? 'bg-red-500/10 border-2 border-red-500 text-text-primary'        // ❌ selected + wrong
-                                                                : o.isCorrect
-                                                                    ? 'bg-success/5 border border-dashed border-success/50 text-text-secondary'  // correct but NOT selected
-                                                                    : 'bg-card border border-border text-text-secondary'           // neither
+                                                        ? 'bg-success/10 border-2 border-success text-text-primary'           // ✅ selected + correct
+                                                        : selected && !o.isCorrect
+                                                            ? 'bg-red-500/10 border-2 border-red-500 text-text-primary'        // ❌ selected + wrong
+                                                            : o.isCorrect
+                                                                ? 'bg-success/5 border border-dashed border-success/50 text-text-secondary'  // correct but NOT selected
+                                                                : 'bg-card border border-border text-text-secondary'           // neither
                                                         }`}>
                                                         <span className="flex items-center gap-2">
                                                             {selected && o.isCorrect && <CheckCircle size={15} className="text-success shrink-0" />}
@@ -951,40 +1051,54 @@ const AdminExams: React.FC = () => {
                             );
                         })}
                     </div>
-                    <div className="mt-6 flex items-center gap-3">
-                        <button className={btnGray} onClick={() => { setTab('attempts'); setSelectedAttempt(null); }}>{isAR ? '← رجوع' : '← Back'}</button>
-                        <span className="font-bold text-lg">{isAR ? 'المجموع:' : 'Total:'} {gradingQ.reduce((s, q) => s + getEffectiveMarks(answers.find(a => a.questionId === q.id), q), 0)}/{gradingQ.reduce((s, q) => s + q.marks, 0)}</span>
-                    </div>
-
-                    {/* ─── Manual Score Override ─── */}
-                    <div className="mt-6 p-5 rounded-2xl border-2 border-primary/30 bg-primary/5">
-                        <h3 className="text-sm font-black text-text-primary mb-1">
-                            {isAR ? 'ضبط الدرجة يدوياً' : 'Manual Score Override'}
-                        </h3>
-                        <p className="text-xs text-text-secondary mb-3">
-                            {isAR
-                                ? 'يمكنك تغيير الدرجة النهائية يدوياً (مثلاً إضافة نقاط مكافأة). تلغي تلقائياً عند إصدار النتائج.'
-                                : 'You can override the final score manually (e.g. add bonus points). Auto-grading runs again on result release.'}
-                        </p>
+                    {/* ─── Auto-grade summary + Bonus Marks ─── */}
+                    <div className="mt-6 space-y-4">
+                        {/* Back + auto-total row */}
                         <div className="flex items-center gap-3">
-                            <input
-                                type="number"
-                                min={0}
-                                max={999}
-                                value={manualScore ?? ''}
-                                onChange={e => setManualScore(parseInt(e.target.value) || 0)}
-                                className="w-28 px-3 py-2 border-2 border-primary/30 rounded-xl text-lg font-black text-center bg-surface text-text-primary focus:outline-none focus:border-primary transition-all"
-                                placeholder="0"
-                            />
-                            <span className="text-sm font-bold text-text-secondary">/50</span>
-                            <button
-                                onClick={saveManualScore}
-                                disabled={savingManual || manualScore === null}
-                                className="px-5 py-2 bg-primary text-white font-black rounded-xl text-sm flex items-center gap-2 hover:opacity-90 transition-all disabled:opacity-50"
-                            >
-                                {savingManual ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                                {isAR ? 'حفظ الدرجة' : 'Save Score'}
-                            </button>
+                            <button className={btnGray} onClick={() => { setTab('attempts'); setSelectedAttempt(null); }}>{isAR ? '← رجوع' : '← Back'}</button>
+                            <span className="font-bold text-lg">
+                                {isAR ? 'الدرجة التلقائية:' : 'Auto-grade Total:'}
+                                {' '}{gradingQ.reduce((s, q) => s + getEffectiveMarks(answers.find(a => a.questionId === q.id), q), 0)}/{gradingQ.reduce((s, q) => s + q.marks, 0)}
+                            </span>
+                        </div>
+
+                        {/* ─── Bonus Marks panel ─── */}
+                        <div className="p-5 rounded-2xl border-2 border-primary/30 bg-primary/5">
+                            <h3 className="text-sm font-black text-text-primary mb-1">
+                                {isAR ? 'نقاط مكافأة (اختياري)' : 'Bonus Marks (Optional)'}
+                            </h3>
+                            <p className="text-xs text-text-secondary mb-3">
+                                {isAR
+                                    ? 'أضف نقاطاً إضافية فوق الدرجة التلقائية (مثلاً للمشاركة أو المشاريع). الدرجة النهائية = الدرجة التلقائية + المكافأة.'
+                                    : 'Add extra marks on top of the auto-graded score (e.g. for participation or projects). Final score = auto-grade + bonus.'}
+                            </p>
+                            {autoComputedScore !== null && (
+                                <p className="text-xs font-black text-success mb-3">
+                                    {isAR ? 'آخر حفظ:' : 'Last saved:'} {autoComputedScore} + {bonusMarks} = {autoComputedScore + bonusMarks}
+                                </p>
+                            )}
+                            <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-sm font-bold text-text-secondary">+</span>
+                                    <input
+                                        type="number"
+                                        min={0}
+                                        max={999}
+                                        value={bonusMarks}
+                                        onChange={e => setBonusMarks(Math.max(0, parseInt(e.target.value) || 0))}
+                                        className="w-24 px-3 py-2 border-2 border-primary/30 rounded-xl text-lg font-black text-center bg-surface text-text-primary focus:outline-none focus:border-primary transition-all"
+                                        placeholder="0"
+                                    />
+                                </div>
+                                <button
+                                    onClick={saveManualScore}
+                                    disabled={savingManual}
+                                    className="px-5 py-2 bg-primary text-white font-black rounded-xl text-sm flex items-center gap-2 hover:opacity-90 transition-all disabled:opacity-50"
+                                >
+                                    {savingManual ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                                    {isAR ? 'حفظ الدرجة النهائية' : 'Save Final Score'}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
