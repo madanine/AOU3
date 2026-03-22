@@ -188,10 +188,10 @@ const StudentIDCard: React.FC = () => {
                     --fs-ratio: 1;
                 }
                 @media (min-width: 768px) {
-                    .font-scaler { --fs-ratio: 1.25; }
+                    .font-scaler { --fs-ratio: 1.15; }
                 }
                 @media (min-width: 1024px) {
-                    .font-scaler { --fs-ratio: 1.5; }
+                    .font-scaler { --fs-ratio: 1.25; }
                 }
             `}</style>
             {/*
@@ -309,7 +309,7 @@ const StudentIDCard: React.FC = () => {
                                 <div
                                     onClick={onPhotoClick}
                                     title="اضغط لتغيير أو إزالة الصورة"
-                                    style={{ flexShrink: 0, width: '28%', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: '2px', cursor: 'pointer', position: 'relative' }}
+                                    style={{ flexShrink: 0, width: '28%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', position: 'relative' }}
                                 >
                                     <div style={{
                                         width: '100%', aspectRatio: '3/4',
