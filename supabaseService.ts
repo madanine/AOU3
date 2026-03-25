@@ -798,6 +798,22 @@ export const supabaseService = {
         })) as ExamAttempt[];
     },
 
+    async getAttemptsByStudent(studentId: string) {
+        let query = supabase.from('exam_attempts').select('*').eq('student_id', studentId);
+        const { data, error } = await query;
+        if (error) throw error;
+        return (data || []).map(a => ({
+            id: a.id,
+            examId: a.exam_id,
+            studentId: a.student_id,
+            startedAt: a.started_at,
+            submittedAt: a.submitted_at,
+            totalScore: a.total_score,
+            isSubmitted: a.is_submitted,
+            createdAt: a.created_at
+        })) as ExamAttempt[];
+    },
+
     async getStudentAttempt(examId: string, studentId: string) {
         const { data, error } = await supabase
             .from('exam_attempts')
@@ -924,6 +940,21 @@ export const supabaseService = {
             .from('exam_exceptions')
             .select('*')
             .eq('exam_id', examId);
+        if (error) throw error;
+        return (data || []).map(e => ({
+            id: e.id,
+            examId: e.exam_id,
+            studentId: e.student_id,
+            extendedUntil: e.extended_until,
+            createdAt: e.created_at
+        })) as ExamException[];
+    },
+
+    async getStudentExceptions(studentId: string) {
+        const { data, error } = await supabase
+            .from('exam_exceptions')
+            .select('*')
+            .eq('student_id', studentId);
         if (error) throw error;
         return (data || []).map(e => ({
             id: e.id,

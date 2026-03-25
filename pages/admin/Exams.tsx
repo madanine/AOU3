@@ -43,6 +43,27 @@ interface DraftOption {
 
 const uid = () => crypto.randomUUID();
 
+// Helper: unified grading logic for objective questions (Bug 03)
+const computeAnswerMarks = (ans: ExamAnswer, q: ExamQuestion): number => {
+    if (q.type === 'mcq' || q.type === 'true_false') {
+        const correct = q.options?.find(o => o.isCorrect);
+        return correct && ans.selectedOptionId === correct.id ? q.marks : 0;
+    }
+    if (q.type === 'matrix') {
+        if (!q.matrixAnswers || !ans.matrixSelections) return 0;
+        const rows = Object.keys(q.matrixAnswers);
+        let totalCorrect = 0, totalCells = 0;
+        rows.forEach(r => {
+            const correctSet = new Set(q.matrixAnswers![r] || []);
+            const selectedSet = new Set(ans.matrixSelections![r] || []);
+            totalCells += correctSet.size;
+            correctSet.forEach(c => { if (selectedSet.has(c)) totalCorrect++; });
+        });
+        return totalCells > 0 ? Math.round((totalCorrect / totalCells) * q.marks) : 0;
+    }
+    return ans.awardedMarks || 0; // essay
+};
+
 type Tab = 'list' | 'builder' | 'attempts' | 'grade' | 'search';
 
 const AdminExams: React.FC = () => {
@@ -61,13 +82,19 @@ const AdminExams: React.FC = () => {
     const [success, setSuccess] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
 
+    // Modal states
+    const [confirmModal, setConfirmModal] = useState<{ message: string; onConfirm: () => void } | null>(null);
+    const [previewExam, setPreviewExam] = useState<Exam | null>(null);
+    const [previewQuestions, setPreviewQuestions] = useState<ExamQuestion[]>([]);
+    const [enrolledStudents, setEnrolledStudents] = useState<User[]>([]);
+
     // Builder state (draft mode)
     const [examForm, setExamForm] = useState<Partial<Exam>>({});
     const [draftQuestions, setDraftQuestions] = useState<DraftQuestion[]>([]);
     const [expandedQ, setExpandedQ] = useState<string | null>(null);
     const [draftDirty, setDraftDirty] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
-    const [answerKeyQIdx, setAnswerKeyQIdx] = useState<number | null>(null);
+    const [answerKeyUID, setAnswerKeyUID] = useState<string | null>(null);
 
     // Attempts & Grading
     const [selectedExamId, setSelectedExamId] = useState('');
@@ -109,6 +136,15 @@ const AdminExams: React.FC = () => {
 
     useEffect(() => { loadData(); }, [loadData]);
 
+    // Prevent accidental navigation when there are unsaved changes
+    useEffect(() => {
+        const handler = (e: BeforeUnloadEvent) => {
+            if (draftDirty) { e.preventDefault(); e.returnValue = ''; }
+        };
+        window.addEventListener('beforeunload', handler);
+        return () => window.removeEventListener('beforeunload', handler);
+    }, [draftDirty]);
+
     const flash = (msg: string) => { setSuccess(msg); setTimeout(() => setSuccess(''), 3000); };
     const getCourseName = (id: string) => { const c = courses.find(x => x.id === id); return c ? (isAR ? c.title_ar : c.title) : id; };
     const getSemName = (id: string) => semesters.find(x => x.id === id)?.name || id;
@@ -130,7 +166,7 @@ const AdminExams: React.FC = () => {
                     marks: q.marks, orderIndex: i, existingId: q.id,
                     matrixRows: q.matrixRows, matrixAnswers: q.matrixAnswers,
                     options: (q.options || []).map((o, oi) => ({
-                        _uid: uid(), optionText: o.optionText, isCorrect: o.isCorrect,
+                        _uid: o.id, optionText: o.optionText, isCorrect: o.isCorrect,
                         orderIndex: oi, existingId: o.id
                     }))
                 })));
@@ -255,11 +291,42 @@ const AdminExams: React.FC = () => {
         if (isNaN(start.getTime())) { setError(isAR ? 'وقت البداية غير صالح' : 'Invalid start date/time'); return false; }
         if (isNaN(end.getTime())) { setError(isAR ? 'وقت النهاية غير صالح' : 'Invalid end date/time'); return false; }
         if (end <= start) { setError(isAR ? 'يجب أن يكون وقت النهاية بعد وقت البداية' : 'End time must be after start time'); return false; }
+
+        for (let i = 0; i < draftQuestions.length; i++) {
+            const q = draftQuestions[i];
+            const num = i + 1;
+            if (!q.questionText.trim()) {
+                setError(isAR ? `السؤال ${num}: النص مطلوب` : `Q${num}: Question text is required`);
+                return false;
+            }
+            if (q.type === 'mcq' && q.options.some(o => !o.optionText.trim())) {
+                setError(isAR ? `السؤال ${num}: جميع الخيارات مطلوبة` : `Q${num}: All options are required`);
+                return false;
+            }
+            if (q.type === 'matrix') {
+                const hasKey = Object.values(q.matrixAnswers || {}).some(a => (a as string[]).length > 0);
+                if (!hasKey) {
+                    setError(isAR ? `السؤال ${num}: يجب تحديد مفتاح الإجابة` : `Q${num}: Answer key is required`);
+                    return false;
+                }
+            }
+        }
         return true;
     };
 
     const saveExamBatch = async () => {
         if (!validateExamForm()) return;
+
+        // Bug 06: Prevent saving matrix edits if there are in-progress attempts for this exam
+        if (examForm.id) {
+            const activeAttempts = await supabaseService.getExamAttempts(examForm.id);
+            const inProgress = activeAttempts.filter(a => !a.isSubmitted);
+            if (inProgress.length > 0) {
+                setError(isAR ? `يوجد ${inProgress.length} طالب يؤدي الامتحان الآن. لا يمكن التعديل.` : `${inProgress.length} student(s) are currently taking this exam. Cannot edit.`);
+                return;
+            }
+        }
+
         setSaving(true); setError('');
         try {
             const savedExam = await supabaseService.upsertExam({
@@ -270,13 +337,13 @@ const AdminExams: React.FC = () => {
                 createdAt: examForm.createdAt || new Date().toISOString()
             } as Exam);
 
-            // Delete old questions for this exam then re-insert all
+            // Perf 12: Delete old questions for this exam in parallel then re-insert all
             if (examForm.id) {
                 const oldQs = await supabaseService.getExamQuestions(examForm.id);
-                for (const oq of oldQs) {
+                await Promise.all(oldQs.map(async oq => {
                     await supabaseService.deleteExamOptionsByQuestion(oq.id);
                     await supabaseService.deleteExamQuestion(oq.id);
-                }
+                }));
             }
 
             // Insert all draft questions + options in batch
@@ -329,8 +396,12 @@ const AdminExams: React.FC = () => {
 
     // ================ EXAM ACTIONS ================
     const deleteExam = async (id: string) => {
-        if (!confirm(t.confirmDeleteExam)) return;
-        try { await supabaseService.deleteExam(id); await loadData(); flash(isAR ? 'تم الحذف' : 'Deleted'); } catch (e: any) { setError(e.message); }
+        setConfirmModal({
+            message: t.confirmDeleteExam,
+            onConfirm: async () => {
+                try { await supabaseService.deleteExam(id); await loadData(); flash(isAR ? 'تم الحذف' : 'Deleted'); } catch (e: any) { setError(e.message); }
+            }
+        });
     };
 
     const togglePublish = async (exam: Exam) => {
@@ -338,49 +409,33 @@ const AdminExams: React.FC = () => {
     };
 
     const releaseResults = async (examId: string) => {
-        if (!confirm(t.confirmSubmitResults)) return;
-        setSaving(true);
-        try {
-            const qs = await supabaseService.getExamQuestions(examId);
-            const atts = await supabaseService.getExamAttempts(examId);
-            for (const att of atts.filter(a => a.isSubmitted)) {
-                const ans = await supabaseService.getExamAnswers(att.id);
-                let total = 0;
-                for (const a of ans) {
-                    const q = qs.find(x => x.id === a.questionId);
-                    if (!q) continue;
-                    if (q.type === 'mcq' || q.type === 'true_false') {
-                        const correct = q.options?.find(o => o.isCorrect);
-                        const isCorrect = correct && a.selectedOptionId === correct.id;
-                        const marks = isCorrect ? q.marks : 0;
-                        await supabaseService.gradeExamAnswer(a.id, marks, !!isCorrect);
-                        total += marks;
-                    } else if (q.type === 'matrix') {
-                        if (q.matrixAnswers && a.matrixSelections) {
-                            const rows = Object.keys(q.matrixAnswers);
-                            let totalCorrect = 0;
-                            let totalCells = 0;
-                            rows.forEach(r => {
-                                const correctSet = new Set(q.matrixAnswers![r] || []);
-                                const selectedSet = new Set(a.matrixSelections![r] || []);
-                                totalCells += correctSet.size;
-                                correctSet.forEach(c => { if (selectedSet.has(c)) totalCorrect++; });
-                            });
-                            const marks = totalCells > 0 ? Math.round((totalCorrect / totalCells) * q.marks) : 0;
-                            await supabaseService.gradeExamAnswer(a.id, marks, totalCorrect === totalCells);
+        setConfirmModal({
+            message: t.confirmSubmitResults,
+            onConfirm: async () => {
+                setSaving(true);
+                try {
+                    const qs = await supabaseService.getExamQuestions(examId);
+                    const atts = await supabaseService.getExamAttempts(examId);
+                    for (const att of atts.filter(a => a.isSubmitted)) {
+                        const ans = await supabaseService.getExamAnswers(att.id);
+                        let total = 0;
+                        for (const a of ans) {
+                            const q = qs.find(x => x.id === a.questionId);
+                            if (!q) continue;
+                            const marks = computeAnswerMarks(a, q);
+                            const isCorrect = q.type === 'essay' ? a.isCorrect : marks === q.marks && q.marks > 0;
+                            await supabaseService.gradeExamAnswer(a.id, marks, !!isCorrect);
                             total += marks;
                         }
-                    } else if (q.type === 'essay') {
-                        total += a.awardedMarks || 0;
+                        await supabaseService.updateAttemptScore(att.id, total);
                     }
-                }
-                await supabaseService.updateAttemptScore(att.id, total);
+                    await supabaseService.releaseExamResults(examId);
+                    await loadData();
+                    flash(isAR ? 'تم إصدار النتائج' : 'Results released');
+                } catch (e: any) { setError(e.message); }
+                setSaving(false);
             }
-            await supabaseService.releaseExamResults(examId);
-            await loadData();
-            flash(isAR ? 'تم إصدار النتائج' : 'Results released');
-        } catch (e: any) { setError(e.message); }
-        setSaving(false);
+        });
     };
 
     // ================ ATTEMPTS & GRADING ================
@@ -389,6 +444,13 @@ const AdminExams: React.FC = () => {
         try {
             const [a, e] = await Promise.all([supabaseService.getExamAttempts(examId), supabaseService.getExamExceptions(examId)]);
             setAttempts(a); setExceptions(e);
+            // UX 09: filter enrolled students
+            const exam = exams.find(ex => ex.id === examId);
+            const enrollments = await supabaseService.getEnrollments();
+            const enrolledIds = enrollments
+                .filter(en => en.courseId === exam?.courseId && en.semesterId === exam?.semesterId)
+                .map(en => en.studentId);
+            setEnrolledStudents(students.filter(s => enrolledIds.includes(s.id)));
         } catch (e: any) { setError(e.message); }
     };
 
@@ -470,54 +532,40 @@ const AdminExams: React.FC = () => {
     const [gradingAll, setGradingAll] = useState(false);
     const autoGradeAll = async () => {
         if (!selectedExamId) return;
-        if (!confirm(isAR
-            ? 'سيتم احتساب الدرجات تلقائياً لجميع المحاولات المسلّمة وحفظها. هل تريد المتابعة؟'
-            : 'Auto-grade will compute and save scores for all submitted attempts. Continue?')) return;
-        setGradingAll(true);
-        try {
-            const qs = await supabaseService.getExamQuestions(selectedExamId);
-            const atts = await supabaseService.getExamAttempts(selectedExamId);
-            const submitted = atts.filter(a => a.isSubmitted);
-            for (const att of submitted) {
-                const ans = await supabaseService.getExamAnswers(att.id);
-                let total = 0;
-                for (const a of ans) {
-                    const q = qs.find(x => x.id === a.questionId);
-                    if (!q) continue;
-                    if (q.type === 'mcq' || q.type === 'true_false') {
-                        const correct = q.options?.find(o => o.isCorrect);
-                        const isCorrect = !!(correct && a.selectedOptionId === correct.id);
-                        const marks = isCorrect ? q.marks : 0;
-                        await supabaseService.gradeExamAnswer(a.id, marks, isCorrect);
-                        total += marks;
-                    } else if (q.type === 'matrix') {
-                        if (q.matrixAnswers && a.matrixSelections) {
-                            const rows = Object.keys(q.matrixAnswers);
-                            let totalCorrect = 0, totalCells = 0;
-                            rows.forEach(r => {
-                                const correctSet = new Set(q.matrixAnswers![r] || []);
-                                const selectedSet = new Set(a.matrixSelections![r] || []);
-                                totalCells += correctSet.size;
-                                correctSet.forEach(c => { if (selectedSet.has(c)) totalCorrect++; });
-                            });
-                            const marks = totalCells > 0 ? Math.round((totalCorrect / totalCells) * q.marks) : 0;
-                            await supabaseService.gradeExamAnswer(a.id, marks, totalCorrect === totalCells);
+        setConfirmModal({
+            message: isAR
+                ? 'سيتم احتساب الدرجات تلقائياً لجميع المحاولات المسلّمة وحفظها. هل تريد المتابعة؟'
+                : 'Auto-grade will compute and save scores for all submitted attempts. Continue?',
+            onConfirm: async () => {
+                setGradingAll(true);
+                try {
+                    const qs = await supabaseService.getExamQuestions(selectedExamId);
+                    const atts = await supabaseService.getExamAttempts(selectedExamId);
+                    const submitted = atts.filter(a => a.isSubmitted);
+                    for (const att of submitted) {
+                        const ans = await supabaseService.getExamAnswers(att.id);
+                        let total = 0;
+                        for (const a of ans) {
+                            const q = qs.find(x => x.id === a.questionId);
+                            if (!q) continue;
+                            const marks = computeAnswerMarks(a, q);
+                            // Keep consistent with old autoGradeAll: isCorrect bool flag 
+                            const isCorrect = q.type === 'essay' ? a.isCorrect : marks === q.marks && q.marks > 0;
+                            await supabaseService.gradeExamAnswer(a.id, marks, !!isCorrect);
                             total += marks;
                         }
-                    } else if (q.type === 'essay') {
-                        total += a.awardedMarks || 0;
+                        await supabaseService.updateAttemptScore(att.id, total);
                     }
-                }
-                await supabaseService.updateAttemptScore(att.id, total);
+                    // Reload attempts list so scores are reflected immediately in the table
+                    const refreshed = await supabaseService.getExamAttempts(selectedExamId);
+                    setAttempts(refreshed);
+                    flash(isAR
+                        ? `تم احتساب درجات ${submitted.length} محاولة بنجاح`
+                        : `Auto-graded ${submitted.length} attempt(s) successfully`);
+                } catch (e: any) { setError(e.message); }
+                setGradingAll(false);
             }
-            // Reload attempts list so scores are reflected immediately in the table
-            const refreshed = await supabaseService.getExamAttempts(selectedExamId);
-            setAttempts(refreshed);
-            flash(isAR
-                ? `تم احتساب درجات ${submitted.length} محاولة بنجاح`
-                : `Auto-graded ${submitted.length} attempt(s) successfully`);
-        } catch (e: any) { setError(e.message); }
-        setGradingAll(false);
+        });
     };
 
     // ================ EXPORT GRADES ================
@@ -558,10 +606,15 @@ const AdminExams: React.FC = () => {
 
     const exportAllExams = async () => {
         try {
-            const enrollments = await supabaseService.getEnrollments();
+            // Perf 10: Parallel requests
+            const [enrollments, ...allAttempts] = await Promise.all([
+                supabaseService.getEnrollments(),
+                ...exams.map(e => supabaseService.getExamAttempts(e.id))
+            ]);
+
             const wb = XLSX.utils.book_new();
-            for (const exam of exams) {
-                const atts = await supabaseService.getExamAttempts(exam.id);
+            exams.forEach((exam, index) => {
+                const atts = allAttempts[index] || [];
                 const courseStudents = enrollments
                     .filter(e => e.courseId === exam.courseId && e.semesterId === exam.semesterId)
                     .map(e => e.studentId);
@@ -578,7 +631,7 @@ const AdminExams: React.FC = () => {
                 });
                 const ws = XLSX.utils.json_to_sheet(rows);
                 XLSX.utils.book_append_sheet(wb, ws, `${getCourseName(exam.courseId).slice(0, 15)}-${exam.title.slice(0, 15)}`);
-            }
+            });
             XLSX.writeFile(wb, `all_exams_grades.xlsx`);
         } catch (e: any) { setError(e.message); }
     };
@@ -590,18 +643,27 @@ const AdminExams: React.FC = () => {
         const matched = students.filter(s =>
             s.fullName.toLowerCase().includes(term) ||
             (s.universityId || '').toLowerCase().includes(term)
+        ).slice(0, 10);
+
+        // Perf 11: Parallel bulk fetch
+        const allStudentAttempts = await Promise.all(
+            matched.map(s => supabaseService.getAttemptsByStudent(s.id))
         );
+
         const results: typeof searchResults = [];
-        for (const st of matched.slice(0, 10)) {
+        matched.forEach((st, idx) => {
+            const stAttempts = allStudentAttempts[idx] || [];
             const studentExams: { exam: Exam; score: number | null; courseName: string }[] = [];
-            for (const exam of exams) {
-                const att = await supabaseService.getStudentAttempt(exam.id, st.id);
-                if (att) {
+
+            // Only examine exams the student actually has an attempt for
+            stAttempts.forEach(att => {
+                const exam = exams.find(e => e.id === att.examId);
+                if (exam) {
                     studentExams.push({ exam, score: att.totalScore ?? null, courseName: getCourseName(exam.courseId) });
                 }
-            }
+            });
             results.push({ student: st, exams: studentExams });
-        }
+        });
         setSearchResults(results);
     };
 
@@ -675,6 +737,11 @@ const AdminExams: React.FC = () => {
                                         </div>
                                         <div className="flex flex-wrap gap-2">
                                             <button className={btnGray} onClick={() => openBuilder(exam)}><Edit size={16} />{isAR ? 'تعديل' : 'Edit'}</button>
+                                            <button className={btnGray} onClick={async () => {
+                                                const qs = await supabaseService.getExamQuestions(exam.id);
+                                                setPreviewQuestions(qs);
+                                                setPreviewExam(exam);
+                                            }}><Eye size={16} />{isAR ? 'معاينة' : 'Preview'}</button>
                                             <button className={btnGray} onClick={() => openAttempts(exam.id)}><Users size={16} />{isAR ? 'محاولات' : 'Attempts'}</button>
                                             <button className={btnGray} onClick={() => togglePublish(exam)}>{exam.isPublished ? <XCircle size={16} /> : <CheckCircle size={16} />}{exam.isPublished ? (isAR ? 'إلغاء النشر' : 'Unpublish') : (isAR ? 'نشر' : 'Publish')}</button>
                                             {!exam.isResultsReleased && <button className={btnGreen} onClick={() => releaseResults(exam.id)} disabled={saving}><Award size={16} />{isAR ? 'إصدار النتائج' : 'Release'}</button>}
@@ -804,7 +871,7 @@ const AdminExams: React.FC = () => {
                                                     </div>
                                                     {/* Answer Key button */}
                                                     <div className="flex items-center gap-3 pt-2 border-t border-gray-100">
-                                                        <button className="text-primary text-sm font-bold flex items-center gap-1.5 hover:underline" onClick={() => setAnswerKeyQIdx(idx)}>
+                                                        <button className="text-primary text-sm font-bold flex items-center gap-1.5 hover:underline" onClick={() => setAnswerKeyUID(q._uid)}>
                                                             <CheckCircle size={16} />{isAR ? 'مفتاح الإجابة' : 'Answer Key'}
                                                         </button>
                                                         <span className="text-xs text-gray-400">({q.marks} {t.marks})</span>
@@ -813,8 +880,8 @@ const AdminExams: React.FC = () => {
                                             )}
 
                                             {/* Answer Key Modal for Matrix */}
-                                            {q.type === 'matrix' && answerKeyQIdx === idx && (
-                                                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setAnswerKeyQIdx(null)}>
+                                            {q.type === 'matrix' && answerKeyUID === q._uid && (
+                                                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setAnswerKeyUID(null)}>
                                                     <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-auto" onClick={e => e.stopPropagation()}>
                                                         <div className="flex items-center gap-2 mb-4">
                                                             <CheckCircle size={20} className="text-primary" />
@@ -860,7 +927,7 @@ const AdminExams: React.FC = () => {
                                                             </tbody>
                                                         </table>
                                                         <div className="flex justify-end mt-4">
-                                                            <button className="px-6 py-2 rounded-xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-700" onClick={() => setAnswerKeyQIdx(null)}>{isAR ? 'تم' : 'Done'}</button>
+                                                            <button className="px-6 py-2 rounded-xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-700" onClick={() => setAnswerKeyUID(null)}>{isAR ? 'تم' : 'Done'}</button>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -925,7 +992,7 @@ const AdminExams: React.FC = () => {
                         <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-6 mb-4 space-y-4">
                             <h3 className="font-black text-amber-600">{isAR ? 'تمديد وقت لطالب' : 'Grant Time Extension'}</h3>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                <select className={input} value={excStudentId} onChange={e => setExcStudentId(e.target.value)}><option value="">{t.selectStudent}</option>{students.map(s => <option key={s.id} value={s.id}>{s.fullName}</option>)}</select>
+                                <select className={input} value={excStudentId} onChange={e => setExcStudentId(e.target.value)}><option value="">{t.selectStudent}</option>{enrolledStudents.map(s => <option key={s.id} value={s.id}>{s.fullName}</option>)}</select>
                                 <input type="datetime-local" className={input} value={excUntil} onChange={e => setExcUntil(e.target.value)} />
                                 <button className={btnPrimary} onClick={saveException}>{t.save}</button>
                             </div>
@@ -942,22 +1009,52 @@ const AdminExams: React.FC = () => {
 
                     {attempts.length === 0 ? (
                         <p className="text-center text-gray-500 py-8">{isAR ? 'لا توجد محاولات' : 'No attempts yet'}</p>
-                    ) : (
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-sm">
-                                <thead><tr className="border-b"><th className="py-2 px-3 text-left">{isAR ? 'الطالب' : 'Student'}</th><th className="py-2 px-3">{isAR ? 'الحالة' : 'Status'}</th><th className="py-2 px-3">{t.score}</th><th className="py-2 px-3">{isAR ? 'التاريخ' : 'Date'}</th><th className="py-2 px-3"></th></tr></thead>
-                                <tbody>{attempts.map(a => (
-                                    <tr key={a.id} className="border-b border-border/50 hover:bg-surface/50 transition-colors">
-                                        <td className="py-3 px-4"><span className="font-black text-text-primary">{getStudentName(a.studentId)}</span><br /><span className="text-[10px] uppercase font-bold text-text-secondary">{getStudentUniId(a.studentId)}</span></td>
-                                        <td className="py-3 px-4 text-center"><span className={`px-2 py-1 rounded-lg text-[10px] uppercase tracking-widest font-black ${a.isSubmitted ? 'bg-success/10 text-success border border-success/20' : 'bg-amber-500/10 text-amber-500 border border-amber-500/20'}`}>{a.isSubmitted ? (isAR ? 'مسلّم' : 'Submitted') : (isAR ? 'قيد التقدم' : 'In Progress')}</span></td>
-                                        <td className="py-3 px-4 text-center font-black text-primary">{a.totalScore ?? '-'}/50</td>
-                                        <td className="py-3 px-4 text-center text-xs font-bold text-text-secondary">{a.submittedAt ? new Date(a.submittedAt).toLocaleString() : '-'}</td>
-                                        <td className="py-3 px-4"><button className={btnGray} onClick={() => openGrading(a)}><Eye size={14} />{isAR ? 'تصحيح' : 'Grade'}</button></td>
-                                    </tr>
-                                ))}</tbody>
-                            </table>
-                        </div>
-                    )}
+                    ) : (() => {
+                        const submitted = attempts.filter(a => a.isSubmitted);
+                        const scores = submitted.map(a => a.totalScore ?? 0).filter(s => s > 0);
+                        const avg = scores.length ? (scores.reduce((sum, val) => sum + val, 0) / scores.length).toFixed(1) : '-';
+                        const max = scores.length ? Math.max(...scores) : '-';
+                        const min = scores.length ? Math.min(...scores) : '-';
+                        const currentExam = exams.find(e => e.id === selectedExamId);
+                        const maxM = currentExam?.totalMarks ?? 50;
+                        return (
+                            <div className="space-y-4">
+                                {/* Improvement 13: Summary Stats */}
+                                <div className="grid grid-cols-4 gap-3 mb-2">
+                                    <div className="bg-surface rounded-xl p-3 text-center border border-border">
+                                        <p className="text-2xl font-black text-primary">{submitted.length}/{attempts.length}</p>
+                                        <p className="text-[10px] uppercase tracking-widest font-black text-text-secondary">{isAR ? 'المسلّمين' : 'Submitted'}</p>
+                                    </div>
+                                    <div className="bg-surface rounded-xl p-3 text-center border border-border">
+                                        <p className="text-2xl font-black">{avg}</p>
+                                        <p className="text-[10px] uppercase tracking-widest font-black text-text-secondary">{isAR ? 'المتوسط' : 'Avg Score'}</p>
+                                    </div>
+                                    <div className="bg-success/10 rounded-xl p-3 text-center border border-success/20">
+                                        <p className="text-2xl font-black text-success">{max}</p>
+                                        <p className="text-[10px] uppercase tracking-widest font-black text-success/70">{isAR ? 'أعلى درجة' : 'Highest'}</p>
+                                    </div>
+                                    <div className="bg-red-500/10 rounded-xl p-3 text-center border border-red-500/20">
+                                        <p className="text-2xl font-black text-red-500">{min}</p>
+                                        <p className="text-[10px] uppercase tracking-widest font-black text-red-500/70">{isAR ? 'أقل درجة' : 'Lowest'}</p>
+                                    </div>
+                                </div>
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-sm">
+                                        <thead><tr className="border-b"><th className="py-2 px-3 text-left">{isAR ? 'الطالب' : 'Student'}</th><th className="py-2 px-3">{isAR ? 'الحالة' : 'Status'}</th><th className="py-2 px-3">{t.score}</th><th className="py-2 px-3">{isAR ? 'التاريخ' : 'Date'}</th><th className="py-2 px-3"></th></tr></thead>
+                                        <tbody>{attempts.map(a => (
+                                            <tr key={a.id} className="border-b border-border/50 hover:bg-surface/50 transition-colors">
+                                                <td className="py-3 px-4"><span className="font-black text-text-primary">{getStudentName(a.studentId)}</span><br /><span className="text-[10px] uppercase font-bold text-text-secondary">{getStudentUniId(a.studentId)}</span></td>
+                                                <td className="py-3 px-4 text-center"><span className={`px-2 py-1 rounded-lg text-[10px] uppercase tracking-widest font-black ${a.isSubmitted ? 'bg-success/10 text-success border border-success/20' : 'bg-amber-500/10 text-amber-500 border border-amber-500/20'}`}>{a.isSubmitted ? (isAR ? 'مسلّم' : 'Submitted') : (isAR ? 'قيد التقدم' : 'In Progress')}</span></td>
+                                                <td className="py-3 px-4 text-center font-black text-primary">{a.totalScore ?? '-'}/{maxM}</td>
+                                                <td className="py-3 px-4 text-center text-xs font-bold text-text-secondary">{a.submittedAt ? new Date(a.submittedAt).toLocaleString() : '-'}</td>
+                                                <td className="py-3 px-4"><button className={btnGray} onClick={() => openGrading(a)}><Eye size={14} />{isAR ? 'تصحيح' : 'Grade'}</button></td>
+                                            </tr>
+                                        ))}</tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        );
+                    })()}
                 </div>
             )}
 
@@ -1130,7 +1227,7 @@ const AdminExams: React.FC = () => {
                                             <thead><tr className="border-b"><th className="py-1.5 px-2 text-left">{t.exams}</th><th className="py-1.5 px-2">{isAR ? 'المادة' : 'Course'}</th><th className="py-1.5 px-2">{t.score}</th></tr></thead>
                                             <tbody>{r.exams.map((ex, i) => (
                                                 <tr key={i} className="border-b"><td className="py-1.5 px-2">{ex.exam.title}</td><td className="py-1.5 px-2 text-center">{ex.courseName}</td>
-                                                    <td className="py-1.5 px-2 text-center font-bold">{ex.score ?? 0}/50</td></tr>
+                                                    <td className="py-1.5 px-2 text-center font-bold">{ex.score ?? 0}/{ex.exam.totalMarks ?? 50}</td></tr>
                                             ))}</tbody>
                                         </table>
                                     )}
@@ -1138,6 +1235,71 @@ const AdminExams: React.FC = () => {
                             ))}
                         </div>
                     )}
+                </div>
+            )}
+
+            {/* ====== MODALS ====== */}
+            {/* Confirm Action Modal */}
+            {confirmModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setConfirmModal(null)}>
+                    <div className="bg-card rounded-2xl shadow-xl border border-border p-8 max-w-sm w-full mx-4 text-center" onClick={e => e.stopPropagation()}>
+                        <AlertTriangle size={32} className="text-amber-500 mx-auto mb-4" />
+                        <p className="text-sm font-bold text-text-primary mb-6">{confirmModal.message}</p>
+                        <div className="flex gap-3 justify-center">
+                            <button className={btnGray} onClick={() => setConfirmModal(null)}>{isAR ? 'إلغاء' : 'Cancel'}</button>
+                            <button className={btnDanger} onClick={() => { confirmModal.onConfirm(); setConfirmModal(null); }}>{isAR ? 'تأكيد' : 'Confirm'}</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Preview Exam Modal (Read-Only) */}
+            {previewExam && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 overflow-y-auto" onClick={() => { setPreviewExam(null); setPreviewQuestions([]); }}>
+                    <div className="bg-surface rounded-3xl shadow-xl max-w-2xl w-full my-auto text-text-primary p-6 md:p-8" onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center justify-between mb-6 border-b border-border pb-4">
+                            <h2 className="text-xl font-black text-primary flex items-center gap-2"><Eye size={24} /> {isAR ? 'معاينة الامتحان' : 'Exam Preview'} - {previewExam.title}</h2>
+                            <button onClick={() => { setPreviewExam(null); setPreviewQuestions([]); }} className="text-text-secondary hover:text-red-500 transition-colors"><XCircle size={24} /></button>
+                        </div>
+                        <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2">
+                            {previewQuestions.length === 0 ? (
+                                <p className="text-center text-text-secondary py-8">{isAR ? 'لا توجد أسئلة' : 'No questions yet'}</p>
+                            ) : previewQuestions.map((q, idx) => (
+                                <div key={q.id} className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+                                    <div className="flex gap-4 mb-4">
+                                        <span className="bg-primary/10 text-primary font-black w-8 h-8 rounded-full flex items-center justify-center shrink-0">{idx + 1}</span>
+                                        <div>
+                                            <p className="font-bold text-sm text-text-primary leading-relaxed whitespace-pre-wrap">{q.questionText}</p>
+                                            <span className="text-[10px] uppercase font-black text-text-secondary tracking-widest mt-1 block">{q.marks} {t.marks}</span>
+                                        </div>
+                                    </div>
+                                    <div className="ml-12 opacity-80 pointer-events-none">
+                                        {(q.type === 'mcq' || q.type === 'true_false') && (
+                                            <div className="space-y-3">
+                                                {q.options?.map(opt => (
+                                                    <div key={opt.id} className="flex items-center gap-3 p-3 rounded-xl border border-border bg-surface">
+                                                        <div className={`w-5 h-5 rounded-full border-2 border-border`} />
+                                                        <span className="text-sm font-bold text-text-secondary">{opt.optionText}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                        {q.type === 'matrix' && (
+                                            <div className="overflow-x-auto ring-1 ring-border rounded-xl">
+                                                <table className="w-full text-sm text-center">
+                                                    <thead className="bg-surface border-b border-border"><tr><th className="p-3"></th>{q.options?.map(opt => <th key={opt.id} className="p-3 font-bold text-text-secondary">{opt.optionText}</th>)}</tr></thead>
+                                                    <tbody className="divide-y divide-border">{q.matrixRows?.map((row, rIdx) => (<tr key={rIdx}><td className="p-3 font-bold text-text-primary text-left bg-surface border-r border-border">{row}</td>{q.options?.map(opt => <td key={opt.id} className="p-3"><div className="w-4 h-4 rounded border-2 border-border mx-auto" /></td>)}</tr>))}</tbody>
+                                                </table>
+                                            </div>
+                                        )}
+                                        {q.type === 'essay' && (
+                                            <textarea className="w-full h-24 rounded-xl border border-border bg-surface p-4 text-sm" placeholder={isAR ? 'مساحة الإجابة...' : 'Answer area...'} disabled />
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

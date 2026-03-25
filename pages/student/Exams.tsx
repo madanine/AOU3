@@ -25,13 +25,24 @@ const StudentExams: React.FC = () => {
     const [viewingResults, setViewingResults] = useState(false);
     const [resultAnswers, setResultAnswers] = useState<ExamAnswer[]>([]);
 
+    // UI States
+    const [showSubmitModal, setShowSubmitModal] = useState(false);
+    const [showExitModal, setShowExitModal] = useState(false);
+    const [successMsg, setSuccessMsg] = useState('');
+    const [timeLeft, setTimeLeft] = useState('');
+
     const loadData = useCallback(async () => {
         if (!user) return;
         setLoading(true);
         try {
-            const [ex, co] = await Promise.all([supabaseService.getExams(), supabaseService.getCourses()]);
+            const [ex, co, exc] = await Promise.all([
+                supabaseService.getExams(),
+                supabaseService.getCourses(),
+                supabaseService.getStudentExceptions(user.id)
+            ]);
             setExams(ex.filter(e => e.isPublished));
             setCourses(co);
+            setExceptions(exc || []);
         } catch (e: any) { setError(e.message); }
         setLoading(false);
     }, [user]);
@@ -101,11 +112,10 @@ const StudentExams: React.FC = () => {
         setDraftAnswers(prev => ({ ...prev, [questionId]: value }));
     };
 
-    // Submit exam
+    // Submit exam (Actual logic)
     const submitExam = async () => {
-        if (!attempt || !activeExam || !user) return;
-        if (!confirm(isAR ? 'هل أنت متأكد من تسليم الامتحان؟ لن تتمكن من التعديل بعد التسليم.' : 'Are you sure you want to submit? You cannot change your answers after submission.')) return;
-
+        if (!attempt || !activeExam || !user || submitting) return;
+        setShowSubmitModal(false);
         setSubmitting(true);
         try {
             // Save all answers
@@ -127,10 +137,70 @@ const StudentExams: React.FC = () => {
             setQuestions([]);
             setDraftAnswers({});
             await loadData();
-            alert(isAR ? 'تم تسليم الامتحان بنجاح!' : 'Exam submitted successfully!');
-        } catch (e: any) { setError(e.message); }
-        setSubmitting(false);
+
+            setSuccessMsg(isAR ? 'تم تسليم الامتحان بنجاح!' : 'Exam submitted successfully!');
+            setTimeout(() => setSuccessMsg(''), 4000);
+        } catch (e: any) { setError(e.message); } finally {
+            setSubmitting(false);
+        }
     };
+
+    const handleSubmitClick = () => {
+        if (submitting) return;
+        setShowSubmitModal(true);
+    };
+
+    const handleExitClick = () => {
+        setShowExitModal(true);
+    };
+
+    const exitExam = () => {
+        setShowExitModal(false);
+        setActiveExam(null);
+        setAttempt(null);
+    };
+
+    // Timer
+    useEffect(() => {
+        if (!activeExam || viewingResults) return;
+        const interval = setInterval(() => {
+            const end = new Date(activeExam.endAt);
+            const studentExc = exceptions.find(e => e.examId === activeExam.id && e.studentId === user?.id);
+            const effectiveEnd = studentExc ? new Date(studentExc.extendedUntil) : end;
+
+            const diff = effectiveEnd.getTime() - Date.now();
+            if (diff <= 0) {
+                clearInterval(interval);
+                setTimeLeft('0:00');
+                if (!submitting) {
+                    submitExam();
+                }
+                return;
+            }
+            const m = Math.floor(diff / 60000);
+            const s = Math.floor((diff % 60000) / 1000);
+            setTimeLeft(`${m}:${s.toString().padStart(2, '0')}`);
+        }, 1000);
+        return () => clearInterval(interval);
+    }, [activeExam, viewingResults, exceptions, user, submitting]);
+
+    // Auto-save
+    useEffect(() => {
+        if (!attempt || !activeExam || Object.keys(draftAnswers).length === 0) return;
+        const interval = setInterval(async () => {
+            const answersToSave = questions.map(q => ({
+                id: crypto.randomUUID(),
+                attemptId: attempt.id,
+                questionId: q.id,
+                selectedOptionId: (q.type === 'mcq' || q.type === 'true_false') ? (draftAnswers[q.id] || null) : undefined,
+                essayAnswer: q.type === 'essay' ? (draftAnswers[q.id] || '') : undefined,
+                matrixSelections: q.type === 'matrix' ? (draftAnswers[q.id] || {}) : undefined,
+                createdAt: new Date().toISOString()
+            }));
+            await supabaseService.bulkUpsertExamAnswers(answersToSave).catch(console.error);
+        }, 30000); // 30 seconds
+        return () => clearInterval(interval);
+    }, [draftAnswers, attempt, activeExam, questions]);
 
     // View results
     const viewResults = async (exam: Exam) => {
@@ -159,15 +229,40 @@ const StudentExams: React.FC = () => {
 
     // ===== TAKING EXAM =====
     if (activeExam && !viewingResults) {
+        const answeredCount = questions.filter(q => {
+            const val = draftAnswers[q.id];
+            if (!val) return false;
+            if (typeof val === 'string') return val.length > 0;
+            if (typeof val === 'object') return Object.keys(val).length > 0;
+            return false;
+        }).length;
+
         return (
             <div className="max-w-4xl mx-auto p-4 space-y-6" dir={isAR ? 'rtl' : 'ltr'}>
                 <div className={card}>
-                    <div className="flex items-center justify-between mb-6">
+                    <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-6">
                         <div>
                             <h1 className="text-xl font-black">{activeExam.title}</h1>
                             <p className="text-sm text-text-secondary">{getCourseName(activeExam.courseId)}</p>
+
+                            <div className="mt-4 flex flex-col gap-3">
+                                {timeLeft && (
+                                    <div className="flex items-center gap-2 text-amber-600 font-black bg-amber-500/10 px-3 py-1.5 rounded-lg w-fit">
+                                        <Clock size={16} />
+                                        <span dir="ltr">{timeLeft}</span>
+                                    </div>
+                                )}
+
+                                <div className="flex items-center gap-3 text-sm font-bold w-full min-w-[200px] max-w-xs">
+                                    <span>{answeredCount} / {questions.length}</span>
+                                    <div className="flex-1 h-2 bg-border rounded-full overflow-hidden">
+                                        <div className="h-full bg-primary rounded-full transition-all"
+                                            style={{ width: `${(answeredCount / (questions.length || 1)) * 100}%` }} />
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <button className={btnGray} onClick={() => { setActiveExam(null); setAttempt(null); }}>{isAR ? '← خروج (بدون تسليم)' : '← Exit (without submit)'}</button>
+                        <button className={btnGray} onClick={handleExitClick}>{isAR ? '← خروج (بدون تسليم)' : '← Exit (without submit)'}</button>
                     </div>
 
                     <div className="space-y-6">
@@ -270,11 +365,70 @@ const StudentExams: React.FC = () => {
                     </div>
 
                     <div className="mt-6 flex justify-center">
-                        <button className="px-8 py-3 rounded-xl bg-emerald-600 text-white font-bold text-base hover:bg-emerald-700 transition-all flex items-center gap-2" onClick={submitExam} disabled={submitting}>
+                        <button className="px-8 py-3 rounded-xl bg-emerald-600 text-white font-bold text-base hover:bg-emerald-700 transition-all flex items-center gap-2" onClick={handleSubmitClick} disabled={submitting}>
                             {submitting ? <Loader2 className="animate-spin" size={18} /> : <Send size={18} />}
-                            {isAR ? 'تسليم الامتحان' : 'Submit Exam'}
+                            {submitting ? (isAR ? 'جاري التسليم...' : 'Submitting...') : (isAR ? 'تسليم الامتحان' : 'Submit Exam')}
                         </button>
                     </div>
+
+                    {/* Submit Confirmation Modal */}
+                    {showSubmitModal && (
+                        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                            <div className="bg-card rounded-3xl shadow-2xl border border-border p-8 max-w-sm w-full text-center animate-in fade-in zoom-in duration-200">
+                                <div className="w-16 h-16 rounded-full bg-amber-500/10 flex items-center justify-center mx-auto mb-4">
+                                    <AlertTriangle size={32} className="text-amber-500" />
+                                </div>
+                                <h2 className="text-xl font-black mb-2 text-text-primary">
+                                    {isAR ? 'تأكيد التسليم' : 'Confirm Submission'}
+                                </h2>
+                                <p className="text-text-secondary text-sm mb-8">
+                                    {isAR ? 'هل أنت متأكد من تسليم الامتحان؟ لن تتمكن من التعديل بعد التسليم.' : 'Are you sure you want to submit? You cannot change your answers after submission.'}
+                                </p>
+                                <div className="flex gap-3 justify-center">
+                                    <button className={btnGray} onClick={() => setShowSubmitModal(false)}>
+                                        {isAR ? 'إلغاء' : 'Cancel'}
+                                    </button>
+                                    <button
+                                        className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm flex items-center gap-2 transition-colors"
+                                        onClick={submitExam}
+                                    >
+                                        <Send size={16} />
+                                        {isAR ? 'نعم، سلّم الامتحان' : 'Yes, Submit'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Exit Confirmation Modal */}
+                    {showExitModal && (
+                        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                            <div className="bg-card rounded-3xl shadow-2xl border border-border p-8 max-w-sm w-full text-center animate-in fade-in zoom-in duration-200">
+                                <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center mx-auto mb-4">
+                                    <AlertTriangle size={32} className="text-red-500" />
+                                </div>
+                                <h2 className="text-xl font-black mb-2 text-text-primary">
+                                    {isAR ? 'تحذير مغادرة الامتحان' : 'Exit Warning'}
+                                </h2>
+                                <p className="text-text-secondary text-sm mb-8 leading-relaxed">
+                                    {isAR
+                                        ? 'هل أنت متأكد من رغبتك في الخروج؟ سيتم حفظ إجاباتك الحالية ويمكنك العودة لاحقاً إذا لم ينته الوقت.'
+                                        : 'Are you sure you want to exit? Your current answers are saved and you can return later if time allows.'}
+                                </p>
+                                <div className="flex gap-3 justify-center">
+                                    <button className={btnGray} onClick={() => setShowExitModal(false)}>
+                                        {isAR ? 'إلغاء' : 'Cancel'}
+                                    </button>
+                                    <button
+                                        className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-sm transition-colors"
+                                        onClick={exitExam}
+                                    >
+                                        {isAR ? 'نعم، الخروج' : 'Yes, Exit'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         );
@@ -283,15 +437,22 @@ const StudentExams: React.FC = () => {
     // ===== VIEWING RESULTS =====
     if (activeExam && viewingResults) {
         const totalAwarded = resultAnswers.reduce((s, a) => s + (a.awardedMarks || 0), 0);
+        const totalMarks = questions.reduce((s, q) => s + q.marks, 0);
+        const passed = totalMarks > 0 ? (totalAwarded >= totalMarks * 0.5) : (totalAwarded >= 25);
+
         return (
             <div className="max-w-4xl mx-auto p-4 space-y-6" dir={isAR ? 'rtl' : 'ltr'}>
                 <div className={card}>
                     <div className="flex items-center justify-between mb-4">
                         <div>
                             <h1 className="text-xl font-black">{activeExam.title} - {isAR ? 'النتائج' : 'Results'}</h1>
-                            <p className="text-2xl font-black mt-2" style={{ color: totalAwarded >= 25 ? '#16a34a' : '#dc2626' }}>{totalAwarded} / 50</p>
+                            <p className="text-2xl font-black mt-2" style={{ color: passed ? '#16a34a' : '#dc2626' }}>{totalAwarded} / {totalMarks > 0 ? totalMarks : 50}</p>
                         </div>
-                        <button className={btnGray} onClick={() => { setActiveExam(null); setViewingResults(false); }}>{isAR ? '← رجوع' : '← Back'}</button>
+                        <button className={btnGray} onClick={() => {
+                            setActiveExam(null);
+                            setViewingResults(false);
+                            setResultAnswers([]);
+                        }}>{isAR ? '← رجوع' : '← Back'}</button>
                     </div>
 
                     <div className="space-y-4">
@@ -314,6 +475,20 @@ const StudentExams: React.FC = () => {
                                         </div>
                                     ))}
                                     {q.type === 'essay' && <div className="ml-10 bg-surface rounded-lg p-3 text-sm whitespace-pre-wrap">{ans?.essayAnswer || '-'}</div>}
+                                    {q.type === 'matrix' && (
+                                        <div className="ml-10 space-y-2">
+                                            {q.matrixRows?.map((row, ri) => {
+                                                const sel = ans?.matrixSelections?.[ri.toString()] || [];
+                                                const labels = sel.map(id => q.options?.find(o => o.id === id)?.optionText);
+                                                return (
+                                                    <div key={ri} className="text-sm bg-surface rounded-lg p-2 border border-border flex items-start gap-2">
+                                                        <span className="font-bold shrink-0">{row}:</span>
+                                                        <span className="text-text-secondary">{labels.join('، ') || '-'}</span>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
                                 </div>
                             );
                         })}
@@ -327,6 +502,14 @@ const StudentExams: React.FC = () => {
     return (
         <div className="max-w-5xl mx-auto p-4 space-y-6" dir={isAR ? 'rtl' : 'ltr'}>
             {error && <div className="bg-red-500/10 border border-red-500/20 text-red-500 px-4 py-3 rounded-xl flex items-center gap-2"><AlertTriangle size={18} />{error}<button onClick={() => setError('')} className="ml-auto font-bold">×</button></div>}
+
+            {successMsg && (
+                <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 px-4 py-3 rounded-xl flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
+                    <CheckCircle size={18} />
+                    <span className="font-bold">{successMsg}</span>
+                    <button onClick={() => setSuccessMsg('')} className="ml-auto font-bold opacity-50 hover:opacity-100">×</button>
+                </div>
+            )}
 
             <h1 className="text-2xl font-black" style={{ color: 'var(--text-primary)' }}>{isAR ? '📝 الامتحانات' : '📝 Exams'}</h1>
 
