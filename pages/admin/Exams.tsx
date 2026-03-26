@@ -607,9 +607,9 @@ const AdminExams: React.FC = () => {
     const exportAllExams = async () => {
         try {
             // Perf 10: Parallel requests
-            const [enrollments, ...allAttempts] = await Promise.all([
+            const [enrollments, allAttempts] = await Promise.all([
                 supabaseService.getEnrollments(),
-                ...exams.map(e => supabaseService.getExamAttempts(e.id))
+                Promise.all(exams.map(e => supabaseService.getExamAttempts(e.id)))
             ]);
 
             const wb = XLSX.utils.book_new();
