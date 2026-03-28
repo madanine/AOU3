@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../../App';
 import { storage } from '../../storage';
 import { Course, User, Enrollment, AttendanceRecord, ParticipationRecord } from '../../types';
@@ -19,6 +19,12 @@ const AdminAttendance: React.FC = () => {
   const [undoStack, setUndoStack] = useState<AttendanceRecord | null>(null);
   const [participationUndoStack, setParticipationUndoStack] = useState<ParticipationRecord | null>(null);
   const [showToast, setShowToast] = useState(false);
+
+  // Debounce refs to avoid flooding Supabase on every cell click
+  const attendanceSaveTimer = useRef<ReturnType<typeof setTimeout>>();
+  const participationSaveTimer = useRef<ReturnType<typeof setTimeout>>();
+  const isFirstAttendanceRender = useRef(true);
+  const isFirstParticipationRender = useRef(true);
 
   const [confirmModal, setConfirmModal] = useState<{
     show: boolean;
@@ -50,13 +56,24 @@ const AdminAttendance: React.FC = () => {
     return () => window.removeEventListener('storage-update', handleUpdate);
   }, []);
 
-  // Auto-save attendance and participation
+  // Auto-save attendance with debounce (1.5s after last change)
   useEffect(() => {
-    storage.setAttendance(attendance);
+    if (isFirstAttendanceRender.current) { isFirstAttendanceRender.current = false; return; }
+    clearTimeout(attendanceSaveTimer.current);
+    attendanceSaveTimer.current = setTimeout(() => {
+      storage.setAttendance(attendance);
+    }, 1500);
+    return () => clearTimeout(attendanceSaveTimer.current);
   }, [attendance]);
 
+  // Auto-save participation with debounce (1.5s after last change)
   useEffect(() => {
-    storage.setParticipation(participation);
+    if (isFirstParticipationRender.current) { isFirstParticipationRender.current = false; return; }
+    clearTimeout(participationSaveTimer.current);
+    participationSaveTimer.current = setTimeout(() => {
+      storage.setParticipation(participation);
+    }, 1500);
+    return () => clearTimeout(participationSaveTimer.current);
   }, [participation]);
 
   const visibleCourses = (user?.role === 'admin'
@@ -185,7 +202,11 @@ const AdminAttendance: React.FC = () => {
   };
 
   const handleSave = () => {
+    // Cancel any pending debounced saves and save immediately
+    clearTimeout(attendanceSaveTimer.current);
+    clearTimeout(participationSaveTimer.current);
     storage.setAttendance(attendance);
+    storage.setParticipation(participation);
     setShowToast(true);
     setTimeout(() => setShowToast(false), 3000);
   };
