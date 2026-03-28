@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../../App';
 import { supabaseService } from '../../supabaseService';
 import { Course, Assignment, Submission, User } from '../../types';
-import { BookOpen, Search, Download, Trash2, CheckCircle, AlertCircle, FileText, User as UserIcon, ExternalLink, Filter, X, Save, Eye, ClipboardList, Check, Sparkles, RefreshCcw, Loader2, AlertTriangle } from 'lucide-react';
+import { BookOpen, Search, Download, Trash2, CheckCircle, AlertCircle, FileText, User as UserIcon, ExternalLink, Filter, X, Save, Eye, ClipboardList, Check, Sparkles, RefreshCcw, Loader2, AlertTriangle, Archive } from 'lucide-react';
 import SemesterControls from '../../components/admin/SemesterControls';
 import * as XLSX from 'xlsx';
+import JSZip from 'jszip'; // Added for Bulk downloading
 
 const AdminGrading: React.FC = () => {
   const { user, t, lang, settings, translate } = useApp();
@@ -20,6 +21,7 @@ const AdminGrading: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [downloadingZip, setDownloadingZip] = useState(false);
 
   const [gradingModal, setGradingModal] = useState<Submission | null>(null);
   const [newGrade, setNewGrade] = useState('');
@@ -128,7 +130,6 @@ const AdminGrading: React.FC = () => {
 
           if (autoGradableCount === 0) return s;
 
-          // Base the score out of the totalMarks provided
           const maxMarks = selectedAssignment.totalMarks || 20;
           const finalScore = (score / autoGradableCount) * maxMarks;
           return { ...s, grade: `${finalScore.toFixed(1).replace(/\.0$/, '')}/${maxMarks}` };
@@ -164,6 +165,65 @@ const AdminGrading: React.FC = () => {
     XLSX.utils.book_append_sheet(wb, ws, "Grades");
     XLSX.writeFile(wb, `${selectedAssignment.title}_Grades.xlsx`);
   };
+
+  // Bulk ZIP Download for Files
+  const handleDownloadAllFiles = async () => {
+    if (!selectedAssignment || filteredSubmissions.length === 0) return;
+    
+    const submissionsWithFiles = filteredSubmissions.filter(s => s.fileBase64 || s.fileUrl);
+    if (submissionsWithFiles.length === 0) {
+        setError(lang === 'AR' ? 'لا توجد أي ملفات مرفقة في تسليمات هذا الواجب لتحميلها.' : 'No attached files found in these submissions.');
+        return;
+    }
+
+    try {
+        setDownloadingZip(true);
+        const zip = new JSZip();
+        
+        for (const sub of submissionsWithFiles) {
+            const student = students.find(st => st.id === sub.studentId);
+            const studentName = student?.fullName || 'Unknown_Student';
+            const studentId = student?.universityId || 'Unknown_ID';
+            
+            const originalName = sub.fileName || 'file.bin';
+            const ext = originalName.substring(originalName.lastIndexOf('.'));
+            
+            // Clean up name for OS compatibility (remove special chars except space and dash, then replace space with underscore)
+            const safeName = studentName.replace(/[^a-zA-Z0-9\u0600-\u06FF\s-]/g, '').trim().replace(/\s+/g, '_');
+            const newFileName = `${studentId}_${safeName}${ext}`;
+
+            const fileData = sub.fileBase64 || sub.fileUrl;
+            if (fileData && fileData.startsWith('data:')) {
+                const arr = fileData.split(',');
+                const bstr = atob(arr[1]);
+                let n = bstr.length;
+                const u8arr = new Uint8Array(n);
+                while (n--) {
+                    u8arr[n] = bstr.charCodeAt(n);
+                }
+                zip.file(newFileName, u8arr);
+            }
+        }
+        
+        const content = await zip.generateAsync({ type: 'blob' });
+        
+        // Use native ObjectUrl approach (doesn't explicitly need file-saver, clean standard DOM)
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(content);
+        link.download = `${selectedAssignment.title}_Submissions.zip`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        setShowToast(true);
+    } catch (e: any) {
+        console.error('Failed to generate zip', e);
+        setError(lang === 'AR' ? 'حدث خطأ أثناء تجهيز المجلد المضغوط' : 'Failed to create zip file');
+    } finally {
+        setDownloadingZip(false);
+    }
+  };
+
 
   // Bulk grading functions
   const toggleSubmissionSelection = (subId: string) => {
@@ -238,12 +298,31 @@ const AdminGrading: React.FC = () => {
     }
   };
 
-  // File handling functions
+  // Safe file handling
   const handleViewFile = (fileData?: string) => {
     if (!fileData) return;
-    const newWindow = window.open();
-    if (newWindow) {
-      newWindow.document.write(`<iframe src="${fileData}" style="width:100%;height:100%;border:none;"></iframe>`);
+    
+    if (!fileData.startsWith('data:')) {
+        window.open(fileData, '_blank');
+        return;
+    }
+
+    try {
+        // Safe blob conversion to prevent modern browser security blocks on giant URLs
+        const arr = fileData.split(',');
+        const mime = arr[0].match(/:(.*?);/)?.[1] || '';
+        const bstr = atob(arr[1]);
+        let n = bstr.length;
+        const u8arr = new Uint8Array(n);
+        while (n--) {
+            u8arr[n] = bstr.charCodeAt(n);
+        }
+        const blob = new Blob([u8arr], { type: mime });
+        const blobUrl = URL.createObjectURL(blob);
+        window.open(blobUrl, '_blank');
+    } catch (e) {
+        console.error('Failed to view file safely', e);
+        setError(lang === 'AR' ? 'فشل عرض الملف، حاول تنزيله بدلاً من ذلك.' : 'Failed to view file. Please download it instead.');
     }
   };
 
@@ -282,8 +361,8 @@ const AdminGrading: React.FC = () => {
         <SemesterControls />
       </div>
 
-      <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div className="flex items-center gap-3 bg-gray-50 px-4 py-3 rounded-2xl border border-gray-100">
+      <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="flex items-center gap-3 bg-gray-50 px-4 py-3 rounded-2xl border border-gray-100 lg:col-span-1">
           <BookOpen className="text-gray-400" size={20} />
           <select
             className="w-full bg-transparent outline-none font-black text-xs uppercase tracking-widest text-gray-600 cursor-pointer"
@@ -298,7 +377,7 @@ const AdminGrading: React.FC = () => {
           </select>
         </div>
 
-        <div className="flex items-center gap-3 bg-gray-50 px-4 py-3 rounded-2xl border border-gray-100">
+        <div className="flex items-center gap-3 bg-gray-50 px-4 py-3 rounded-2xl border border-gray-100 lg:col-span-1">
           <ClipboardList className="text-gray-400" size={20} />
           <select
             className="w-full bg-transparent outline-none font-black text-xs uppercase tracking-widest text-gray-600 cursor-pointer"
@@ -311,13 +390,25 @@ const AdminGrading: React.FC = () => {
           </select>
         </div>
 
-        <button
-          onClick={exportGrades}
-          disabled={!selectedAssignmentId || filteredSubmissions.length === 0}
-          className="flex items-center justify-center gap-2 bg-emerald-50 text-emerald-600 px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-emerald-600 hover:text-white transition-all disabled:opacity-50 disabled:grayscale disabled:hover:bg-emerald-50 disabled:hover:text-emerald-600"
-        >
-          <Download size={18} /> {lang === 'AR' ? 'تصدير' : 'Export'}
-        </button>
+        {/* Global Export actions for assignment */}
+        <div className="lg:col-span-2 flex items-center justify-end gap-3 flex-wrap">
+            <button
+                onClick={exportGrades}
+                disabled={!selectedAssignmentId || filteredSubmissions.length === 0}
+                className="flex items-center justify-center gap-2 bg-emerald-50 text-emerald-600 px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-emerald-600 hover:text-white transition-all disabled:opacity-50 disabled:grayscale disabled:hover:bg-emerald-50 disabled:hover:text-emerald-600 flex-1 md:flex-none"
+            >
+                <Download size={18} /> {lang === 'AR' ? 'تصدير العلامات' : 'Export Grades'}
+            </button>
+
+            <button
+                onClick={handleDownloadAllFiles}
+                disabled={!selectedAssignmentId || filteredSubmissions.length === 0 || downloadingZip}
+                className="flex items-center justify-center gap-2 bg-indigo-50 text-indigo-600 px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all disabled:opacity-50 disabled:grayscale disabled:hover:bg-indigo-50 disabled:hover:text-indigo-600 flex-1 md:flex-none"
+            >
+                {downloadingZip ? <Loader2 size={18} className="animate-spin" /> : <Archive size={18} />} 
+                {lang === 'AR' ? 'جمع وتحميل المرفقات (Zip)' : 'Download Attachments (ZIP)'}
+            </button>
+        </div>
       </div>
 
       {loading ? (
@@ -491,11 +582,11 @@ const AdminGrading: React.FC = () => {
 
                 {/* Legacy file upload rendering OR global file attachment from mixed mode */}
                 {(gradingModal.fileBase64 || gradingModal.fileUrl) && (
-                  <div className="p-6 bg-blue-50 border border-blue-200/60 rounded-3xl flex items-center justify-between shadow-sm">
+                  <div className="p-6 bg-blue-50 border border-blue-200/60 rounded-3xl flex items-center justify-between shadow-sm flex-wrap gap-4">
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-primary shadow-sm"><FileText size={24} /></div>
-                      <div>
-                        <p className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>{gradingModal.fileName || (lang === 'AR' ? 'ملف مرفق' : 'Attached File')}</p>
+                      <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-primary shadow-sm shrink-0"><FileText size={24} /></div>
+                      <div className="min-w-0">
+                        <p className="font-bold text-sm truncate" style={{ color: 'var(--text-primary)' }}>{gradingModal.fileName || (lang === 'AR' ? 'ملف مرفق' : 'Attached File')}</p>
                         <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">Student Upload</p>
                       </div>
                     </div>
@@ -527,23 +618,21 @@ const AdminGrading: React.FC = () => {
                           <div className="flex-1 space-y-3">
                               <p className="font-bold text-[15px] leading-relaxed" style={{ color: 'var(--text-primary)' }}>{q.text}</p>
                               
-                              {/* Display Answer based on Question Type */}
                               {qType === 'file' ? (
                                   <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
                                       {gradingModal.fileBase64 ? <CheckCircle size={14} className="text-success" /> : <AlertTriangle size={14} className="text-amber-500" />} 
-                                      {lang === 'AR' ? 'مرفقات السؤال معتمدة على الإرفاق العام بالأسفل' : 'Question relies on global file attachment'}
+                                      {lang === 'AR' ? 'مرفقات السؤال معتمدة على الإرفاق العام' : 'Question attached file shown above'}
                                   </div>
                               ) : (
                                   <div className="p-4 bg-gray-50 border border-gray-100 rounded-2xl">
-                                      <p className="text-sm font-bold whitespace-pre-wrap text-gray-900">
+                                      <p className="text-sm font-bold whitespace-pre-wrap text-gray-900 border-l-2 border-primary pl-3">
                                           {studentAnswer || (lang === 'AR' ? '— لم يتم تقديم إجابة —' : '— No answer provided —')}
                                       </p>
                                   </div>
                               )}
 
-                              {/* Show Correct Answer logic if MCQ or True/False */}
                               {(qType === 'mcq' || qType === 'true_false') && q.correctAnswer && (
-                                <div className={`px-4 py-2.5 rounded-xl border text-xs font-black flex items-center gap-2 ${studentAnswer === q.correctAnswer ? 'bg-success/10 border-success/20 text-success' : 'bg-red-500/10 border-red-500/20 text-red-500'}`}>
+                                <div className={`px-4 py-3 rounded-xl border text-xs font-black flex items-center gap-2 mt-2 ${studentAnswer === q.correctAnswer ? 'bg-success/10 border-success/20 text-success' : 'bg-red-500/10 border-red-500/20 text-red-500'}`}>
                                   {studentAnswer === q.correctAnswer ? <CheckCircle size={14} /> : <X size={14} />}
                                   {lang === 'AR' ? 'الإجابة الصحيحة' : 'Correct Answer'}: {q.correctAnswer}
                                 </div>
