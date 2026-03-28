@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../../App';
 import { supabaseService } from '../../supabaseService';
 import { Course, Assignment, Submission, User } from '../../types';
-import { BookOpen, Search, Download, Trash2, CheckCircle, AlertCircle, FileText, User as UserIcon, ExternalLink, Filter, X, Save, Eye, ClipboardList, Check, Sparkles, RefreshCcw, Loader2, AlertTriangle, Archive } from 'lucide-react';
+import { BookOpen, Search, Download, Trash2, CheckCircle, AlertCircle, FileText, User as UserIcon, ExternalLink, Filter, X, Save, Eye, ClipboardList, Check, Sparkles, RefreshCcw, Loader2, AlertTriangle, Archive, Trophy } from 'lucide-react';
 import SemesterControls from '../../components/admin/SemesterControls';
 import * as XLSX from 'xlsx';
 import JSZip from 'jszip'; // Added for Bulk downloading
