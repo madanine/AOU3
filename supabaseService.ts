@@ -908,7 +908,13 @@ export const supabaseService = {
     },
 
     async bulkUpsertExamAnswers(answers: ExamAnswer[]) {
+        if (answers.length === 0) return;
+        const attemptId = answers[0].attemptId;
+        const { data: existing } = await supabase.from('exam_answers').select('id, question_id').eq('attempt_id', attemptId);
+        const existingMap = new Map((existing || []).map((e: any) => [e.question_id, e.id]));
+
         const payloads = answers.map(a => ({
+            id: existingMap.get(a.questionId) || a.id,
             attempt_id: a.attemptId,
             question_id: a.questionId,
             selected_option_id: a.selectedOptionId || null,
@@ -917,12 +923,10 @@ export const supabaseService = {
             is_correct: a.isCorrect ?? null,
             awarded_marks: a.awardedMarks ?? null,
         }));
-        // Use onConflict so re-submits UPDATE the existing row instead of
-        // inserting a duplicate (which would cause getExamAnswers to return
-        // a stale/empty row as the 'first' result for that question).
+        
         const { error } = await supabase
             .from('exam_answers')
-            .upsert(payloads, { onConflict: 'attempt_id,question_id' });
+            .upsert(payloads);
         if (error) throw error;
     },
 

@@ -1131,11 +1131,11 @@ const AdminExams: React.FC = () => {
                                             </div>
                                         </div>
                                     )}
-                                    {q.type === 'matrix' && ans?.matrixSelections && (
+                                    {q.type === 'matrix' && (
                                         <div className="ml-10 overflow-x-auto">
                                             <table className="text-sm border"><thead><tr><th className="border p-2"></th>{q.options?.map(o => <th key={o.id} className="border p-2 text-center">{o.optionText}</th>)}</tr></thead>
                                                 <tbody>{q.matrixRows?.map((row, ri) => (<tr key={ri}><td className="border p-2 font-bold">{row}</td>{q.options?.map(o => {
-                                                    const selectedArr = ans.matrixSelections![ri.toString()] || [];
+                                                    const selectedArr = ans?.matrixSelections?.[ri.toString()] || [];
                                                     const correctArr = q.matrixAnswers?.[ri.toString()] || [];
                                                     const sel = selectedArr.includes(o.id);
                                                     const correct = correctArr.includes(o.id);
