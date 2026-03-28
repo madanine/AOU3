@@ -176,10 +176,10 @@ const Attendance: React.FC = () => {
 
                       <button
                         onClick={() => setSelectedCourse(course.id)}
-                        className="w-full sm:w-auto px-3 md:px-4 py-2 bg-surface hover:bg-surface text-text-primary font-bold text-xs md:text-sm rounded-xl transition-colors flex items-center justify-center gap-1.5"
+                        className="w-full sm:w-auto px-3 md:px-4 py-2 bg-surface border border-border hover:bg-card text-text-primary font-bold text-xs md:text-sm rounded-xl transition-colors flex items-center justify-center gap-1.5"
                       >
                         {lang === 'AR' ? 'التفاصيل' : 'Details'}
-                        <ChevronRight size={14} className={lang === 'AR' ? 'rotate-180 text-text-secondary' : 'text-text-secondary'} />
+                        <ChevronRight size={14} className={lang === 'AR' ? 'rotate-180 text-primary' : 'text-primary'} />
                       </button>
                     </div>
                   </div>

@@ -47,23 +47,36 @@
     }
   </script>
 
-  <style type="text/tailwindcss">
-    @layer utilities {
-      .bg-gold-gradient {
-        background: linear-gradient(135deg, #D4AF37 0%, #C6A54A 50%, #B8922E 100%);
-      }
-      .bg-premium-radial {
-        background-image: radial-gradient(circle at top right, rgba(212,175,55,0.08), transparent 60%);
-      }
+  <style>
+    .bg-gold-gradient {
+      background: linear-gradient(135deg, #D4AF37 0%, #C6A54A 50%, #B8922E 100%);
+    }
+    .bg-premium-radial {
+      background-image: radial-gradient(circle at top right, rgba(212,175,55,0.08), transparent 60%);
+    }
+    .text-title {
+      font-size: 1.5rem;
+      line-height: 2rem;
+      font-weight: 900;
+      color: var(--text-primary);
+    }
+    @media (min-width: 768px) {
       .text-title {
-        @apply text-2xl md:text-3xl font-black text-text-primary;
+        font-size: 1.875rem;
+        line-height: 2.25rem;
       }
-      .text-section {
-        @apply text-xl font-bold text-text-primary;
-      }
-      .text-card {
-        @apply text-lg font-bold text-text-primary;
-      }
+    }
+    .text-section {
+      font-size: 1.25rem;
+      line-height: 1.75rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    .text-card {
+      font-size: 1.125rem;
+      line-height: 1.75rem;
+      font-weight: 700;
+      color: var(--text-primary);
     }
   </style>
 
@@ -223,9 +236,60 @@
       background-color: rgba(212, 175, 55, 0.15) !important;
     }
 
-    /* Proper Color Scheme declaration allows inputs and select to naturally render dark natively */
-    html { color-scheme: light; }
-    html.dark { color-scheme: dark; }
+    /* ── Dark mode: Fix all input/select/textarea text color globally ───────── */
+    /* This is the authoritative fix — white text on dark fields in dark mode */
+    html.dark input,
+    html.dark input[type="text"],
+    html.dark input[type="email"],
+    html.dark input[type="password"],
+    html.dark input[type="tel"],
+    html.dark input[type="number"],
+    html.dark input[type="date"],
+    html.dark input[type="search"],
+    html.dark textarea,
+    html.dark select {
+      color: var(--text-primary) !important;
+      background-color: var(--surface-bg) !important;
+      border-color: var(--border-color) !important;
+    }
+
+    /* Fix option elements inside selects in dark mode */
+    html.dark option {
+      background-color: var(--card-bg);
+      color: var(--text-primary);
+    }
+
+    /* Fix modal containers that use hardcoded bg-white or bg-gray-50 */
+    html.dark .bg-white {
+      background-color: var(--card-bg) !important;
+    }
+    html.dark .bg-gray-50 {
+      background-color: var(--surface-bg) !important;
+    }
+
+    /* Fix text inside modals: headings and labels that may be hardcoded gray */
+    html.dark .text-gray-900 {
+      color: var(--text-primary) !important;
+    }
+    html.dark .text-gray-700,
+    html.dark .text-gray-600 {
+      color: var(--text-secondary) !important;
+    }
+    html.dark .text-gray-400 {
+      color: var(--text-secondary) !important;
+    }
+
+    /* Fix table cells and rows that may lose color in dark mode */
+    html.dark td,
+    html.dark th {
+      color: var(--text-primary);
+    }
+
+    /* Fix border-gray classes */
+    html.dark .border-gray-100,
+    html.dark .border-gray-200 {
+      border-color: var(--border-color) !important;
+    }
 
     /* Badge text on success (green) in dark mode */
     html.dark [class*="bg-success\/"] {

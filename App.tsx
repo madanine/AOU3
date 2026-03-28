@@ -147,6 +147,13 @@ const App: React.FC = () => {
     root.style.setProperty('--secondary', currentTheme.secondary);
     root.style.setProperty('--accent', currentTheme.accent);
 
+    // Add/remove 'dark' class so html.dark CSS rules apply
+    if (isDarkMode) {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+
     localStorage.setItem('aou_dark_mode', isDarkMode.toString());
   }, [isDarkMode, settings.theme, settings.darkTheme]);
 
