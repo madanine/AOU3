@@ -104,21 +104,33 @@ const AdminGrading: React.FC = () => {
   };
 
   const autoGradeMCQ = async () => {
-    if (!selectedAssignment || selectedAssignment.type !== 'mcq') return;
+    if (!selectedAssignment) return;
+    const isOldMcq = selectedAssignment.type === 'mcq';
+    const isMixed = selectedAssignment.type === 'mixed';
+    if (!isOldMcq && !isMixed) return;
 
     try {
       setSaving(true);
       const updated = submissions.map(s => {
         if (s.assignmentId === selectedAssignment.id) {
           let score = 0;
-          selectedAssignment.questions.forEach((q, idx) => {
-            if (q.correctAnswer && s.answers?.[idx] === q.correctAnswer) {
-              score++;
+          let autoGradableCount = 0;
+
+          selectedAssignment.questions?.forEach((q, idx) => {
+            const qType = q.type || selectedAssignment.type;
+            if (qType === 'mcq' || qType === 'true_false') {
+              autoGradableCount++;
+              if (q.correctAnswer && s.answers?.[idx] === q.correctAnswer) {
+                score++;
+              }
             }
           });
+
+          if (autoGradableCount === 0) return s;
+
           // Base the score out of the totalMarks provided
           const maxMarks = selectedAssignment.totalMarks || 20;
-          const finalScore = selectedAssignment.questions.length > 0 ? (score / selectedAssignment.questions.length) * maxMarks : 0;
+          const finalScore = (score / autoGradableCount) * maxMarks;
           return { ...s, grade: `${finalScore.toFixed(1).replace(/\.0$/, '')}/${maxMarks}` };
         }
         return s;
@@ -274,7 +286,7 @@ const AdminGrading: React.FC = () => {
         <div className="flex items-center gap-3 bg-gray-50 px-4 py-3 rounded-2xl border border-gray-100">
           <BookOpen className="text-gray-400" size={20} />
           <select
-            className="w-full bg-transparent outline-none font-black text-xs uppercase tracking-widest text-gray-600"
+            className="w-full bg-transparent outline-none font-black text-xs uppercase tracking-widest text-gray-600 cursor-pointer"
             value={selectedCourseId}
             onChange={e => {
               setSelectedCourseId(e.target.value);
@@ -289,7 +301,7 @@ const AdminGrading: React.FC = () => {
         <div className="flex items-center gap-3 bg-gray-50 px-4 py-3 rounded-2xl border border-gray-100">
           <ClipboardList className="text-gray-400" size={20} />
           <select
-            className="w-full bg-transparent outline-none font-black text-xs uppercase tracking-widest text-gray-600"
+            className="w-full bg-transparent outline-none font-black text-xs uppercase tracking-widest text-gray-600 cursor-pointer"
             value={selectedAssignmentId}
             onChange={e => setSelectedAssignmentId(e.target.value)}
             disabled={!selectedCourseId}
@@ -299,83 +311,91 @@ const AdminGrading: React.FC = () => {
           </select>
         </div>
 
-        <div className="relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-          <input
-            type="text"
-            placeholder={t.search}
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl outline-none font-bold text-xs"
-          />
-        </div>
+        <button
+          onClick={exportGrades}
+          disabled={!selectedAssignmentId || filteredSubmissions.length === 0}
+          className="flex items-center justify-center gap-2 bg-emerald-50 text-emerald-600 px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-emerald-600 hover:text-white transition-all disabled:opacity-50 disabled:grayscale disabled:hover:bg-emerald-50 disabled:hover:text-emerald-600"
+        >
+          <Download size={18} /> {lang === 'AR' ? 'تصدير' : 'Export'}
+        </button>
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-12"><Loader2 className="animate-spin text-primary w-8 h-8" /></div>
+        <div className="flex justify-center py-20"><Loader2 className="animate-spin text-[var(--primary)] w-8 h-8" /></div>
       ) : selectedAssignmentId ? (
-        <div className="space-y-4">
-          {/* Bulk Grading Controls */}
-          {selectedSubmissions.size > 0 && (
-            <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 flex flex-wrap items-center gap-4">
-              <span className="text-sm font-black text-primary">
-                {selectedSubmissions.size} {lang === 'AR' ? 'محدد' : 'selected'}
-              </span>
-              <input
-                type="text"
-                placeholder={lang === 'AR' ? `أدخل الدرجة (مثال: ${selectedAssignment?.totalMarks || 20})` : `Enter grade (e.g. ${selectedAssignment?.totalMarks || 20})`}
-                value={bulkGrade}
-                onChange={e => setBulkGrade(e.target.value)}
-                className="px-4 py-2 bg-white border border-blue-200 rounded-xl outline-none font-bold text-sm flex-1 min-w-[200px]"
-              />
-              <button
-                disabled={saving}
-                onClick={applyBulkGrade}
-                className="px-4 py-2 bg-blue-600 text-white rounded-xl font-black text-xs uppercase hover:bg-blue-700 transition-all disabled:opacity-50 flex items-center gap-2"
-              >
-                {saving && <Loader2 size={14} className="animate-spin" />} {lang === 'AR' ? 'تطبيق على المحدد' : 'Apply to Selected'}
-              </button>
-              <button
-                disabled={saving}
-                onClick={giveFullMarks}
-                className="px-4 py-2 bg-emerald-600 text-white rounded-xl font-black text-xs uppercase hover:bg-emerald-700 transition-all flex items-center gap-2 disabled:opacity-50"
-              >
-                {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />} {lang === 'AR' ? 'درجة كاملة للمحدد' : 'Full Marks'}
-              </button>
-              <button
-                onClick={() => setSelectedSubmissions(new Set())}
-                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-xl font-black text-xs uppercase hover:bg-gray-300 transition-all"
-              >
-                {lang === 'AR' ? 'إلغاء التحديد' : 'Clear'}
-              </button>
+        <div className="space-y-6">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm">
+            <div className="flex items-center gap-4 w-full md:w-auto">
+              <div className="w-12 h-12 bg-primary/10 text-primary rounded-2xl flex items-center justify-center font-black">{filteredSubmissions.length}</div>
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">{lang === 'AR' ? 'إجمالي التسليمات' : 'Total Submissions'}</p>
+                <div className="relative mt-1">
+                  <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+                  <input
+                    type="text"
+                    placeholder={lang === 'AR' ? 'بحث بالاسم أو الرقم...' : 'Search by name or ID...'}
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                    className="w-full pl-4 pr-10 py-1.5 bg-gray-50 border border-gray-200 rounded-lg outline-none text-xs font-bold focus:border-[var(--primary)] transition-colors"
+                  />
+                </div>
+              </div>
             </div>
-          )}
 
-          <div className="flex flex-wrap items-center justify-between px-2 gap-4">
-            <div className="flex items-center gap-4">
-              <h2 className="text-sm font-black text-gray-400 uppercase tracking-widest">
-                {filteredSubmissions.length} {lang === 'AR' ? 'تسليماً' : 'Submissions'}
-              </h2>
-              {selectedAssignment?.type === 'mcq' && (
+            <div className="flex gap-2 flex-wrap w-full md:w-auto">
+              {(selectedAssignment?.type === 'mcq' || selectedAssignment?.type === 'mixed') && (
                 <button
-                  disabled={saving}
+                  disabled={saving || filteredSubmissions.length === 0}
                   onClick={autoGradeMCQ}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 text-primary rounded-xl font-black text-[10px] uppercase border border-purple-100 hover:bg-purple-100 transition-all disabled:opacity-50"
+                  className="flex items-center justify-center gap-2 bg-purple-50 text-purple-600 px-6 py-3 rounded-2xl font-black text-[10px] sm:text-xs uppercase tracking-widest hover:bg-purple-600 hover:text-white transition-all shadow-sm"
                 >
-                  {saving ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />} {lang === 'AR' ? 'تصحيح تلقائي للكل' : 'Auto-grade All'}
+                  {saving ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />} 
+                  {lang === 'AR' ? 'تصحيح تلقائي' : 'Auto Grade'}
                 </button>
               )}
             </div>
-            <button onClick={exportGrades} className="text-[10px] font-black uppercase text-[var(--primary)] flex items-center gap-2 hover:underline">
-              <Download size={14} /> {t.exportExcel}
-            </button>
           </div>
 
-          <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden overflow-x-auto">
-            <table className="w-full text-left">
+          {selectedSubmissions.size > 0 && (
+            <div className="bg-indigo-50 border border-indigo-100 p-4 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4 animate-in slide-in-from-bottom-2">
+              <div className="flex items-center gap-3">
+                <span className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center font-black text-xs">{selectedSubmissions.size}</span>
+                <span className="text-sm font-black text-indigo-900 uppercase tracking-widest">
+                  {lang === 'AR' ? 'طلاب محددين' : 'Students Selected'}
+                </span>
+              </div>
+              <div className="flex items-center gap-3 w-full md:w-auto">
+                <input
+                  type="text"
+                  placeholder={lang === 'AR' ? 'أدخل الدرجة...' : 'Enter grade...'}
+                  value={bulkGrade}
+                  onChange={e => setBulkGrade(e.target.value)}
+                  className="px-4 py-2 bg-white border border-indigo-200 rounded-xl outline-none text-sm font-bold w-32 focus:border-indigo-400 text-center"
+                />
+                <button
+                  disabled={!bulkGrade || saving}
+                  onClick={applyBulkGrade}
+                  className="px-6 py-2 bg-indigo-600 text-white font-black rounded-xl text-xs uppercase tracking-widest hover:bg-indigo-700 transition-all disabled:opacity-50"
+                >
+                  {lang === 'AR' ? 'تطبيق' : 'Apply'}
+                </button>
+                <div className="w-px h-8 bg-indigo-200 mx-1"></div>
+                <button
+                  disabled={saving}
+                  onClick={giveFullMarks}
+                  className="px-6 py-2 bg-amber-400 text-amber-900 font-black rounded-xl text-xs uppercase tracking-widest hover:bg-amber-500 transition-all disabled:opacity-50 flex items-center gap-1 shadow-sm"
+                >
+                  <Trophy size={14} /> {lang === 'AR' ? 'محصلة كاملة' : 'Full Marks'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden auto-hide-scrollbar">
+            <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-gray-50/50 border-b border-gray-100">
-                  <th className="px-6 py-4">
+                <tr className="bg-gray-50 border-b border-gray-100">
+                  <th className="px-6 py-4 font-black uppercase text-[10px] tracking-widest text-gray-400 text-center w-12">
                     <input
                       type="checkbox"
                       checked={selectedSubmissions.size === filteredSubmissions.length && filteredSubmissions.length > 0}
@@ -383,18 +403,18 @@ const AdminGrading: React.FC = () => {
                       className="w-4 h-4 rounded border-gray-300 cursor-pointer"
                     />
                   </th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>{t.fullName}</th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>{lang === 'AR' ? 'التوقيت' : 'Time'}</th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-center" style={{ color: 'var(--text-secondary)' }}>{t.grade}</th>
-                  <th className="px-6 py-4"></th>
+                  <th className="px-6 py-4 font-black uppercase text-[10px] tracking-widest text-gray-400">{t.student}</th>
+                  <th className="px-6 py-4 font-black uppercase text-[10px] tracking-widest text-gray-400">{lang === 'AR' ? 'تاريخ التسليم' : 'Submitted At'}</th>
+                  <th className="px-6 py-4 font-black uppercase text-[10px] tracking-widest text-gray-400 text-center">{t.grade}</th>
+                  <th className="px-6 py-4 font-black uppercase text-[10px] tracking-widest text-gray-400 text-right">{t.action}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {filteredSubmissions.map(sub => {
                   const student = students.find(s => s.id === sub.studentId);
                   return (
-                    <tr key={sub.id} className="hover:bg-blue-50/20 transition-colors group">
-                      <td className="px-6 py-4">
+                    <tr key={sub.id} className={`hover:bg-slate-50 transition-colors ${selectedSubmissions.has(sub.id) ? 'bg-indigo-50/30' : ''}`}>
+                      <td className="px-6 py-4 text-center">
                         <input
                           type="checkbox"
                           checked={selectedSubmissions.has(sub.id)}
@@ -444,15 +464,18 @@ const AdminGrading: React.FC = () => {
       {/* Grading Modal */}
       {gradingModal && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 overflow-y-auto max-h-[90vh]">
-            <div className="p-8 border-b flex justify-between items-center bg-white sticky top-0 z-10">
-              <h2 className="text-xl font-black" style={{ color: 'var(--text-primary)' }}>{lang === 'AR' ? 'رصد درجة الطالب' : 'Student Grading'}</h2>
-              <button onClick={() => setGradingModal(null)} className="text-gray-400 hover:text-gray-600"><X size={24} /></button>
+          <div className="bg-white w-full max-w-3xl rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 overflow-y-auto max-h-[90vh] flex flex-col">
+            <div className="p-8 border-b flex justify-between items-center bg-white sticky top-0 z-10 shrink-0">
+              <div>
+                <h2 className="text-xl font-black" style={{ color: 'var(--text-primary)' }}>{lang === 'AR' ? 'رصد درجة الطالب' : 'Student Grading'}</h2>
+                <p className="text-xs font-bold text-gray-400 mt-1">{selectedAssignment?.title}</p>
+              </div>
+              <button onClick={() => setGradingModal(null)} className="w-10 h-10 bg-gray-50 border border-gray-100 rounded-xl flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 hover:border-red-200 transition-all"><X size={20} /></button>
             </div>
 
-            <div className="p-8 space-y-8">
-              <div className="flex items-center gap-4 p-6 bg-slate-50 rounded-3xl border border-slate-100">
-                <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-[var(--primary)] shadow-sm font-black text-2xl">
+            <div className="p-8 flex-1 overflow-y-auto space-y-8 bg-gray-50/50">
+              <div className="flex items-center gap-4 p-6 bg-white rounded-3xl border border-gray-100 shadow-sm">
+                <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center text-[var(--primary)] shadow-sm font-black text-2xl">
                   {students.find(s => s.id === gradingModal.studentId)?.fullName.charAt(0)}
                 </div>
                 <div>
@@ -461,93 +484,122 @@ const AdminGrading: React.FC = () => {
                 </div>
               </div>
 
-              <div className="space-y-4">
-                <h4 className="text-[10px] font-black uppercase tracking-widest ml-1" style={{ color: 'var(--text-secondary)' }}>{lang === 'AR' ? 'المحتوى المُسلم' : 'Submitted Content'}</h4>
+              <div className="space-y-6">
+                <h4 className="text-[10px] font-black uppercase tracking-widest ml-1" style={{ color: 'var(--text-secondary)' }}>
+                  {lang === 'AR' ? 'المحتوى المُسلم' : 'Submitted Content'}
+                </h4>
 
-                {selectedAssignment?.type === 'file' && (
-                  <div className="p-6 bg-blue-50/50 border border-blue-100 rounded-3xl flex items-center justify-between">
+                {/* Legacy file upload rendering OR global file attachment from mixed mode */}
+                {(gradingModal.fileBase64 || gradingModal.fileUrl) && (
+                  <div className="p-6 bg-blue-50 border border-blue-200/60 rounded-3xl flex items-center justify-between shadow-sm">
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-primary shadow-sm"><FileText size={24} /></div>
-                      <p className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>{gradingModal.fileName || (lang === 'AR' ? 'ملف مرفق' : 'Attached File')}</p>
+                      <div>
+                        <p className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>{gradingModal.fileName || (lang === 'AR' ? 'ملف مرفق' : 'Attached File')}</p>
+                        <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">Student Upload</p>
+                      </div>
                     </div>
                     <div className="flex gap-2">
                       <button
                         onClick={() => handleViewFile(gradingModal.fileBase64 || gradingModal.fileUrl)}
-                        className="px-6 py-2 bg-white border border-blue-200 text-primary font-black rounded-xl text-[10px] uppercase tracking-widest hover:bg-blue-50 transition-all flex items-center gap-2"
+                        className="px-5 py-2.5 bg-white border border-blue-200 text-primary font-black rounded-xl text-[10px] uppercase tracking-widest hover:bg-blue-100 transition-all flex items-center gap-2"
                       >
                         <Eye size={14} /> {lang === 'AR' ? 'عرض' : 'View'}
                       </button>
                       <button
                         onClick={() => handleDownloadFile(gradingModal.fileBase64 || gradingModal.fileUrl, gradingModal.fileName)}
-                        className="px-6 py-2 bg-blue-600 text-white font-black rounded-xl text-[10px] uppercase tracking-widest hover:bg-blue-700 transition-all flex items-center gap-2"
+                        className="px-5 py-2.5 bg-primary text-white font-black rounded-xl text-[10px] uppercase tracking-widest hover:brightness-110 transition-all flex items-center gap-2 shadow-sm"
                       >
-                        <Download size={14} /> {lang === 'AR' ? 'تحميل' : 'Download'}
+                        <Download size={14} /> {lang === 'AR' ? 'تنزيل' : 'Download'}
                       </button>
                     </div>
                   </div>
                 )}
 
-                {(selectedAssignment?.type === 'mcq' || selectedAssignment?.type === 'essay') && (
-                  <div className="space-y-6">
-                    {selectedAssignment.questions.map((q, idx) => (
-                      <div key={q.id} className="p-6 bg-gray-50 rounded-3xl border border-gray-100 space-y-3">
+                {selectedAssignment?.questions?.map((q, idx) => {
+                    const qType = q.type || selectedAssignment.type;
+                    const studentAnswer = gradingModal.answers?.[idx] || '';
+
+                    return (
+                      <div key={q.id} className="p-6 bg-white rounded-3xl border border-gray-100 shadow-sm space-y-4">
                         <div className="flex items-start gap-4">
-                          <span className="w-6 h-6 rounded-lg bg-gray-200 text-gray-500 flex items-center justify-center text-[10px] font-black mt-1">{idx + 1}</span>
-                          <p className="font-bold text-sm leading-relaxed" style={{ color: 'var(--text-primary)' }}>{q.text}</p>
-                        </div>
-                        <div className="pl-10">
-                          <div className="p-4 bg-white border border-gray-100 rounded-2xl text-sm font-medium text-gray-700">
-                            {gradingModal.answers?.[idx] || (lang === 'AR' ? 'لم يتم تقديم إجابة' : 'No answer provided')}
+                          <span className="w-8 h-8 rounded-xl bg-gray-100 text-gray-500 flex items-center justify-center text-sm font-black mt-0.5 shrink-0">{idx + 1}</span>
+                          <div className="flex-1 space-y-3">
+                              <p className="font-bold text-[15px] leading-relaxed" style={{ color: 'var(--text-primary)' }}>{q.text}</p>
+                              
+                              {/* Display Answer based on Question Type */}
+                              {qType === 'file' ? (
+                                  <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                                      {gradingModal.fileBase64 ? <CheckCircle size={14} className="text-success" /> : <AlertTriangle size={14} className="text-amber-500" />} 
+                                      {lang === 'AR' ? 'مرفقات السؤال معتمدة على الإرفاق العام بالأسفل' : 'Question relies on global file attachment'}
+                                  </div>
+                              ) : (
+                                  <div className="p-4 bg-gray-50 border border-gray-100 rounded-2xl">
+                                      <p className="text-sm font-bold whitespace-pre-wrap text-gray-900">
+                                          {studentAnswer || (lang === 'AR' ? '— لم يتم تقديم إجابة —' : '— No answer provided —')}
+                                      </p>
+                                  </div>
+                              )}
+
+                              {/* Show Correct Answer logic if MCQ or True/False */}
+                              {(qType === 'mcq' || qType === 'true_false') && q.correctAnswer && (
+                                <div className={`px-4 py-2.5 rounded-xl border text-xs font-black flex items-center gap-2 ${studentAnswer === q.correctAnswer ? 'bg-success/10 border-success/20 text-success' : 'bg-red-500/10 border-red-500/20 text-red-500'}`}>
+                                  {studentAnswer === q.correctAnswer ? <CheckCircle size={14} /> : <X size={14} />}
+                                  {lang === 'AR' ? 'الإجابة الصحيحة' : 'Correct Answer'}: {q.correctAnswer}
+                                </div>
+                              )}
                           </div>
-                          {selectedAssignment.type === 'mcq' && q.correctAnswer && (
-                            <p className={`text-[10px] font-black uppercase tracking-widest mt-2 ${gradingModal.answers?.[idx] === q.correctAnswer ? 'text-success' : 'text-red-500'}`}>
-                              {lang === 'AR' ? 'الإجابة الصحيحة' : 'Correct'}: {q.correctAnswer}
-                            </p>
-                          )}
                         </div>
                       </div>
-                    ))}
-                  </div>
-                )}
+                    )
+                })}
               </div>
+            </div>
 
-              <div className="pt-8 border-t border-gray-100 space-y-4">
+            <div className="p-8 border-t border-gray-100 space-y-4 bg-white shrink-0 shadow-[0_-10px_40px_rgba(0,0,0,0.03)] focus-within:ring-4 focus-within:ring-primary/5 transition-all">
                 <div className="space-y-1">
                   <div className="flex justify-between items-center mb-1">
-                    <label className="text-[10px] font-black uppercase ml-1" style={{ color: 'var(--text-secondary)' }}>{t.grade} (من {selectedAssignment?.totalMarks || 20})</label>
-                    {selectedAssignment?.type === 'mcq' && (
-                      <button
+                    <label className="text-[10px] font-black uppercase text-gray-400 ml-1 tracking-widest">{t.grade} (من {selectedAssignment?.totalMarks || 20})</label>
+                    <button
+                        type="button"
                         onClick={() => {
-                          let score = 0;
-                          selectedAssignment.questions.forEach((q, idx) => {
-                            if (q.correctAnswer && gradingModal.answers?.[idx] === q.correctAnswer) score++;
-                          });
-                          const maxMarks = selectedAssignment.totalMarks || 20;
-                          const finalScore = selectedAssignment.questions.length > 0 ? (score / selectedAssignment.questions.length) * maxMarks : 0;
-                          setNewGrade(`${finalScore.toFixed(1).replace(/\.0$/, '')}/${maxMarks}`);
+                            let score = 0;
+                            let autoGradableCount = 0;
+                            selectedAssignment?.questions?.forEach((q, idx) => {
+                                const qType = q.type || selectedAssignment.type;
+                                if (qType === 'mcq' || qType === 'true_false') {
+                                    autoGradableCount++;
+                                    if (q.correctAnswer && gradingModal.answers?.[idx] === q.correctAnswer) {
+                                        score++;
+                                    }
+                                }
+                            });
+                            
+                            const maxMarks = selectedAssignment?.totalMarks || 20;
+                            const finalScore = autoGradableCount > 0 ? (score / autoGradableCount) * maxMarks : 0;
+                            setNewGrade(`${finalScore.toFixed(1).replace(/\.0$/, '')}/${maxMarks}`);
                         }}
-                        className="text-[10px] font-black text-purple-500 flex items-center gap-1 hover:underline"
-                      >
-                        <RefreshCcw size={12} /> {lang === 'AR' ? 'حساب الدرجة' : 'Calculate'}
-                      </button>
-                    )}
+                        className="text-[10px] font-black text-purple-600 flex items-center gap-1.5 hover:underline px-3 py-1.5 bg-purple-50 rounded-lg"
+                    >
+                        <RefreshCcw size={12} /> {lang === 'AR' ? 'حساب الدرجة التلقائية' : 'Calculate Objective'}
+                    </button>
                   </div>
                   <input
                     type="text"
-                    placeholder={`e.g. ${selectedAssignment?.totalMarks || 20}/${selectedAssignment?.totalMarks || 20}`}
+                    required
+                    placeholder={lang === 'AR' ? `مثال: ${selectedAssignment?.totalMarks || 20}/${selectedAssignment?.totalMarks || 20}` : `e.g. ${selectedAssignment?.totalMarks || 20}/${selectedAssignment?.totalMarks || 20}`}
                     value={newGrade}
                     onChange={e => setNewGrade(e.target.value)}
-                    className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none font-black text-sm"
+                    className="w-full px-6 py-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none font-black text-lg focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                   />
                 </div>
                 <button
-                  disabled={saving}
+                  disabled={saving || !newGrade}
                   onClick={saveGrade}
-                  className="w-full py-5 bg-[var(--primary)] text-white font-black rounded-3xl shadow-xl flex items-center justify-center gap-2 uppercase text-xs tracking-widest hover:brightness-110 active:scale-[0.98] transition-all disabled:opacity-50"
+                  className="w-full py-5 bg-[var(--primary)] text-white font-black rounded-2xl shadow-premium flex items-center justify-center gap-2 uppercase text-xs tracking-widest hover:shadow-premium-hover active:scale-[0.98] transition-all disabled:opacity-50 disabled:grayscale"
                 >
                   {saving ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} />} {lang === 'AR' ? 'رصد وحفظ' : 'Submit Grade'}
                 </button>
-              </div>
             </div>
           </div>
         </div>

@@ -126,10 +126,13 @@ export interface Semester {
   createdAt: string;
 }
 
-export type AssignmentType = 'file' | 'mcq' | 'essay';
+export type AssignmentType = 'file' | 'mcq' | 'essay' | 'mixed';
+
+export type AssignmentQuestionType = 'mcq' | 'true_false' | 'essay' | 'file';
 
 export interface Question {
   id: string;
+  type?: AssignmentQuestionType; // Optional for backwards compatibility
   text: string;
   options?: string[];
   correctAnswer?: string;
