@@ -1,9 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../App';
-import { storage } from '../../storage';
+import { supabaseService } from '../../supabaseService';
 import { Course, Assignment, Submission, User } from '../../types';
-import { BookOpen, Search, Download, Trash2, CheckCircle, AlertCircle, FileText, User as UserIcon, ExternalLink, Filter, X, Save, Eye, ClipboardList, Check, Sparkles, RefreshCcw } from 'lucide-react';
+import { BookOpen, Search, Download, Trash2, CheckCircle, AlertCircle, FileText, User as UserIcon, ExternalLink, Filter, X, Save, Eye, ClipboardList, Check, Sparkles, RefreshCcw, Loader2, AlertTriangle } from 'lucide-react';
 import SemesterControls from '../../components/admin/SemesterControls';
 import * as XLSX from 'xlsx';
 
@@ -18,6 +17,10 @@ const AdminGrading: React.FC = () => {
   const [selectedAssignmentId, setSelectedAssignmentId] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState('');
 
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+
   const [gradingModal, setGradingModal] = useState<Submission | null>(null);
   const [newGrade, setNewGrade] = useState('');
   const [showToast, setShowToast] = useState(false);
@@ -29,16 +32,43 @@ const AdminGrading: React.FC = () => {
   const activeSemId = settings.activeSemesterId || 'sem-default';
 
   useEffect(() => {
-    let filteredCourses = storage.getCourses().filter(c => c.semesterId === activeSemId);
-
-    if (user?.role === 'supervisor') {
-      filteredCourses = filteredCourses.filter(c => user.assignedCourses?.includes(c.id));
+    let timeout: any;
+    if (showToast || error) {
+      timeout = setTimeout(() => {
+        setShowToast(false);
+        setError('');
+      }, 5000);
     }
+    return () => clearTimeout(timeout);
+  }, [showToast, error]);
 
-    setCourses(filteredCourses);
-    setAssignments(storage.getAssignments().filter(a => a.semesterId === activeSemId));
-    setSubmissions(storage.getSubmissions());
-    setStudents(storage.getUsers().filter(u => u.role === 'student'));
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [allCourses, allAssignments, allSubmissions, allUsers] = await Promise.all([
+          supabaseService.getCourses(),
+          supabaseService.getAssignments(),
+          supabaseService.getSubmissions(),
+          supabaseService.getUsers()
+        ]);
+
+        let filteredCourses = allCourses.filter(c => c.semesterId === activeSemId);
+        if (user?.role === 'supervisor') {
+          filteredCourses = filteredCourses.filter(c => user.assignedCourses?.includes(c.id));
+        }
+
+        setCourses(filteredCourses);
+        setAssignments(allAssignments.filter(a => a.semesterId === activeSemId));
+        setSubmissions(allSubmissions);
+        setStudents(allUsers.filter(u => u.role === 'student'));
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
   }, [activeSemId, user]);
 
   const assignmentSubmissions = submissions.filter(s => s.assignmentId === selectedAssignmentId);
@@ -56,38 +86,54 @@ const AdminGrading: React.FC = () => {
     setNewGrade(sub.grade || '');
   };
 
-  const saveGrade = () => {
+  const saveGrade = async () => {
     if (!gradingModal) return;
-    const updated = submissions.map(s =>
-      s.id === gradingModal.id ? { ...s, grade: newGrade } : s
-    );
-    storage.setSubmissions(updated);
-    setSubmissions(updated);
-    setGradingModal(null);
-    setShowToast(true);
-    setTimeout(() => setShowToast(false), 3000);
+    try {
+      setSaving(true);
+      const updatedSub = { ...gradingModal, grade: newGrade };
+      await supabaseService.upsertSubmission(updatedSub);
+      
+      setSubmissions(prev => prev.map(s => s.id === gradingModal.id ? updatedSub : s));
+      setGradingModal(null);
+      setShowToast(true);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const autoGradeMCQ = () => {
+  const autoGradeMCQ = async () => {
     if (!selectedAssignment || selectedAssignment.type !== 'mcq') return;
 
-    const updated = submissions.map(s => {
-      if (s.assignmentId === selectedAssignment.id) {
-        let score = 0;
-        selectedAssignment.questions.forEach((q, idx) => {
-          if (q.correctAnswer && s.answers?.[idx] === q.correctAnswer) {
-            score++;
-          }
-        });
-        return { ...s, grade: `${score}/${selectedAssignment.questions.length}` };
-      }
-      return s;
-    });
+    try {
+      setSaving(true);
+      const updated = submissions.map(s => {
+        if (s.assignmentId === selectedAssignment.id) {
+          let score = 0;
+          selectedAssignment.questions.forEach((q, idx) => {
+            if (q.correctAnswer && s.answers?.[idx] === q.correctAnswer) {
+              score++;
+            }
+          });
+          // Base the score out of the totalMarks provided
+          const maxMarks = selectedAssignment.totalMarks || 20;
+          const finalScore = selectedAssignment.questions.length > 0 ? (score / selectedAssignment.questions.length) * maxMarks : 0;
+          return { ...s, grade: `${finalScore.toFixed(1).replace(/\.0$/, '')}/${maxMarks}` };
+        }
+        return s;
+      });
 
-    storage.setSubmissions(updated);
-    setSubmissions(updated);
-    setShowToast(true);
-    setTimeout(() => setShowToast(false), 3000);
+      const toUpsert = updated.filter(s => s.assignmentId === selectedAssignment.id);
+      await supabaseService.bulkUpsertSubmissions(toUpsert);
+
+      setSubmissions(updated);
+      setShowToast(true);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const exportGrades = () => {
@@ -126,31 +172,58 @@ const AdminGrading: React.FC = () => {
     }
   };
 
-  const applyBulkGrade = () => {
+  const applyBulkGrade = async () => {
     if (!bulkGrade || selectedSubmissions.size === 0) return;
 
-    const updated = submissions.map(s =>
-      selectedSubmissions.has(s.id) ? { ...s, grade: bulkGrade } : s
-    );
-    storage.setSubmissions(updated);
-    setSubmissions(updated);
-    setSelectedSubmissions(new Set());
-    setBulkGrade('');
-    setShowToast(true);
-    setTimeout(() => setShowToast(false), 3000);
+    try {
+      setSaving(true);
+      const toUpsert: Submission[] = [];
+      const updated = submissions.map(s => {
+        if (selectedSubmissions.has(s.id)) {
+          const up = { ...s, grade: bulkGrade };
+          toUpsert.push(up);
+          return up;
+        }
+        return s;
+      });
+
+      await supabaseService.bulkUpsertSubmissions(toUpsert);
+      setSubmissions(updated);
+      setSelectedSubmissions(new Set());
+      setBulkGrade('');
+      setShowToast(true);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const giveFullMarks = () => {
-    if (selectedSubmissions.size === 0) return;
+  const giveFullMarks = async () => {
+    if (selectedSubmissions.size === 0 || !selectedAssignment) return;
+    const maxMarks = selectedAssignment.totalMarks || 20;
 
-    const updated = submissions.map(s =>
-      selectedSubmissions.has(s.id) ? { ...s, grade: '20/20' } : s
-    );
-    storage.setSubmissions(updated);
-    setSubmissions(updated);
-    setSelectedSubmissions(new Set());
-    setShowToast(true);
-    setTimeout(() => setShowToast(false), 3000);
+    try {
+      setSaving(true);
+      const toUpsert: Submission[] = [];
+      const updated = submissions.map(s => {
+        if (selectedSubmissions.has(s.id)) {
+          const up = { ...s, grade: `${maxMarks}/${maxMarks}` };
+          toUpsert.push(up);
+          return up;
+        }
+        return s;
+      });
+
+      await supabaseService.bulkUpsertSubmissions(toUpsert);
+      setSubmissions(updated);
+      setSelectedSubmissions(new Set());
+      setShowToast(true);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   // File handling functions
@@ -178,6 +251,14 @@ const AdminGrading: React.FC = () => {
         <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[300] bg-success text-white px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-2 animate-in slide-in-from-top-4">
           <CheckCircle size={18} />
           <span className="font-black text-xs uppercase tracking-widest">{t.changesApplied}</span>
+        </div>
+      )}
+
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/20 text-red-500 px-4 py-3 rounded-2xl flex items-center gap-2">
+          <AlertTriangle size={18} />
+          {error}
+          <button onClick={() => setError('')} className="ml-auto font-bold"><X size={18} /></button>
         </div>
       )}
 
@@ -230,7 +311,9 @@ const AdminGrading: React.FC = () => {
         </div>
       </div>
 
-      {selectedAssignmentId ? (
+      {loading ? (
+        <div className="flex justify-center py-12"><Loader2 className="animate-spin text-primary w-8 h-8" /></div>
+      ) : selectedAssignmentId ? (
         <div className="space-y-4">
           {/* Bulk Grading Controls */}
           {selectedSubmissions.size > 0 && (
@@ -240,23 +323,24 @@ const AdminGrading: React.FC = () => {
               </span>
               <input
                 type="text"
-                placeholder={lang === 'AR' ? 'أدخل الدرجة (مثال: 95/100)' : 'Enter grade (e.g. 95/100)'}
+                placeholder={lang === 'AR' ? `أدخل الدرجة (مثال: ${selectedAssignment?.totalMarks || 20})` : `Enter grade (e.g. ${selectedAssignment?.totalMarks || 20})`}
                 value={bulkGrade}
                 onChange={e => setBulkGrade(e.target.value)}
                 className="px-4 py-2 bg-white border border-blue-200 rounded-xl outline-none font-bold text-sm flex-1 min-w-[200px]"
               />
               <button
+                disabled={saving}
                 onClick={applyBulkGrade}
-                className="px-4 py-2 bg-blue-600 text-white rounded-xl font-black text-xs uppercase hover:bg-blue-700 transition-all"
+                className="px-4 py-2 bg-blue-600 text-white rounded-xl font-black text-xs uppercase hover:bg-blue-700 transition-all disabled:opacity-50 flex items-center gap-2"
               >
-                {lang === 'AR' ? 'تطبيق على المحدد' : 'Apply to Selected'}
+                {saving && <Loader2 size={14} className="animate-spin" />} {lang === 'AR' ? 'تطبيق على المحدد' : 'Apply to Selected'}
               </button>
               <button
+                disabled={saving}
                 onClick={giveFullMarks}
-                className="px-4 py-2 bg-emerald-600 text-white rounded-xl font-black text-xs uppercase hover:bg-emerald-700 transition-all flex items-center gap-2"
+                className="px-4 py-2 bg-emerald-600 text-white rounded-xl font-black text-xs uppercase hover:bg-emerald-700 transition-all flex items-center gap-2 disabled:opacity-50"
               >
-                <Check size={14} />
-                {lang === 'AR' ? 'درجة كاملة للمحدد' : 'Full Marks'}
+                {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />} {lang === 'AR' ? 'درجة كاملة للمحدد' : 'Full Marks'}
               </button>
               <button
                 onClick={() => setSelectedSubmissions(new Set())}
@@ -274,11 +358,11 @@ const AdminGrading: React.FC = () => {
               </h2>
               {selectedAssignment?.type === 'mcq' && (
                 <button
+                  disabled={saving}
                   onClick={autoGradeMCQ}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 text-primary rounded-xl font-black text-[10px] uppercase border border-purple-100 hover:bg-purple-100 transition-all"
+                  className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 text-primary rounded-xl font-black text-[10px] uppercase border border-purple-100 hover:bg-purple-100 transition-all disabled:opacity-50"
                 >
-                  <Sparkles size={14} />
-                  {lang === 'AR' ? 'تصحيح تلقائي للكل' : 'Auto-grade All'}
+                  {saving ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />} {lang === 'AR' ? 'تصحيح تلقائي للكل' : 'Auto-grade All'}
                 </button>
               )}
             </div>
@@ -430,7 +514,7 @@ const AdminGrading: React.FC = () => {
               <div className="pt-8 border-t border-gray-100 space-y-4">
                 <div className="space-y-1">
                   <div className="flex justify-between items-center mb-1">
-                    <label className="text-[10px] font-black uppercase ml-1" style={{ color: 'var(--text-secondary)' }}>{t.grade}</label>
+                    <label className="text-[10px] font-black uppercase ml-1" style={{ color: 'var(--text-secondary)' }}>{t.grade} (من {selectedAssignment?.totalMarks || 20})</label>
                     {selectedAssignment?.type === 'mcq' && (
                       <button
                         onClick={() => {
@@ -438,7 +522,9 @@ const AdminGrading: React.FC = () => {
                           selectedAssignment.questions.forEach((q, idx) => {
                             if (q.correctAnswer && gradingModal.answers?.[idx] === q.correctAnswer) score++;
                           });
-                          setNewGrade(`${score}/${selectedAssignment.questions.length}`);
+                          const maxMarks = selectedAssignment.totalMarks || 20;
+                          const finalScore = selectedAssignment.questions.length > 0 ? (score / selectedAssignment.questions.length) * maxMarks : 0;
+                          setNewGrade(`${finalScore.toFixed(1).replace(/\.0$/, '')}/${maxMarks}`);
                         }}
                         className="text-[10px] font-black text-purple-500 flex items-center gap-1 hover:underline"
                       >
@@ -448,17 +534,18 @@ const AdminGrading: React.FC = () => {
                   </div>
                   <input
                     type="text"
-                    placeholder="e.g. 95/100"
+                    placeholder={`e.g. ${selectedAssignment?.totalMarks || 20}/${selectedAssignment?.totalMarks || 20}`}
                     value={newGrade}
                     onChange={e => setNewGrade(e.target.value)}
                     className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none font-black text-sm"
                   />
                 </div>
                 <button
+                  disabled={saving}
                   onClick={saveGrade}
-                  className="w-full py-5 bg-[var(--primary)] text-white font-black rounded-3xl shadow-xl flex items-center justify-center gap-2 uppercase text-xs tracking-widest hover:brightness-110 active:scale-[0.98] transition-all"
+                  className="w-full py-5 bg-[var(--primary)] text-white font-black rounded-3xl shadow-xl flex items-center justify-center gap-2 uppercase text-xs tracking-widest hover:brightness-110 active:scale-[0.98] transition-all disabled:opacity-50"
                 >
-                  <Save size={20} /> {lang === 'AR' ? 'رصد وحفظ' : 'Submit Grade'}
+                  {saving ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} />} {lang === 'AR' ? 'رصد وحفظ' : 'Submit Grade'}
                 </button>
               </div>
             </div>

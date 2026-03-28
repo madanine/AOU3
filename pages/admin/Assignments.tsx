@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../App';
-import { storage } from '../../storage';
+import { supabaseService } from '../../supabaseService';
 import { Course, Assignment, Question } from '../../types';
-import { Plus, Edit3, Trash2, X, Save, ClipboardList, BookOpen, Clock, Trash, AlertCircle, FileText, CheckCircle2 } from 'lucide-react';
+import { Plus, Edit3, Trash2, X, Save, ClipboardList, BookOpen, Clock, AlertTriangle, FileText, CheckCircle2, Loader2, CheckCircle } from 'lucide-react';
 import SemesterControls from '../../components/admin/SemesterControls';
 
 const AdminAssignments: React.FC = () => {
@@ -13,27 +13,62 @@ const AdminAssignments: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [confirmModal, setConfirmModal] = useState<{ message: string; onConfirm: () => void } | null>(null);
+
   const [formData, setFormData] = useState<Partial<Assignment>>({
     title: '',
     subtitle: '',
     type: 'file',
     deadline: new Date(Date.now() + 86400000 * 7).toISOString().slice(0, 16),
     questions: [],
-    showResults: true
+    showResults: true,
+    totalMarks: 20
   });
 
   const activeSemId = settings.activeSemesterId || 'sem-default';
 
   useEffect(() => {
-    let filteredCourses = storage.getCourses().filter(c => c.semesterId === activeSemId);
-
-    if (user?.role === 'supervisor') {
-      filteredCourses = filteredCourses.filter(c => user.assignedCourses?.includes(c.id));
+    let timeout: any;
+    if (success || error) {
+      timeout = setTimeout(() => {
+        setSuccess('');
+        setError('');
+      }, 5000);
     }
+    return () => clearTimeout(timeout);
+  }, [success, error]);
 
-    setCourses(filteredCourses);
-    setAssignments(storage.getAssignments());
-  }, [activeSemId, user]);
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [allCourses, allAssignments] = await Promise.all([
+          supabaseService.getCourses(),
+          supabaseService.getAssignments()
+        ]);
+        
+        let filteredCourses = allCourses.filter(c => c.semesterId === activeSemId);
+        if (user?.role === 'supervisor') {
+          filteredCourses = filteredCourses.filter(c => user.assignedCourses?.includes(c.id));
+        }
+        setCourses(filteredCourses);
+        setAssignments(allAssignments);
+        
+        if (!selectedCourseId && filteredCourses.length > 0) {
+            setSelectedCourseId(filteredCourses[0].id);
+        }
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [activeSemId, user, selectedCourseId]);
 
   const courseAssignments = assignments.filter(a => a.courseId === selectedCourseId && a.semesterId === activeSemId);
 
@@ -45,36 +80,35 @@ const AdminAssignments: React.FC = () => {
       type: 'file',
       deadline: new Date(Date.now() + 86400000 * 7).toISOString().slice(0, 16),
       questions: [],
-      showResults: true
+      showResults: true,
+      totalMarks: 20
     });
     setIsModalOpen(true);
   };
 
   const openEdit = (a: Assignment) => {
     setEditingId(a.id);
-    setFormData({ ...a, deadline: new Date(a.deadline).toISOString().slice(0, 16) });
+    setFormData({ ...a, deadline: new Date(a.deadline).toISOString().slice(0, 16), totalMarks: a.totalMarks || 20 });
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
-    const confirmMsg = lang === 'AR' ? 'هل أنت متأكد من حذف هذا التكليف؟' : 'Are you sure you want to delete this assignment?';
-    if (window.confirm(confirmMsg)) {
-      try {
-        await storage.deleteAssignment(id);
-        const next = assignments.filter(a => a.id !== id);
-        setAssignments(next);
-
-        const subs = storage.getSubmissions();
-        storage.setSubmissions(subs.filter(s => s.assignmentId !== id));
-      } catch (error) {
-        console.error('Failed to delete assignment:', error);
-        alert(lang === 'AR' ? 'فشل حذف التكليف' : 'Failed to delete assignment');
+  const handleDelete = (id: string) => {
+    setConfirmModal({
+      message: lang === 'AR' ? 'هل أنت متأكد من حذف هذا التكليف؟ سيتم حذف جميع إجابات الطلاب المرتبطة به.' : 'Are you sure you want to delete this assignment? All related student submissions will also be deleted.',
+      onConfirm: async () => {
+        try {
+          await supabaseService.deleteAssignment(id);
+          setAssignments(assignments.filter(a => a.id !== id));
+          setSuccess(lang === 'AR' ? 'تم الحذف بنجاح' : 'Deleted successfully');
+        } catch (err: any) {
+          setError(err.message);
+        }
       }
-    }
+    });
   };
 
   const handleAddQuestion = () => {
-    const q: Question = { id: Math.random().toString(36).substring(7), text: '', options: ['', '', '', ''], correctAnswer: '' };
+    const q: Question = { id: crypto.randomUUID(), text: '', options: ['', '', '', ''], correctAnswer: '' };
     setFormData({ ...formData, questions: [...(formData.questions || []), q] });
   };
 
@@ -95,6 +129,8 @@ const AdminAssignments: React.FC = () => {
     if (!selectedCourseId) return;
 
     try {
+      setSaving(true);
+      setError('');
       const finalDeadline = new Date(formData.deadline || '').toISOString();
 
       if (editingId) {
@@ -105,11 +141,11 @@ const AdminAssignments: React.FC = () => {
           deadline: finalDeadline
         } as Assignment;
 
-        await storage.saveAssignment(updated);
-        const next = assignments.map(a => a.id === editingId ? updated : a);
-        setAssignments(next);
+        await supabaseService.updateAssignment(editingId, updated);
+        setAssignments(assignments.map(a => a.id === editingId ? updated : a));
+        setSuccess(lang === 'AR' ? 'تم تحديث التكليف بنجاح' : 'Assignment updated successfully');
       } else {
-        // Create new with proper UUID
+        // Create new
         const newAssignment: Assignment = {
           id: crypto.randomUUID(),
           courseId: selectedCourseId,
@@ -120,19 +156,27 @@ const AdminAssignments: React.FC = () => {
           type: formData.type || 'file',
           questions: formData.questions || [],
           showResults: formData.showResults ?? true,
-          deadline: finalDeadline
+          deadline: finalDeadline,
+          totalMarks: formData.totalMarks || 20
         };
 
-        await storage.saveAssignment(newAssignment);
+        await supabaseService.createAssignment(newAssignment);
         setAssignments([...assignments, newAssignment]);
+        setSuccess(lang === 'AR' ? 'تم إنشاء التكليف بنجاح' : 'Assignment created successfully');
       }
 
       setIsModalOpen(false);
-    } catch (error) {
-      console.error('Failed to save assignment:', error);
-      alert(lang === 'AR' ? 'فشل حفظ التكليف' : 'Failed to save assignment');
+    } catch (err: any) {
+      console.error('Failed to save assignment:', err);
+      setError(err.message || (lang === 'AR' ? 'فشل حفظ التكليف' : 'Failed to save assignment'));
+    } finally {
+      setSaving(false);
     }
   };
+
+  // UI Strings mapping
+  const btnGray = "px-6 py-2 rounded-xl text-xs uppercase tracking-widest font-black transition-all bg-surface text-text-primary border border-border hover:border-primary/50 hover:bg-card";
+  const btnDanger = "px-6 py-2 rounded-xl text-xs uppercase tracking-widest font-black transition-all bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white";
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 relative">
@@ -143,6 +187,9 @@ const AdminAssignments: React.FC = () => {
         </div>
         <SemesterControls />
       </div>
+
+      {error && <div className="bg-red-500/10 border border-red-500/20 text-red-500 px-4 py-3 rounded-2xl flex items-center gap-2"><AlertTriangle size={18} />{error}<button onClick={() => setError('')} className="ml-auto font-bold">×</button></div>}
+      {success && <div className="bg-success/10 border border-success/20 text-success px-4 py-3 rounded-2xl flex items-center gap-2"><CheckCircle size={18} />{success}</div>}
 
       <div className="bg-card p-6 rounded-[2.5rem] border border-border shadow-sm flex flex-col md:flex-row gap-4 items-center">
         <div className="flex-1 w-full flex items-center gap-3 bg-surface px-4 py-3 rounded-2xl border border-border">
@@ -158,7 +205,7 @@ const AdminAssignments: React.FC = () => {
         </div>
 
         <button
-          disabled={!selectedCourseId}
+          disabled={!selectedCourseId || loading}
           onClick={openAdd}
           className="bg-gold-gradient text-white px-6 py-3 rounded-2xl font-black shadow-premium hover:shadow-premium-hover active:scale-95 transition-all flex items-center justify-center gap-2 text-xs uppercase tracking-widest disabled:opacity-50 disabled:grayscale w-full md:w-auto"
         >
@@ -166,13 +213,15 @@ const AdminAssignments: React.FC = () => {
         </button>
       </div>
 
-      {selectedCourseId ? (
+      {loading ? (
+        <div className="flex justify-center py-12"><Loader2 className="animate-spin text-primary w-8 h-8" /></div>
+      ) : selectedCourseId ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {courseAssignments.map(a => (
-            <div key={a.id} className="bg-card p-6 rounded-[2rem] border border-border shadow-sm hover:shadow-premium transition-all relative group">
+            <div key={a.id} className="bg-card p-6 rounded-[2rem] border border-border shadow-sm hover:shadow-premium transition-all relative group flex flex-col h-full">
               <div className="flex justify-between items-start mb-4">
-                <span className="px-3 py-1.5 bg-primary/10 text-primary border border-primary/20 text-[10px] font-black rounded-lg uppercase tracking-wider shadow-sm">
-                  {t[a.type === 'file' ? 'fileUpload' : a.type === 'mcq' ? 'mcq' : 'essay']}
+                <span className="px-3 py-1.5 bg-primary/10 text-primary border border-primary/20 text-[10px] font-black rounded-lg uppercase tracking-wider shadow-sm shrink-0">
+                  {t[a.type === 'file' ? 'fileUpload' : a.type === 'mcq' ? 'mcq' : 'essay']} • {a.totalMarks || 20} {t.marks || (lang === 'AR' ? 'درجة' : 'Marks')}
                 </span>
                 <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button onClick={() => openEdit(a)} className="p-2 text-text-secondary hover:text-primary hover:bg-primary/10 rounded-lg transition-colors border border-transparent hover:border-primary/20"><Edit3 size={18} /></button>
@@ -181,11 +230,11 @@ const AdminAssignments: React.FC = () => {
               </div>
 
               <h3 className="text-lg font-black text-text-primary mb-1">{a.title}</h3>
-              <p className="text-xs font-medium text-text-secondary line-clamp-2 mb-4">{a.subtitle}</p>
+              <p className="text-xs font-medium text-text-secondary line-clamp-2 mb-4 flex-1">{a.subtitle}</p>
 
-              <div className="flex items-center gap-2 text-[10px] font-black text-text-secondary uppercase tracking-widest pt-4 border-t border-border">
+              <div className="flex items-center gap-2 text-[10px] font-black text-text-secondary uppercase tracking-widest pt-4 border-t border-border mt-auto">
                 <Clock size={14} className="text-primary/70" />
-                <span>{t.deadline}: {new Date(a.deadline).toLocaleDateString()}</span>
+                <span>{t.deadline}: {new Date(a.deadline).toLocaleString()}</span>
               </div>
             </div>
           ))}
@@ -200,6 +249,20 @@ const AdminAssignments: React.FC = () => {
         <div className="bg-surface rounded-[2.5rem] border border-dashed border-border py-32 text-center flex flex-col items-center gap-4">
           <BookOpen className="text-text-secondary opacity-30" size={80} />
           <p className="text-text-secondary font-black text-xs uppercase tracking-widest">{lang === 'AR' ? 'اختر مادة للبدء' : 'Select a subject to begin'}</p>
+        </div>
+      )}
+
+      {/* Confirm Action Modal */}
+      {confirmModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setConfirmModal(null)}>
+            <div className="bg-card rounded-2xl shadow-xl border border-border p-8 max-w-sm w-full mx-4 text-center" onClick={e => e.stopPropagation()}>
+                <AlertTriangle size={32} className="text-amber-500 mx-auto mb-4" />
+                <p className="text-sm font-bold text-text-primary mb-6">{confirmModal.message}</p>
+                <div className="flex gap-3 justify-center">
+                    <button className={btnGray} onClick={() => setConfirmModal(null)}>{lang === 'AR' ? 'إلغاء' : 'Cancel'}</button>
+                    <button className={btnDanger} onClick={() => { confirmModal.onConfirm(); setConfirmModal(null); }}>{lang === 'AR' ? 'تأكيد' : 'Confirm'}</button>
+                </div>
+            </div>
         </div>
       )}
 
@@ -232,16 +295,22 @@ const AdminAssignments: React.FC = () => {
                 <textarea value={formData.subtitle} onChange={e => setFormData({ ...formData, subtitle: e.target.value })} className="w-full px-4 py-3 bg-surface border border-border rounded-xl outline-none font-medium text-sm min-h-[100px] text-text-primary focus:ring-2 focus:ring-primary transition-all shadow-sm" />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-1.5">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="space-y-1.5 md:col-span-1">
                   <label className="text-[10px] font-black uppercase tracking-widest text-text-secondary ml-1">{t.deadline}</label>
-                  <input type="datetime-local" required value={formData.deadline} onChange={e => setFormData({ ...formData, deadline: e.target.value })} className="w-full px-4 py-3 bg-surface border border-border rounded-xl outline-none font-bold text-text-primary focus:ring-2 focus:ring-primary transition-all shadow-sm" />
+                  <input type="datetime-local" required value={formData.deadline} onChange={e => setFormData({ ...formData, deadline: e.target.value })} className="w-full px-4 py-3 bg-surface border border-border rounded-xl outline-none font-bold text-text-primary focus:ring-2 focus:ring-primary transition-all shadow-sm text-sm" />
                 </div>
-                <div className="flex items-center gap-4 p-4 bg-primary/5 rounded-2xl border border-primary/20 mt-[22px] hover:bg-primary/10 transition-colors cursor-pointer" onClick={() => setFormData({ ...formData, showResults: !formData.showResults })}>
-                  <div className={`w-6 h-6 rounded-lg border flex items-center justify-center transition-all ${formData.showResults ? 'bg-primary border-primary text-white' : 'bg-surface border-border text-transparent'}`}>
+                
+                <div className="space-y-1.5 md:col-span-1">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-text-secondary ml-1">{t.marks || (lang === 'AR' ? 'الدرجة الكاملة' : 'Total Marks')}</label>
+                  <input type="number" min="1" required value={formData.totalMarks || 20} onChange={e => setFormData({ ...formData, totalMarks: parseInt(e.target.value) || 20 })} className="w-full px-4 py-3 bg-surface border border-border rounded-xl outline-none font-bold text-text-primary focus:ring-2 focus:ring-primary transition-all shadow-sm text-sm" />
+                </div>
+
+                <div className="flex items-center gap-3 p-3 bg-primary/5 rounded-2xl border border-primary/20 mt-[20px] hover:bg-primary/10 transition-colors cursor-pointer md:col-span-1" onClick={() => setFormData({ ...formData, showResults: !formData.showResults })}>
+                  <div className={`w-6 h-6 rounded-lg border flex items-center justify-center transition-all shrink-0 ${formData.showResults ? 'bg-primary border-primary text-white' : 'bg-surface border-border text-transparent'}`}>
                     {formData.showResults && <CheckCircle2 size={14} />}
                   </div>
-                  <label className="text-[10px] font-black uppercase tracking-widest text-text-primary cursor-pointer leading-none">{t.showResults}</label>
+                  <label className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-text-primary cursor-pointer leading-tight">{t.showResults}</label>
                 </div>
               </div>
 
@@ -304,8 +373,8 @@ const AdminAssignments: React.FC = () => {
               )}
 
               <div className="pt-6 border-t border-border mt-8">
-                <button type="submit" className="w-full py-4 bg-gold-gradient text-white font-black rounded-2xl shadow-premium hover:shadow-premium-hover active:scale-[0.98] transition-all flex items-center justify-center gap-2 uppercase text-xs tracking-widest">
-                  <Save size={18} /> {t.save}
+                <button type="submit" disabled={saving} className="w-full py-4 bg-gold-gradient text-white font-black rounded-2xl shadow-premium hover:shadow-premium-hover active:scale-[0.98] transition-all flex items-center justify-center gap-2 uppercase text-xs tracking-widest disabled:opacity-50">
+                  {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} {t.save}
                 </button>
               </div>
             </form>

@@ -312,12 +312,12 @@ export const supabaseService = {
             deadline: a.deadline,
             questions: a.questions || [],
             showResults: a.show_results,
+            totalMarks: a.total_marks,
             createdAt: a.created_at
         })) as Assignment[];
     },
 
-    async upsertAssignment(assignment: Assignment) {
-        // Map camelCase to snake_case for Supabase
+    async updateAssignment(id: string, assignment: Assignment) {
         const payload = {
             id: assignment.id,
             course_id: assignment.courseId,
@@ -328,10 +328,28 @@ export const supabaseService = {
             deadline: assignment.deadline,
             questions: assignment.questions || [],
             show_results: assignment.showResults ?? true,
+            total_marks: assignment.totalMarks,
             created_at: assignment.createdAt
         };
+        const { error } = await supabase.from('assignments').update(payload).eq('id', id);
+        if (error) throw error;
+    },
 
-        const { error } = await supabase.from('assignments').upsert(payload);
+    async createAssignment(assignment: Assignment) {
+        const payload = {
+            id: assignment.id,
+            course_id: assignment.courseId,
+            semester_id: assignment.semesterId,
+            title: assignment.title,
+            subtitle: assignment.subtitle,
+            type: assignment.type,
+            deadline: assignment.deadline,
+            questions: assignment.questions || [],
+            show_results: assignment.showResults ?? true,
+            total_marks: assignment.totalMarks,
+            created_at: assignment.createdAt
+        };
+        const { error } = await supabase.from('assignments').insert(payload);
         if (error) throw error;
     },
 
@@ -373,6 +391,23 @@ export const supabaseService = {
             file_name: submission.fileName,
             grade: submission.grade
         };
+
+        const { error } = await supabase.from('submissions').upsert(payload);
+        if (error) throw error;
+    },
+
+    async bulkUpsertSubmissions(submissions: Submission[]) {
+        const payload = submissions.map(s => ({
+            id: s.id,
+            assignment_id: s.assignmentId,
+            student_id: s.studentId,
+            course_id: s.courseId,
+            submitted_at: s.submittedAt,
+            answers: s.answers || [],
+            file_url: s.fileUrl || s.fileBase64,
+            file_name: s.fileName,
+            grade: s.grade
+        }));
 
         const { error } = await supabase.from('submissions').upsert(payload);
         if (error) throw error;

@@ -145,6 +145,7 @@ export interface Assignment {
   deadline: string;
   questions: Question[];
   showResults: boolean;
+  totalMarks?: number;
   createdAt: string;
 }
 

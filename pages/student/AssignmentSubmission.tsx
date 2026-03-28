@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useApp } from '../../App';
-import { storage } from '../../storage';
+import { supabaseService } from '../../supabaseService';
 import { Assignment, Submission, Course } from '../../types';
 import {
   ArrowLeft,
@@ -19,7 +18,8 @@ import {
   FileIcon,
   HelpCircle,
   Trophy,
-  XCircle
+  XCircle,
+  Loader2
 } from 'lucide-react';
 
 const StudentAssignmentSubmission: React.FC = () => {
@@ -31,6 +31,7 @@ const StudentAssignmentSubmission: React.FC = () => {
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
+  const [loading, setLoading] = useState(true);
 
   // Form States
   const [file, setFile] = useState<{ name: string, data: string } | null>(null);
@@ -47,20 +48,33 @@ const StudentAssignmentSubmission: React.FC = () => {
 
   const activeSemId = settings.activeSemesterId;
 
-  useEffect(() => {
-    const allCourses = storage.getCourses();
-    const c = allCourses.find(c => c.id === courseId);
-    if (c) {
-      setCourse(c);
-      const allAssignments = storage.getAssignments();
-      setAssignments(allAssignments.filter(a => a.courseId === courseId && a.semesterId === activeSemId));
-      refreshSubmissions();
-    }
-  }, [courseId, activeSemId, user?.id]);
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      if (!user?.id || !courseId) return;
 
-  const refreshSubmissions = () => {
-    setSubmissions(storage.getSubmissions().filter(s => s.courseId === courseId && s.studentId === user?.id));
+      const [allCourses, allAssignments, allSubmissions] = await Promise.all([
+        supabaseService.getCourses(),
+        supabaseService.getAssignments(),
+        supabaseService.getSubmissions()
+      ]);
+
+      const c = allCourses.find(c => c.id === courseId);
+      if (c) {
+        setCourse(c);
+        setAssignments(allAssignments.filter(a => a.courseId === courseId && a.semesterId === activeSemId));
+        setSubmissions(allSubmissions.filter(s => s.courseId === courseId && s.studentId === user.id));
+      }
+    } catch (error) {
+      console.error('Error loading data:', error);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  useEffect(() => {
+    loadData();
+  }, [courseId, activeSemId, user?.id]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
@@ -108,7 +122,9 @@ const StudentAssignmentSubmission: React.FC = () => {
         score++;
       }
     });
-    return `${score}/${assignment.questions.length}`;
+    const maxMarks = assignment.totalMarks || 20;
+    const finalScore = assignment.questions.length > 0 ? (score / assignment.questions.length) * maxMarks : 0;
+    return `${finalScore.toFixed(1).replace(/\.0$/, '')}/${maxMarks}`;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -136,21 +152,22 @@ const StudentAssignmentSubmission: React.FC = () => {
       };
 
       // Save to Supabase
-      await storage.saveSubmission(submission);
+      await supabaseService.upsertSubmission(submission);
 
+      // Refresh data internally without full page reload
+      await loadData();
+      
+      setIsSubmitting(false);
+      setSuccess(true);
       setTimeout(() => {
-        refreshSubmissions();
-        setIsSubmitting(false);
-        setSuccess(true);
-        setTimeout(() => {
-          setSuccess(false);
-          // If it was an MCQ and results are shown, we stay on the detail view to show the result
-          // Otherwise we go back to the list
-          if (selectedAssignment.type !== 'mcq' || !selectedAssignment.showResults) {
-            setSelectedAssignment(null);
-          }
-        }, 2000);
-      }, 800);
+        setSuccess(false);
+        // If it was an MCQ and results are shown, we stay on the detail view to show the result
+        // Otherwise we go back to the list
+        if (selectedAssignment.type !== 'mcq' || !selectedAssignment.showResults) {
+          setSelectedAssignment(null);
+        }
+      }, 2000);
+      
     } catch (error: any) {
       console.error('Failed to submit assignment:', error);
       setIsSubmitting(false);
@@ -173,6 +190,10 @@ const StudentAssignmentSubmission: React.FC = () => {
   const getSubmissionForAssignment = (assignmentId: string) => {
     return submissions.find(s => s.assignmentId === assignmentId);
   };
+
+  if (loading) {
+    return <div className="flex justify-center py-24"><Loader2 className="animate-spin text-primary w-10 h-10" /></div>;
+  }
 
   if (!course) return null;
 
@@ -458,6 +479,13 @@ const StudentAssignmentSubmission: React.FC = () => {
             ) : (
               /* Submission Form */
               <form onSubmit={handleSubmit} className="p-8 space-y-8">
+                <div className="mb-4 bg-primary/10 border border-primary/20 p-4 rounded-xl flex items-center gap-2 text-primary">
+                  <Trophy size={20} />
+                  <span className="font-bold text-sm">
+                    {lang === 'AR' ? `الدرجة الكاملة: ${selectedAssignment.totalMarks || 20}` : `Total Marks: ${selectedAssignment.totalMarks || 20}`}
+                  </span>
+                </div>
+                
                 {selectedAssignment.type === 'file' && (
                   <div className="space-y-4">
                     {uploadError && (
@@ -551,7 +579,7 @@ const StudentAssignmentSubmission: React.FC = () => {
                     {success ? (
                       <><CheckCircle2 size={24} /> {t.submitted}</>
                     ) : isSubmitting ? (
-                      <><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> {lang === 'AR' ? 'جاري الإرسال...' : 'Sending...'}</>
+                      <><Loader2 size={24} className="animate-spin" /> {lang === 'AR' ? 'جاري الإرسال...' : 'Sending...'}</>
                     ) : (
                       <><Send size={24} /> {t.submit}</>
                     )}
