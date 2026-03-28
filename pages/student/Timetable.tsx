@@ -281,7 +281,7 @@ const StudentTimetable: React.FC = () => {
         <div className="relative p-8 md:p-12">
           <div className="text-center mb-10 pb-8 border-b border-border/40">
             <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10 mb-5"><Calendar className="text-primary" size={28} /></div>
-            <h2 className="text-4xl md:text-5xl font-black mb-4 tracking-tight text-text-primary leading-tight">{isRtl ? 'جدولي الدراسي' : 'My Timetable'}</h2>
+            <h2 className="text-4xl md:text-5xl font-black mb-6 tracking-tight text-text-primary leading-tight">{isRtl ? 'جدولي الدراسي' : 'My Timetable'}</h2>
             {/* Badge: name on top, ID below — never overlaps for any name length */}
             <div className="inline-flex flex-col items-center gap-0.5 bg-primary/5 border border-primary/15 rounded-2xl px-6 py-2.5 min-w-[160px]">
               <span className="font-bold text-base text-text-primary leading-tight text-center">{user?.fullName}</span>
