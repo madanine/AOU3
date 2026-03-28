@@ -90,7 +90,7 @@ export interface SiteSettings {
   isDarkMode?: boolean;
 }
 
-export type Language = 'AR' | 'EN' | 'FR' | 'RU';
+export type Language = 'AR' | 'EN';
 
 export interface Course {
   id: string;

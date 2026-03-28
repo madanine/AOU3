@@ -230,7 +230,7 @@ const MainLayout: React.FC = () => {
           <div className="mt-auto pt-6 border-t border-border space-y-4">
             {/* Language Switcher */}
             <div className="flex justify-center gap-4 py-4 border-b border-border items-center">
-              {(['AR', 'EN', 'FR', 'RU'] as Language[]).map(l => (
+              {(['AR', 'EN'] as Language[]).map(l => (
                 <button
                   key={l}
                   onClick={() => setLang(l)}

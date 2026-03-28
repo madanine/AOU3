@@ -515,7 +515,7 @@ const SignupPage: React.FC = () => {
 
             <div className="w-px h-6 bg-border"></div>
 
-            {(['RU', 'FR', 'EN', 'AR'] as Language[]).map(l => (
+            {(['EN', 'AR'] as Language[]).map(l => (
               <button
                 key={l}
                 onClick={() => setLang(l)}

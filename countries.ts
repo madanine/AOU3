@@ -204,7 +204,7 @@ export const COUNTRIES: Country[] = [
 ];
 
 // Helper function to get country name by code and language
-export const getCountryName = (code: string, lang: 'AR' | 'EN' | 'FR' | 'RU'): string => {
+export const getCountryName = (code: string, lang: 'AR' | 'EN'): string => {
     const country = COUNTRIES.find(c => c.code === code);
     if (!country) return code;
     return lang === 'AR' ? country.name_ar : country.name_en;
