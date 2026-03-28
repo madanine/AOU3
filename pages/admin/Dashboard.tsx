@@ -112,7 +112,7 @@ const AdminDashboard: React.FC = () => {
   // --- UI RENDER HELPERS ---
   const QuickLink = ({ title, to, icon: Icon, colorClass }: any) => (
     <Link to={to} className="flex flex-col items-center justify-center bg-card p-6 rounded-3xl border border-border shadow-sm hover:shadow-premium-hover hover:-translate-y-1 transition-all group">
-      <div className={`w-16 h-16 rounded-[20px] ${colorClass} text-white shadow-premium flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
+      <div className={`w-16 h-16 rounded-[20px] ${colorClass.includes('text') ? colorClass : colorClass + ' text-white'} shadow-premium flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
         <Icon size={32} />
       </div>
       <h3 className="text-sm font-black text-text-primary text-center">{title}</h3>

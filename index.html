@@ -223,13 +223,9 @@
       background-color: rgba(212, 175, 55, 0.15) !important;
     }
 
-    /* Input fields in dark mode — ensure readable text */
-    html.dark input,
-    html.dark select,
-    html.dark textarea {
-      color: var(--text-primary);
-      background-color: var(--surface-bg);
-    }
+    /* Proper Color Scheme declaration allows inputs and select to naturally render dark natively */
+    html { color-scheme: light; }
+    html.dark { color-scheme: dark; }
 
     /* Badge text on success (green) in dark mode */
     html.dark [class*="bg-success\/"] {

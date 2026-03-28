@@ -148,18 +148,18 @@ const SemesterControls: React.FC = () => {
         <Star size={18} fill={isDefault ? 'currentColor' : 'none'} />
       </button>
 
-      <div className="relative flex items-center gap-1 px-3 py-1 bg-gray-50 border border-gray-100 rounded-xl">
-        <Calendar size={14} className="text-gray-400" />
+      <div className="relative flex items-center gap-1 px-3 py-1 bg-surface border border-border rounded-xl">
+        <Calendar size={14} className="text-text-secondary" />
         <select
           value={settings.activeSemesterId || ''}
           onChange={handleSelectSemester}
-          className="bg-transparent outline-none font-black text-[10px] uppercase tracking-wider text-gray-700 appearance-none pr-6 cursor-pointer py-1"
+          className="bg-transparent outline-none font-black text-[10px] uppercase tracking-wider text-text-primary appearance-none pr-6 cursor-pointer py-1"
         >
           {semesters.map(s => (
             <option key={s.id} value={s.id}>{s.name}</option>
           ))}
         </select>
-        <ChevronDown size={14} className="absolute right-2 text-gray-400 pointer-events-none" />
+        <ChevronDown size={14} className="absolute right-2 text-text-secondary pointer-events-none" />
       </div>
 
       <div className="flex gap-1">
