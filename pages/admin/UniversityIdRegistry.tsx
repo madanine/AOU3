@@ -24,6 +24,9 @@ const UniversityIdRegistry: React.FC = () => {
 
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [studentToDelete, setStudentToDelete] = useState<AllowedStudent | null>(null);
+    const [deleteError, setDeleteError] = useState('');
+    const [addError, setAddError] = useState('');
+    const [editError, setEditError] = useState('');
 
     const [isExportOpen, setIsExportOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
@@ -127,6 +130,7 @@ const UniversityIdRegistry: React.FC = () => {
 
             await supabaseService.bulkAddAllowedStudents(studentsToAdd);
             setUploadMessage(`${t.uploadSuccess} - ${studentsToAdd.length} ${t.recordsAdded}`);
+            setTimeout(() => setUploadMessage(''), 5000);
             loadData();
 
             if (fileInputRef.current) {
@@ -139,23 +143,26 @@ const UniversityIdRegistry: React.FC = () => {
     };
 
     const handleAdd = async () => {
-        if (!formData.universityId.trim() || !formData.name.trim()) {
-            return;
-        }
-
+        if (!formData.universityId.trim() || !formData.name.trim()) return;
+        setAddError('');
         try {
             await supabaseService.addAllowedStudent(formData.universityId, formData.name);
             setFormData({ universityId: '', name: '' });
             setIsAddModalOpen(false);
             loadData();
-        } catch (error) {
-            console.error('Add error:', error);
+        } catch (error: any) {
+            const msg = (error?.message || '').toLowerCase();
+            if (msg.includes('duplicate') || msg.includes('unique')) {
+                setAddError(lang === 'AR' ? 'هذا الرقم الجامعي موجود مسبقاً' : 'University ID already exists');
+            } else {
+                setAddError(lang === 'AR' ? 'فشلت الإضافة، حاول مجدداً' : 'Failed to add, please try again');
+            }
         }
     };
 
     const handleEdit = async () => {
         if (!editingStudent || !formData.name.trim()) return;
-
+        setEditError('');
         try {
             await supabaseService.updateAllowedStudent(
                 editingStudent.id,
@@ -168,8 +175,13 @@ const UniversityIdRegistry: React.FC = () => {
             setIsEditModalOpen(false);
             setEditingStudent(null);
             loadData();
-        } catch (error) {
-            console.error('Edit error:', error);
+        } catch (error: any) {
+            const msg = (error?.message || '').toLowerCase();
+            if (msg.includes('duplicate') || msg.includes('unique')) {
+                setEditError(lang === 'AR' ? 'هذا الرقم الجامعي موجود مسبقاً' : 'University ID already exists');
+            } else {
+                setEditError(lang === 'AR' ? 'فشل التعديل، حاول مجدداً' : 'Failed to update, please try again');
+            }
         }
     };
 
@@ -180,15 +192,14 @@ const UniversityIdRegistry: React.FC = () => {
 
     const confirmDelete = async () => {
         if (!studentToDelete) return;
-
+        setDeleteError('');
         try {
             await supabaseService.deleteAllowedStudent(studentToDelete.id);
             setIsDeleteModalOpen(false);
             setStudentToDelete(null);
             loadData();
-        } catch (error) {
-            console.error('Delete error:', error);
-            alert(lang === 'AR' ? 'حدث خطأ أثناء الحذف' : 'Error deleting record');
+        } catch (error: any) {
+            setDeleteError(lang === 'AR' ? 'حدث خطأ أثناء الحذف، حاول مجدداً' : 'Error deleting record, please try again');
         }
     };
 
@@ -419,7 +430,7 @@ const UniversityIdRegistry: React.FC = () => {
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 text-right">
-                                        <div className="flex gap-2 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <div className="flex gap-2 justify-end md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                                             <button
                                                 onClick={() => {
                                                     setEditingStudent(student);
@@ -475,6 +486,12 @@ const UniversityIdRegistry: React.FC = () => {
                                     className="w-full px-4 py-3 rounded-xl border border-border bg-surface text-text-primary outline-none focus:ring-2 focus:ring-primary font-bold text-sm transition-all"
                                 />
                             </div>
+                            {addError && (
+                                <div className="px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-black flex items-center gap-2">
+                                    <AlertTriangle size={14} />
+                                    {addError}
+                                </div>
+                            )}
                         </div>
                         <div className="pt-6 border-t border-border mt-6">
                             <button
@@ -521,6 +538,12 @@ const UniversityIdRegistry: React.FC = () => {
                                     className="w-full px-4 py-3 rounded-xl border border-border bg-surface text-text-primary outline-none focus:ring-2 focus:ring-primary font-bold text-sm transition-all"
                                 />
                             </div>
+                            {editError && (
+                                <div className="px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-black flex items-center gap-2">
+                                    <AlertTriangle size={14} />
+                                    {editError}
+                                </div>
+                            )}
                         </div>
                         <div className="pt-6 border-t border-border mt-6">
                             <button
@@ -572,6 +595,12 @@ const UniversityIdRegistry: React.FC = () => {
                             )}
                         </div>
 
+                        {deleteError && (
+                            <div className="px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-black flex items-center gap-2 mb-4">
+                                <AlertTriangle size={14} />
+                                {deleteError}
+                            </div>
+                        )}
                         <div className="flex gap-4">
                             <button
                                 onClick={() => setIsDeleteModalOpen(false)}
