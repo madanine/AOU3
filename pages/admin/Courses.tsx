@@ -136,7 +136,7 @@ const AdminCourses: React.FC = () => {
                 </div>
               </div>
 
-              <h3 className="text-card leading-snug mb-3 flex-1">{translate(course, 'title')}</h3>
+              <h3 className="text-text-primary font-black text-lg leading-snug mb-3 flex-1">{translate(course, 'title')}</h3>
 
               <div className="space-y-2 mb-4 bg-surface rounded-2xl p-4 border border-border">
                 <div className="flex items-center gap-3 text-[10px] font-black text-text-secondary uppercase tracking-widest">
