@@ -194,6 +194,7 @@ export const supabaseService = {
 
     async upsertCourse(course: Course) {
         const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(course.id);
+        
         const payload: any = {
             code: course.code,
             title: course.title,
@@ -208,12 +209,23 @@ export const supabaseService = {
             telegram_link: course.telegramLink,
             lecture_link: course.lectureLink,
             notes: course.notes,
-            semester_id: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(course.semesterId || '') ? course.semesterId : null
+            semester_id: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(course.semesterId || '')
+                ? course.semesterId
+                : null
         };
-        if (isUUID) payload.id = course.id;
 
-        const { error } = await supabase.from('courses').upsert(payload, { onConflict: 'code' });
-        if (error) console.error('Course Upsert Error:', error);
+        if (isUUID) {
+            payload.id = course.id;
+            const { error } = await supabase
+                .from('courses')
+                .upsert(payload, { onConflict: 'id' });
+            if (error) console.error('Course Upsert Error:', error);
+        } else {
+            const { error } = await supabase
+                .from('courses')
+                .upsert(payload, { onConflict: 'code' });
+            if (error) console.error('Course Upsert Error:', error);
+        }
     },
 
     async deleteCourse(courseId: string) {
