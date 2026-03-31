@@ -214,17 +214,16 @@ export const supabaseService = {
                 : null
         };
 
-        if (isUUID) {
-            payload.id = course.id;
-            const { error } = await supabase
-                .from('courses')
-                .upsert(payload, { onConflict: 'id' });
-            if (error) console.error('Course Upsert Error:', error);
-        } else {
-            const { error } = await supabase
-                .from('courses')
-                .upsert(payload, { onConflict: 'code' });
-            if (error) console.error('Course Upsert Error:', error);
+        // Always include ID since it is required for onConflict: 'id'
+        payload.id = course.id;
+
+        const { error } = await supabase
+            .from('courses')
+            .upsert(payload, { onConflict: 'id' });
+        
+        if (error) {
+            console.error('Course Upsert Error:', error);
+            throw error; // Throw so the UI can handle the error
         }
     },
 

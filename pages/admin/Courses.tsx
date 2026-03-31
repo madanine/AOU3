@@ -171,13 +171,12 @@ const AdminCourses: React.FC = () => {
             <form onSubmit={handleSubmit} className="p-6 md:p-8 space-y-6 overflow-y-auto custom-scrollbar flex-1">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase tracking-widest ml-1 text-text-secondary">{t.courseCode}</label>
+                  <label className="text-[10px] font-black uppercase tracking-widest ml-1 text-text-secondary">{lang === 'AR' ? 'تصنيف / رمز المادة' : 'Category / Course Code'}</label>
                   <input
-                    required
                     value={formData.code}
                     onChange={(e) => setFormData({ ...formData, code: e.target.value })}
                     className="w-full px-4 py-3 bg-surface border border-border rounded-xl focus:ring-2 focus:ring-primary outline-none text-sm font-bold text-text-primary transition-all"
-                    placeholder="e.g. CS101"
+                    placeholder={lang === 'AR' ? 'مثال: مادة مشتركة' : 'e.g. General Course'}
                   />
                 </div>
 
