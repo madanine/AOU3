@@ -587,6 +587,9 @@ const AdminExams: React.FC = () => {
                     [isAR ? 'الرقم الجامعي' : 'University ID']: st?.universityId || '',
                     [isAR ? 'اسم الطالب' : 'Student Name']: st?.fullName || '',
                     [isAR ? 'التخصص' : 'Major']: st?.major ? getMajorLabel(st.major) : '',
+                    [isAR ? 'الجنسية' : 'Nationality']: st?.nationality || '',
+                    [isAR ? 'رقم الجواز' : 'Passport Number']: st?.passportNumber || '',
+                    [isAR ? 'رقم الجوال' : 'Phone']: st?.phone || '',
                     [isAR ? 'درجة الامتحان' : 'Exam Score']: att?.totalScore ?? 0,
                 };
             });
@@ -626,6 +629,9 @@ const AdminExams: React.FC = () => {
                         [isAR ? 'الرقم الجامعي' : 'University ID']: st?.universityId || '',
                         [isAR ? 'اسم الطالب' : 'Student Name']: st?.fullName || '',
                         [isAR ? 'التخصص' : 'Major']: st?.major ? getMajorLabel(st.major) : '',
+                        [isAR ? 'الجنسية' : 'Nationality']: st?.nationality || '',
+                        [isAR ? 'رقم الجواز' : 'Passport Number']: st?.passportNumber || '',
+                        [isAR ? 'رقم الجوال' : 'Phone']: st?.phone || '',
                         [isAR ? 'درجة الامتحان' : 'Exam Score']: att?.totalScore ?? 0,
                     };
                 });
