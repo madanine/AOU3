@@ -48,7 +48,26 @@ const LoginPage: React.FC = () => {
           navigate(target);
           return;
         } catch (profileErr) {
-          console.error('Profile fetch error:', profileErr);
+          console.error('Profile fetch error, attempting auto-repair:', profileErr);
+          
+          // AUTO-REPAIR LOGIC: If profile is missing but we have Auth metadata, recreate the profile.
+          const metadata = (authUser as any).user_metadata;
+          if (metadata && metadata.university_id) {
+            try {
+              // Re-run the sign-up logic to create/fix the profile and registry
+              await supabaseService.signUp(authUser.email!, '', metadata); // Password empty since we are already authenticated
+              await supabaseService.markUniversityIdAsUsed(metadata.university_id, authUser.id);
+              
+              // Try fetching again
+              const fixedProfile = await supabaseService.getProfile(authUser.id);
+              setUser(fixedProfile);
+              navigate(fixedProfile.role === 'admin' ? '/admin/dashboard' : '/student/registration');
+              return;
+            } catch (repairErr) {
+              console.error('Auto-repair failed:', repairErr);
+            }
+          }
+
           setError(lang === 'AR' ? 'حسابك محذوف أو غير نشط' : 'Account invalid or deleted');
           await supabaseService.signOut();
           return;

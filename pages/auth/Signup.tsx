@@ -52,6 +52,19 @@ const SignupPage: React.FC = () => {
     setIsLoading(true);
     setError('');
 
+    // Clean data (Trim all whitespace from start and end)
+    const cleanData = {
+      fullName: formData.fullName.trim(),
+      universityId: formData.universityId.trim(),
+      email: formData.email.trim(),
+      password: formData.password, // Don't trim password
+      phone: formData.phone.trim(),
+      major: formData.major,
+      nationality: formData.nationality,
+      passportNumber: formData.passportNumber.trim(),
+      gender: formData.gender,
+    };
+
     // Password validation (min 6 characters)
     if (formData.password.length < 6) {
       setError(lang === 'AR' ? 'يجب أن تكون كلمة المرور 6 أحرف على الأقل' : 'Password must be at least 6 characters');
@@ -115,7 +128,7 @@ const SignupPage: React.FC = () => {
     // ============================================
     // VALIDATE UNIVERSITY ID (Registry Check)
     // ============================================
-    const idCheck = await supabaseService.checkUniversityId(formData.universityId);
+    const idCheck = await supabaseService.checkUniversityId(cleanData.universityId);
 
     if (!idCheck || !idCheck.exists) {
       // University ID not found in registry
@@ -133,22 +146,22 @@ const SignupPage: React.FC = () => {
 
     try {
       // Sign up via Supabase Auth with all fields including passport
-      const authUser = await supabaseService.signUp(formData.email, formData.password, {
-        full_name: formData.fullName,
-        university_id: formData.universityId,
+      const authUser = await supabaseService.signUp(cleanData.email, cleanData.password, {
+        full_name: cleanData.fullName,
+        university_id: cleanData.universityId,
         role: 'student',
-        phone: formData.phone,
-        major: formData.major,
-        nationality: formData.nationality,
-        passport_number: formData.passportNumber || null,
+        phone: cleanData.phone,
+        major: cleanData.major,
+        nationality: cleanData.nationality,
+        passport_number: cleanData.passportNumber || null,
         date_of_birth: dobString,
-        gender: formData.gender || null,
+        gender: cleanData.gender || null,
       });
 
       if (authUser) {
         // Mark university ID as used
         try {
-          await supabaseService.markUniversityIdAsUsed(formData.universityId, authUser.id);
+          await supabaseService.markUniversityIdAsUsed(cleanData.universityId, authUser.id);
         } catch (markError) {
           console.error('Failed to mark ID as used:', markError);
           // Continue anyway - user is created

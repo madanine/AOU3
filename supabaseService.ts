@@ -36,7 +36,7 @@ export const supabaseService = {
                 gender: userData.gender || null,
                 password: password,
                 created_at: new Date().toISOString()
-            }, { onConflict: 'id' });
+            }, { onConflict: 'university_id' });
 
             if (profileError) {
                 console.error('Profile creation error:', profileError);
