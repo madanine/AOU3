@@ -25,8 +25,7 @@ const AdminEnrollments: React.FC = () => {
     const handleUpdate = () => {
       setEnrollments(storage.getEnrollments());
     };
-    window.addEventListener('storage-update', handleUpdate);
-    return () => window.removeEventListener('storage-update', handleUpdate);
+    return storage.subscribe(handleUpdate);
   }, []);
 
   const activeSemId = settings.activeSemesterId || 'sem-default';
@@ -111,21 +110,27 @@ const AdminEnrollments: React.FC = () => {
     }
   };
 
+  const getMajorLabel = (major: string) => {
+    return t.majorList[major as keyof typeof t.majorList] || major;
+  };
+
   const exportEnrollments = () => {
+    const isAR = lang === 'AR';
     const data = filtered.map(e => {
       const s = students.find(stu => stu.id === e.studentId);
       const c = courses.find(cou => cou.id === e.courseId);
       return {
-        'Student ID': s?.universityId,
-        'Student Name': s?.fullName,
-        'Course Code': c?.code,
-        'Course Title': translate(c, 'title'),
-        'Enrolled Date': new Date(e.enrolledAt).toLocaleDateString()
+        [isAR ? 'الرقم الجامعي' : 'University ID']: s?.universityId || '',
+        [isAR ? 'اسم الطالب' : 'Student Name']: s?.fullName || '',
+        [isAR ? 'التخصص' : 'Major']: s?.major ? getMajorLabel(s.major) : '',
+        [isAR ? 'رمز المادة' : 'Course Code']: c?.code || '',
+        [isAR ? 'اسم المادة' : 'Course Title']: c ? translate(c, 'title') : '',
+        [isAR ? 'تاريخ التسجيل' : 'Enrolled Date']: new Date(e.enrolledAt).toLocaleDateString()
       };
     });
     const worksheet = XLSX.utils.json_to_sheet(data);
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Enrollments');
+    XLSX.utils.book_append_sheet(workbook, worksheet, isAR ? 'التسجيلات' : 'Enrollments');
     XLSX.writeFile(workbook, `Enrollments_${activeSemId}.xlsx`);
   };
 
