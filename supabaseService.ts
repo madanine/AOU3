@@ -136,6 +136,7 @@ export const supabaseService = {
             permissions: p.admin_permissions,
             fullAccess: p.full_access,
             isDisabled: p.is_disabled,
+            canAccessRegistry: p.can_access_registry,
             createdAt: p.created_at
         })) as User[];
     },
@@ -908,6 +909,18 @@ export const supabaseService = {
         if (totalScore !== undefined) payload.total_score = totalScore;
 
         const { error } = await supabase.from('exam_attempts').update(payload).eq('id', attemptId);
+        if (error) throw error;
+    },
+
+    async submitCompleteExamRPC(attemptId: string, answers: ExamAnswer[]) {
+        if (!attemptId) throw new Error('Attempt ID is required');
+        
+        // Map answers to snake_case for the RPC to handle properly
+        const { error } = await supabase.rpc('submit_complete_exam', {
+            p_attempt_id: attemptId,
+            p_answers: answers
+        });
+        
         if (error) throw error;
     },
 
