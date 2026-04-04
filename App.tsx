@@ -130,7 +130,15 @@ const App: React.FC = () => {
       }
     });
 
-    return () => subscription.unsubscribe();
+    const unsubscribeStorage = storage.subscribe(() => {
+      const freshSettings = storage.getSettings();
+      setSettings(freshSettings);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+      unsubscribeStorage();
+    };
   }, []);
 
 
