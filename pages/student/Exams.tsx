@@ -31,6 +31,9 @@ const StudentExams: React.FC = () => {
     const [successMsg, setSuccessMsg] = useState('');
     const [timeLeft, setTimeLeft] = useState('');
 
+    // Persistence Ref to avoid duplicate auto-saves
+    const lastSavedRef = React.useRef<string>('');
+
     const loadData = useCallback(async () => {
         if (!user) return;
         setLoading(true);
@@ -129,8 +132,12 @@ const StudentExams: React.FC = () => {
                 createdAt: new Date().toISOString()
             }));
 
-            await supabaseService.bulkUpsertExamAnswers(answersToSave);
-            await supabaseService.submitExamAttempt(attempt.id);
+            // STAGGERED SUBMISSION (Jitter): Pre-submission delay 0-3s to distribute DB load
+            // This is critical when 300+ students submit at the exact same second (timer end)
+            await new Promise(r => setTimeout(r, Math.random() * 3000));
+
+            // ATOMIC SUBMISSION: Save all answers and mark as submitted in ONE transaction
+            await supabaseService.submitCompleteExamRPC(attempt.id, answersToSave);
 
             setActiveExam(null);
             setAttempt(null);
@@ -184,10 +191,19 @@ const StudentExams: React.FC = () => {
         return () => clearInterval(interval);
     }, [activeExam, viewingResults, exceptions, user, submitting]);
 
-    // Auto-save
+    // OPTIMIZED AUTO-SAVE with Change Detection + Jitter
     useEffect(() => {
         if (!attempt || !activeExam || Object.keys(draftAnswers).length === 0) return;
+
+        // Create a random offset (0-10s) for the first save to stagger all students
+        const initialJitter = Math.random() * 10000;
+
         const interval = setInterval(async () => {
+            const currentAnswersJson = JSON.stringify(draftAnswers);
+
+            // ONLY SAVE IF CHANGED: Prevents redundant writes
+            if (currentAnswersJson === lastSavedRef.current) return;
+
             const answersToSave = questions.map(q => ({
                 id: crypto.randomUUID(),
                 attemptId: attempt.id,
@@ -197,8 +213,15 @@ const StudentExams: React.FC = () => {
                 matrixSelections: q.type === 'matrix' ? (draftAnswers[q.id] || {}) : undefined,
                 createdAt: new Date().toISOString()
             }));
-            await supabaseService.bulkUpsertExamAnswers(answersToSave).catch(console.error);
-        }, 30000); // 30 seconds
+
+            try {
+                await supabaseService.bulkUpsertExamAnswers(answersToSave);
+                lastSavedRef.current = currentAnswersJson; // Update marker after success
+            } catch (err) {
+                console.error('Auto-save failed:', err);
+            }
+        }, 30000 + initialJitter); // Staggered 30-40s interval
+        
         return () => clearInterval(interval);
     }, [draftAnswers, attempt, activeExam, questions]);
 

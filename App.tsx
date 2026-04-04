@@ -40,6 +40,7 @@ import AdminTranscripts from './pages/admin/Transcripts';
 import SupervisorDashboard from './pages/supervisor/Dashboard';
 
 import MainLayout from './components/layout/MainLayout';
+import MaintenancePage from './components/MaintenancePage';
 
 interface AppContextType {
   user: User | null;
@@ -219,15 +220,22 @@ const App: React.FC = () => {
     );
   }
 
+  const isMaintenanceBlocked = settings.isMaintenanceMode && user?.role !== 'admin';
+  // Allow only unauthenticated users to see the login page during maintenance
+  const isLoginPage = !user && window.location.hash.includes('/auth/login');
+
   return (
     <AppContext.Provider value={{
       user, setUser, lang, setLang, t, settings, updateSettings, translate,
       isDarkMode, toggleDarkMode
     }}>
-      <Router>
-        <Routes>
-          <Route path="/auth/login" element={!user ? <LoginPage /> : <Navigate to={user.role === 'admin' ? "/admin/dashboard" : (user.role === 'supervisor' ? "/supervisor/dashboard" : "/student/dashboard")} />} />
-          <Route path="/auth/signup" element={!user ? <SignupPage /> : <Navigate to="/student/dashboard" />} />
+      {isMaintenanceBlocked && !isLoginPage ? (
+        <MaintenancePage settings={settings} lang={lang} />
+      ) : (
+        <Router>
+          <Routes>
+            <Route path="/auth/login" element={!user ? <LoginPage /> : <Navigate to={user.role === 'admin' ? "/admin/dashboard" : (user.role === 'supervisor' ? "/supervisor/dashboard" : "/student/dashboard")} />} />
+            <Route path="/auth/signup" element={!user ? <SignupPage /> : <Navigate to="/student/dashboard" />} />
 
           <Route element={user ? <MainLayout /> : <Navigate to="/auth/login" />}>
             {/* Student Routes */}
@@ -273,6 +281,7 @@ const App: React.FC = () => {
           <Route path="*" element={<Navigate to="/auth/login" />} />
         </Routes>
       </Router>
+      )}
     </AppContext.Provider>
   );
 };

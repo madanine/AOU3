@@ -308,10 +308,12 @@ const AdminSiteSettings: React.FC = () => {
             <div className="space-y-8 animate-in fade-in duration-300">
               <div className="flex items-center gap-3 mb-2">
                 <ShieldCheck size={24} className="text-primary" />
-                <h3 className="text-xl font-black text-text-primary">{t.registrationControlTitle}</h3>
+                <h3 className="text-xl font-black text-text-primary">
+                  {lang === 'AR' ? 'عناصر التحكم في النظام' : 'System Controls'}
+                </h3>
               </div>
 
-              <div className="p-8 bg-surface border border-border rounded-[2.5rem] space-y-6 shadow-sm">
+              <div className="p-8 bg-surface border border-border rounded-[2.5rem] space-y-10 shadow-sm">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
                   <div>
                     <p className="text-sm font-black text-text-primary uppercase tracking-widest">{t.registrationStatusLabel}</p>
@@ -329,6 +331,36 @@ const AdminSiteSettings: React.FC = () => {
                       className={`flex-1 sm:flex-none px-6 py-3 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${draftSettings.registrationStatus === 'closed' ? 'bg-red-500 text-white shadow-md' : 'text-text-secondary hover:text-text-primary hover:bg-surface'}`}
                     >
                       {t.registrationClosed}
+                    </button>
+                  </div>
+                </div>
+
+                <hr className="border-border opacity-50" />
+
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+                  <div>
+                     <div className="flex items-center gap-3">
+                       <p className="text-sm font-black text-text-primary uppercase tracking-widest">{lang === 'AR' ? 'وضع الصيانة' : 'Maintenance Mode'}</p>
+                       {draftSettings.isMaintenanceMode && (
+                         <span className="px-3 py-1 bg-red-500/10 text-red-500 rounded-full text-[10px] font-black uppercase tracking-widest animate-pulse">
+                           {lang === 'AR' ? 'نشط الآن' : 'ACTIVE NOW'}
+                         </span>
+                       )}
+                     </div>
+                    <p className="text-xs text-text-secondary font-medium mt-2 max-w-md leading-relaxed">{lang === 'AR' ? 'إيقاف وصول الطلاب والمشرفين للموقع بشكل مؤقت (سيظهر لهم صفحة الصيانة). يمكنك أنت (الآدمن) الدخول بشكل طبيعي.' : 'Temporarily block access for students and supervisors (they will see a maintenance page). You (Admin) can still log in normally.'}</p>
+                  </div>
+                  <div className="flex p-1.5 bg-card border border-border rounded-xl shadow-sm self-stretch sm:self-auto">
+                    <button
+                      onClick={() => setDraftSettings({ ...draftSettings, isMaintenanceMode: true })}
+                      className={`flex-1 sm:flex-none px-6 py-3 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${draftSettings.isMaintenanceMode ? 'bg-red-500 text-white shadow-md' : 'text-text-secondary hover:text-text-primary hover:bg-surface'}`}
+                    >
+                       {lang === 'AR' ? 'تشغيل (إيقاف الموقع)' : 'ON (Site Offline)'}
+                    </button>
+                    <button
+                      onClick={() => setDraftSettings({ ...draftSettings, isMaintenanceMode: false })}
+                      className={`flex-1 sm:flex-none px-6 py-3 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${!draftSettings.isMaintenanceMode ? 'bg-success text-white shadow-md' : 'text-text-secondary hover:text-text-primary hover:bg-surface'}`}
+                    >
+                      {lang === 'AR' ? 'إيقاف (تفعيل الموقع)' : 'OFF (Site Online)'}
                     </button>
                   </div>
                 </div>

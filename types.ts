@@ -88,6 +88,7 @@ export interface SiteSettings {
   activeSemesterId?: string;
   defaultSemesterId?: string;
   isDarkMode?: boolean;
+  isMaintenanceMode?: boolean;
 }
 
 export type Language = 'AR' | 'EN';
