@@ -36,11 +36,12 @@ export const supabaseService = {
                 gender: userData.gender || null,
                 password: password,
                 created_at: new Date().toISOString()
-            }, { onConflict: 'university_id' });
+            }, { onConflict: 'id' }); // Use ID as conflict key for 100% safety with Auth
 
             if (profileError) {
-                console.error('Profile creation error:', profileError);
-                // Don't throw - user is created, profile can be fixed later
+                console.error('Profile creation/sync error:', profileError);
+                // We still don't throw to prevent blocking the user if Auth succeeded,
+                // but we let it fall through so markUniversityIdAsUsed can try to recover the state.
             }
         }
 
@@ -195,7 +196,7 @@ export const supabaseService = {
 
     async upsertCourse(course: Course) {
         const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(course.id);
-        
+
         const payload: any = {
             code: course.code,
             title: course.title,
@@ -221,7 +222,7 @@ export const supabaseService = {
         const { error } = await supabase
             .from('courses')
             .upsert(payload, { onConflict: 'id' });
-        
+
         if (error) {
             console.error('Course Upsert Error:', error);
             throw error; // Throw so the UI can handle the error
@@ -914,13 +915,13 @@ export const supabaseService = {
 
     async submitCompleteExamRPC(attemptId: string, answers: ExamAnswer[]) {
         if (!attemptId) throw new Error('Attempt ID is required');
-        
+
         // Map answers to snake_case for the RPC to handle properly
         const { error } = await supabase.rpc('submit_complete_exam', {
             p_attempt_id: attemptId,
             p_answers: answers
         });
-        
+
         if (error) throw error;
     },
 
@@ -982,7 +983,7 @@ export const supabaseService = {
             is_correct: a.isCorrect ?? null,
             awarded_marks: a.awardedMarks ?? null,
         }));
-        
+
         const { error } = await supabase
             .from('exam_answers')
             .upsert(payloads);
