@@ -430,3 +430,10 @@ export const storage = {
       .subscribe();
   }
 };
+
+// Cross-tab synchronization for instant updates on the same browser device
+window.addEventListener('storage', (e) => {
+  if (e.key && Object.values(KEYS).includes(e.key)) {
+    notify();
+  }
+});

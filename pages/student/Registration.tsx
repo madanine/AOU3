@@ -16,6 +16,7 @@ const Registration: React.FC = () => {
   const hasConfirmedForSemester = storage.getEnrollments().some(e => e.studentId === user?.id && (!settings.activeSemesterId || e.semesterId === settings.activeSemesterId));
   const [isEditing, setIsEditing] = useState(!hasConfirmedForSemester);
   const [activeSlide, setActiveSlide] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isClosed = settings.registrationStatus === 'closed';
   const activeSemId = settings.activeSemesterId;
@@ -145,8 +146,9 @@ const Registration: React.FC = () => {
   };
 
   const handleConfirm = async () => {
-    if (isClosed) return;
+    if (isClosed || isSubmitting) return;
 
+    setIsSubmitting(true);
     try {
       // Step 1: Delete old enrollments for this semester from Supabase first
       const oldSemesterEnrollments = confirmedEnrollments.filter(e =>
@@ -193,6 +195,8 @@ const Registration: React.FC = () => {
         type: 'error'
       });
       setTimeout(() => setMessage(null), 5000);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -350,12 +354,21 @@ const Registration: React.FC = () => {
               </button>
             ) : (
               <button
-                disabled={isClosed || pendingSelection.size === 0 || pendingSelection.size > 6}
+                disabled={isClosed || pendingSelection.size === 0 || pendingSelection.size > 6 || isSubmitting}
                 onClick={handleConfirm}
                 className="w-full md:w-auto px-10 py-4 bg-[var(--primary)] text-white font-black rounded-2xl shadow-xl shadow-blue-900/10 hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:grayscale"
               >
-                <Send size={18} />
-                {t.confirmRegistration}
+                {isSubmitting ? (
+                  <>
+                    <Clock size={18} className="animate-spin" />
+                    {lang === 'AR' ? 'جاري التسجيل...' : 'Registering...'}
+                  </>
+                ) : (
+                  <>
+                    <Send size={18} />
+                    {t.confirmRegistration}
+                  </>
+                )}
               </button>
             )}
           </div>
