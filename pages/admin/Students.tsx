@@ -10,6 +10,7 @@ const AdminStudents: React.FC = () => {
   const isMasterAdmin = user?.universityId === 'aouadmin';
   const [users, setUsers] = useState<User[]>(storage.getUsers());
   const [searchTerm, setSearchTerm] = useState('');
+  const [sortOrder, setSortOrder] = useState<'default' | 'A-Z' | 'newest'>('default');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
 
@@ -30,11 +31,17 @@ const AdminStudents: React.FC = () => {
   const [showNationalityDropdown, setShowNationalityDropdown] = useState(false);
 
   const students = users.filter(u => u.role === 'student');
-  const filteredStudents = students.filter(s =>
+  const filteredStudentsUnsorted = students.filter(s =>
     s.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     s.universityId.toLowerCase().includes(searchTerm.toLowerCase()) ||
     s.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const filteredStudents = [...filteredStudentsUnsorted].sort((a, b) => {
+    if (sortOrder === 'A-Z') return a.fullName.localeCompare(b.fullName, 'ar');
+    if (sortOrder === 'newest') return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+    return 0;
+  });
 
   const handleToggleStatus = (id: string) => {
     const updated = users.map(u => {
@@ -119,15 +126,30 @@ const AdminStudents: React.FC = () => {
         </button>
       </div>
 
-      <div className="relative max-w-md">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary" size={18} />
-        <input
-          type="text"
-          placeholder={t.search}
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-12 pr-4 py-3 bg-card border border-border rounded-2xl outline-none font-bold text-xs transition-all text-text-primary focus:ring-2 focus:ring-primary focus:bg-surface"
-        />
+      <div className="flex flex-col md:flex-row gap-4 mb-4">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary" size={18} />
+          <input
+            type="text"
+            placeholder={t.search}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-12 pr-4 py-3 bg-card border border-border rounded-2xl outline-none font-bold text-xs transition-all text-text-primary focus:ring-2 focus:ring-primary focus:bg-surface"
+          />
+        </div>
+        
+        <div className="flex items-center gap-2 bg-card px-4 py-3 rounded-2xl border border-border w-fit">
+          <span className="text-[10px] font-black text-text-secondary uppercase">{lang === 'AR' ? 'فرزبـ:' : 'Sort By:'}</span>
+          <select
+            className="bg-transparent outline-none font-bold text-xs text-text-primary"
+            value={sortOrder}
+            onChange={e => setSortOrder(e.target.value as 'default' | 'A-Z' | 'newest')}
+          >
+            <option value="default">{lang === 'AR' ? 'الافتراضي' : 'Default'}</option>
+            <option value="A-Z">{lang === 'AR' ? 'أبجدياً (أ-ي)' : 'A-Z'}</option>
+            <option value="newest">{lang === 'AR' ? 'الأحدث' : 'Newest'}</option>
+          </select>
+        </div>
       </div>
 
       <div className="rounded-[2.5rem] bg-card border border-border overflow-hidden overflow-x-auto shadow-sm">

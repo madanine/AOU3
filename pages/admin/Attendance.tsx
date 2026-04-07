@@ -19,6 +19,7 @@ const AdminAttendance: React.FC = () => {
   const [undoStack, setUndoStack] = useState<AttendanceRecord | null>(null);
   const [participationUndoStack, setParticipationUndoStack] = useState<ParticipationRecord | null>(null);
   const [showToast, setShowToast] = useState(false);
+  const [sortOrder, setSortOrder] = useState<'A-Z' | 'default'>('A-Z');
 
   // Debounce refs to avoid flooding Supabase on every cell click
   const attendanceSaveTimer = useRef<ReturnType<typeof setTimeout>>();
@@ -93,13 +94,20 @@ const AdminAttendance: React.FC = () => {
   const currentCourse = courses.find(c => c.id === selectedCourseId);
 
   // Filter students: they must be enrolled in the SELECTED course AND SELECTED semester
-  const enrolledStudents = students.filter(s =>
+  const enrolledStudentsRaw = students.filter(s =>
     enrollments.some(e =>
       e.studentId === s.id &&
       e.courseId === selectedCourseId &&
       (!activeSemId || e.semesterId === activeSemId)
     )
   );
+
+  const enrolledStudents = [...enrolledStudentsRaw].sort((a, b) => {
+    if (sortOrder === 'A-Z') {
+      return a.fullName.localeCompare(b.fullName, 'ar');
+    }
+    return 0;
+  });
 
   const handleToggle = (studentId: string, lectureIdx: number, courseId: string = selectedCourseId) => {
     setAttendance(prev => {
@@ -456,6 +464,20 @@ const AdminAttendance: React.FC = () => {
                 >
                   {lectures.map(l => <option key={l} value={l}>م{l}</option>)}
                   <option value="all">{lang === 'AR' ? 'الكل' : 'All'}</option>
+                </select>
+              </div>
+            )}
+
+            {selectedCourseId && (
+              <div className="flex items-center gap-2 bg-gray-50 px-4 py-3 rounded-2xl border border-gray-100">
+                <span className="text-[10px] font-black text-gray-400 uppercase">{lang === 'AR' ? 'فرزبـ:' : 'Sort By:'}</span>
+                <select
+                  className="bg-transparent outline-none font-black text-xs text-gray-600"
+                  value={sortOrder}
+                  onChange={e => setSortOrder(e.target.value as 'A-Z' | 'default')}
+                >
+                  <option value="A-Z">{lang === 'AR' ? 'أبجدياً (أ-ي)' : 'Alphabetical (A-Z)'}</option>
+                  <option value="default">{lang === 'AR' ? 'الافتراضي' : 'Default'}</option>
                 </select>
               </div>
             )}

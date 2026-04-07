@@ -13,6 +13,7 @@ const UniversityIdRegistry: React.FC = () => {
     const [filteredStudents, setFilteredStudents] = useState<AllowedStudent[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [filter, setFilter] = useState<'all' | 'available' | 'used'>('all');
+    const [sortOrder, setSortOrder] = useState<'default' | 'A-Z' | 'newest'>('default');
     const [isLoading, setIsLoading] = useState(true);
     const [uploadMessage, setUploadMessage] = useState('');
     const [stats, setStats] = useState({ total: 0, available: 0, used: 0 });
@@ -53,7 +54,7 @@ const UniversityIdRegistry: React.FC = () => {
 
     useEffect(() => {
         filterStudents();
-    }, [students, searchQuery, filter]);
+    }, [students, searchQuery, filter, sortOrder]);
 
     const loadData = async () => {
         setIsLoading(true);
@@ -86,6 +87,12 @@ const UniversityIdRegistry: React.FC = () => {
                 s.universityId.toLowerCase().includes(query) ||
                 s.name.toLowerCase().includes(query)
             );
+        }
+
+        if (sortOrder === 'A-Z') {
+            filtered = filtered.sort((a, b) => a.name.localeCompare(b.name, 'ar'));
+        } else if (sortOrder === 'newest') {
+            filtered = filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
         }
 
         setFilteredStudents(filtered);
@@ -350,7 +357,20 @@ const UniversityIdRegistry: React.FC = () => {
                     />
                 </div>
 
-                <div className="flex gap-2 flex-wrap">
+                <div className="flex gap-2 flex-wrap items-center">
+                    <div className="flex items-center gap-2 bg-card px-4 py-2 rounded-xl border border-border w-fit h-fit ml-auto md:ml-2">
+                        <span className="text-[10px] font-black text-text-secondary uppercase">{lang === 'AR' ? 'فرزبـ:' : 'Sort By:'}</span>
+                        <select
+                            className="bg-transparent outline-none font-bold text-xs text-text-primary"
+                            value={sortOrder}
+                            onChange={e => setSortOrder(e.target.value as 'default' | 'A-Z' | 'newest')}
+                        >
+                            <option value="default">{lang === 'AR' ? 'الافتراضي' : 'Default'}</option>
+                            <option value="A-Z">{lang === 'AR' ? 'أبجدياً (أ-ي)' : 'A-Z'}</option>
+                            <option value="newest">{lang === 'AR' ? 'الأحدث' : 'Newest'}</option>
+                        </select>
+                    </div>
+
                     <button
                         onClick={() => setFilter('all')}
                         className={`px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all border ${filter === 'all' ? 'border-primary text-primary bg-primary/10' : 'border-border bg-card text-text-secondary hover:bg-surface'}`}

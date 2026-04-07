@@ -44,9 +44,23 @@ const StudentDashboard: React.FC = () => {
     );
     // Deduplicated enrolled courses
     const seen = new Set<string>();
-    const myCourses = data.courses.filter(c =>
+    const myCoursesUnsorted = data.courses.filter(c =>
         currentEnrollments.some(e => e.courseId === c.id) && !seen.has(c.id) && seen.add(c.id)
     );
+
+    const getDayOrder = (day: string) => {
+        const d = (day || '').toLowerCase();
+        if (d.includes('saturday')) return 1;
+        if (d.includes('sunday')) return 2;
+        if (d.includes('monday')) return 3;
+        if (d.includes('tuesday')) return 4;
+        if (d.includes('wednesday')) return 5;
+        if (d.includes('thursday')) return 6;
+        if (d.includes('friday')) return 7;
+        return 99;
+    };
+
+    const myCourses = [...myCoursesUnsorted].sort((a, b) => getDayOrder(a.day) - getDayOrder(b.day));
 
     // ── Attendance stats ──────────────────────────────────────────────────────
     const { presentCount, totalSessions } = useMemo(() => {

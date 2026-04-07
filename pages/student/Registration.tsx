@@ -200,7 +200,22 @@ const Registration: React.FC = () => {
     }
   };
 
-  const currentSelectionCourses = courses.filter(c => pendingSelection.has(c.id)); // Use global courses to find selected IDs
+  const currentSelectionCourses = courses
+    .filter(c => pendingSelection.has(c.id))
+    .sort((a, b) => {
+      const getDayOrder = (day: string) => {
+        const d = (day || '').toLowerCase();
+        if (d.includes('saturday')) return 1;
+        if (d.includes('sunday')) return 2;
+        if (d.includes('monday')) return 3;
+        if (d.includes('tuesday')) return 4;
+        if (d.includes('wednesday')) return 5;
+        if (d.includes('thursday')) return 6;
+        if (d.includes('friday')) return 7;
+        return 99;
+      };
+      return getDayOrder(a.day) - getDayOrder(b.day);
+    });
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500 pb-20">

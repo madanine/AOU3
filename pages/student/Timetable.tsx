@@ -218,6 +218,20 @@ const StudentTimetable: React.FC = () => {
       )
       .map(e => storage.getCourses().find(c => c.id === e.courseId)!)
       .filter(Boolean)
+      .sort((a, b) => {
+        const getDayOrder = (day: string) => {
+          const d = (day || '').toLowerCase();
+          if (d.includes('saturday')) return 1;
+          if (d.includes('sunday')) return 2;
+          if (d.includes('monday')) return 3;
+          if (d.includes('tuesday')) return 4;
+          if (d.includes('wednesday')) return 5;
+          if (d.includes('thursday')) return 6;
+          if (d.includes('friday')) return 7;
+          return 99;
+        };
+        return getDayOrder(a.day) - getDayOrder(b.day);
+      })
       .map(course => ({
         day: t.days[course.day as keyof typeof t.days],
         code: course.code,
