@@ -79,8 +79,12 @@ const AdminAttendance: React.FC = () => {
   useEffect(() => {
     if (isFirstAttendanceRender.current) { isFirstAttendanceRender.current = false; return; }
     clearTimeout(attendanceSaveTimer.current);
-    attendanceSaveTimer.current = setTimeout(() => {
-      storage.setAttendance(attendance);
+    attendanceSaveTimer.current = setTimeout(async () => {
+      setIsSaving(true);
+      await storage.setAttendance(attendance);
+      setIsSaving(false);
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
     }, 1500);
     return () => clearTimeout(attendanceSaveTimer.current);
   }, [attendance]);
@@ -89,8 +93,12 @@ const AdminAttendance: React.FC = () => {
   useEffect(() => {
     if (isFirstParticipationRender.current) { isFirstParticipationRender.current = false; return; }
     clearTimeout(participationSaveTimer.current);
-    participationSaveTimer.current = setTimeout(() => {
-      storage.setParticipation(participation);
+    participationSaveTimer.current = setTimeout(async () => {
+      setIsSaving(true);
+      await storage.setParticipation(participation);
+      setIsSaving(false);
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
     }, 1500);
     return () => clearTimeout(participationSaveTimer.current);
   }, [participation]);
@@ -423,9 +431,17 @@ const AdminAttendance: React.FC = () => {
       )}
 
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
+        <div className="flex flex-col">
           <h1 className="text-3xl font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>{lang === 'AR' ? 'الحضور والمشاركة' : 'Attendance & Participation'}</h1>
-          <p className="font-medium" style={{ color: 'var(--text-secondary)' }}>{user?.role === 'admin' ? 'نظام الحضور والمشاركة المركزي' : 'موادك المسندة'}</p>
+          <div className="flex items-center gap-2">
+            <p className="font-medium" style={{ color: 'var(--text-secondary)' }}>{user?.role === 'admin' ? 'نظام الحضور والمشاركة المركزي' : 'موادك المسندة'}</p>
+            {isSaving && (
+              <span className="flex items-center gap-1.5 px-2 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-black rounded-full animate-pulse border border-blue-100">
+                <span className="w-1.5 h-1.5 bg-blue-600 rounded-full animate-bounce" />
+                {lang === 'AR' ? 'جاري الحفظ تلقائياً...' : 'Auto-saving...'}
+              </span>
+            )}
+          </div>
         </div>
 
         <div className="flex bg-gray-100 p-1 rounded-xl">
