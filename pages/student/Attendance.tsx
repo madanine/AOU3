@@ -6,6 +6,14 @@ import { BookMarked, ChevronRight, X, Calendar, CheckCircle2, XCircle, Clock, St
 const Attendance: React.FC = () => {
   const { user, translate, lang, settings } = useApp();
   const [selectedCourse, setSelectedCourse] = useState<string | null>(null);
+  
+  // Real-time synchronization: listen for storage updates (silent sync)
+  const [lastUpdate, setLastUpdate] = React.useState(0);
+  React.useEffect(() => {
+    const handleUpdate = () => setLastUpdate(Date.now());
+    window.addEventListener('storage-update', handleUpdate);
+    return () => window.removeEventListener('storage-update', handleUpdate);
+  }, []);
 
   const enrollments = storage.getEnrollments().filter(e => e.studentId === user?.id);
   const courses = storage.getCourses();

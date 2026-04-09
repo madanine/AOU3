@@ -7,25 +7,39 @@ import { BookOpen, CheckCircle, XCircle, Save, Download, Undo2, AlertTriangle, C
 import * as XLSX from 'xlsx';
 
 const AdminAttendance: React.FC = () => {
-  const { user, t, translate, lang, settings } = useApp();
+  const { user, t, translate, lang, settings, dataReady } = useApp();
   const [courses, setCourses] = useState<Course[]>(storage.getCourses());
   const [students, setStudents] = useState<User[]>(storage.getUsers().filter(u => u.role === 'student'));
   const [enrollments, setEnrollments] = useState<Enrollment[]>(storage.getEnrollments());
+  
+  const [viewMode, setViewMode] = useState<'course' | 'student'>('course');
   const [selectedCourseId, setSelectedCourseId] = useState<string>('');
-  const [attendance, setAttendance] = useState<AttendanceRecord>(storage.getAttendance());
-  const [participation, setParticipation] = useState<ParticipationRecord>(storage.getParticipation());
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  // Student-specific search/view state
+  const [targetStudentId, setTargetStudentId] = useState('');
+  const [studentSearchTerm, setStudentSearchTerm] = useState('');
+  const [showStudentDropdown, setShowStudentDropdown] = useState(false);
+
+  // 1. Attendance state management
+  const [attendance, setAttendance] = useState<AttendanceRecord>(() => storage.getAttendance());
+  const [participation, setParticipation] = useState<ParticipationRecord>(() => storage.getParticipation());
+  
   const [selectedStudents, setSelectedStudents] = useState<Set<string>>(new Set());
   const [selectedLecture, setSelectedLecture] = useState<number | 'all'>(1);
   const [undoStack, setUndoStack] = useState<AttendanceRecord | null>(null);
   const [participationUndoStack, setParticipationUndoStack] = useState<ParticipationRecord | null>(null);
-  const [showToast, setShowToast] = useState(false);
-  const [sortOrder, setSortOrder] = useState<'A-Z' | 'default'>('A-Z');
-
-  // Debounce refs to avoid flooding Supabase on every cell click
+  
+  // Debounce refs
   const attendanceSaveTimer = useRef<ReturnType<typeof setTimeout>>();
   const participationSaveTimer = useRef<ReturnType<typeof setTimeout>>();
   const isFirstAttendanceRender = useRef(true);
   const isFirstParticipationRender = useRef(true);
+
+  // Status for feedback
+  const [isSaving, setIsSaving] = useState(false);
+  const [showToast, setShowToast] = useState(false);
+  const [sortOrder, setSortOrder] = useState<'A-Z' | 'default'>('A-Z');
 
   const [confirmModal, setConfirmModal] = useState<{
     show: boolean;
@@ -35,11 +49,6 @@ const AdminAttendance: React.FC = () => {
   } | null>(null);
 
   const activeSemId = settings.activeSemesterId;
-
-  const [viewMode, setViewMode] = useState<'course' | 'student'>('course');
-  const [targetStudentId, setTargetStudentId] = useState('');
-  const [studentSearchTerm, setStudentSearchTerm] = useState('');
-  const [showStudentDropdown, setShowStudentDropdown] = useState(false);
 
   // Auto-refresh data on storage update (Silent Sync)
   useEffect(() => {
@@ -53,6 +62,18 @@ const AdminAttendance: React.FC = () => {
     window.addEventListener('storage-update', handleUpdate);
     return () => window.removeEventListener('storage-update', handleUpdate);
   }, []);
+
+  // Guard: If data isn't ready from the server, don't allow interactions or saves.
+  if (!dataReady) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
+        <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+        <p className="font-black text-xs uppercase tracking-widest text-text-secondary animate-pulse">
+          {lang === 'AR' ? 'جاري مزامنة البيانات المسجلة...' : 'Syncing recorded data...'}
+        </p>
+      </div>
+    );
+  }
 
   // Auto-save attendance with debounce (1.5s after last change)
   useEffect(() => {

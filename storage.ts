@@ -24,6 +24,8 @@ const notify = () => listeners.forEach(l => l());
 
 
 export const storage = {
+  isInitialized: false,
+
   // Sync logic
   async syncFromSupabase() {
     try {
@@ -92,6 +94,7 @@ export const storage = {
         localStorage.setItem(KEYS.PARTICIPATION, JSON.stringify(map));
       }
 
+      storage.isInitialized = true;
       notify();
       return settings || storage.getSettings();
     } catch (err) {
@@ -242,6 +245,10 @@ export const storage = {
     localStorage.setItem(KEYS.ATTENDANCE, JSON.stringify(recordMap));
     notify();
 
+    // Guard: Prevent saving to server if initialization/sync isn't finished.
+    // This stops stale empty local state from overwriting remote server data.
+    if (!storage.isInitialized) return;
+
     // 3. Identify changes and group them
     const allUpserts: AttendanceRow[] = [];
     const deletionsByStudent: Record<string, { courseId: string, indices: number[] }> = {};
@@ -287,6 +294,9 @@ export const storage = {
     // 2. Update local storage and notify
     localStorage.setItem(KEYS.PARTICIPATION, JSON.stringify(recordMap));
     notify();
+
+    // Guard: Prevent saving to server if initialization/sync isn't finished.
+    if (!storage.isInitialized) return;
 
     // 3. Identify changes
     const allUpserts: ParticipationRow[] = [];

@@ -70,6 +70,7 @@ interface AppContextType {
   translate: (obj: any, field: string) => string;
   isDarkMode: boolean;
   toggleDarkMode: () => void;
+  dataReady: boolean;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -252,7 +253,7 @@ const App: React.FC = () => {
   return (
     <AppContext.Provider value={{
       user, setUser, lang, setLang, t, settings, updateSettings, translate,
-      isDarkMode, toggleDarkMode
+      isDarkMode, toggleDarkMode, dataReady: storage.isInitialized
     }}>
       {isMaintenanceBlocked && !isLoginPage ? (
         <MaintenancePage settings={settings} lang={lang} />
