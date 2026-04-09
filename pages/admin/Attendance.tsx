@@ -39,6 +39,7 @@ const AdminAttendance: React.FC = () => {
   // Status for feedback
   const [isSaving, setIsSaving] = useState(false);
   const [showToast, setShowToast] = useState(false);
+  const [showErrorToast, setShowErrorToast] = useState(false);
   const [sortOrder, setSortOrder] = useState<'A-Z' | 'default'>('A-Z');
 
   const [confirmModal, setConfirmModal] = useState<{
@@ -228,11 +229,18 @@ const AdminAttendance: React.FC = () => {
 
   const handleSave = async () => {
     setIsSaving(true);
-    await storage.setAttendance(attendance);
-    await storage.setParticipation(participation);
-    setIsSaving(false);
-    setShowToast(true);
-    setTimeout(() => setShowToast(false), 3000);
+    try {
+      await storage.setAttendance(attendance);
+      await storage.setParticipation(participation);
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+    } catch (err) {
+      console.error('Attendance save failed:', err);
+      setShowErrorToast(true);
+      setTimeout(() => setShowErrorToast(false), 5000);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const toggleAllStudents = () => {
@@ -405,7 +413,17 @@ const AdminAttendance: React.FC = () => {
           <div className="bg-success text-white px-8 py-4 rounded-2xl shadow-2xl flex items-center gap-3 border border-emerald-400">
             <Check size={20} className="font-black" />
             <span className="font-black text-sm uppercase tracking-widest">
-              {lang === 'AR' ? 'تم الحفظ بنجاح' : 'Saved Successfully'}
+              {lang === 'AR' ? 'تم الحفظ بنجاح وتحديث قاعدة البيانات' : 'Saved & Synced Successfully'}
+            </span>
+          </div>
+        </div>
+      )}
+      {showErrorToast && (
+        <div className="fixed top-8 left-1/2 -translate-x-1/2 z-[200] animate-in slide-in-from-top-4 duration-300">
+          <div className="bg-red-600 text-white px-8 py-4 rounded-2xl shadow-2xl flex items-center gap-3 border border-red-400">
+            <AlertTriangle size={20} className="font-black" />
+            <span className="font-black text-sm uppercase tracking-widest">
+              {lang === 'AR' ? 'فشل الحفظ — تحقق من الاتصال وأعد المحاولة' : 'Save Failed — Check connection & retry'}
             </span>
           </div>
         </div>

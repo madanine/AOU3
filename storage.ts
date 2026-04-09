@@ -240,23 +240,20 @@ export const storage = {
 
   getAttendance: (): AttendanceRecord => JSON.parse(localStorage.getItem(KEYS.ATTENDANCE) || '{}'),
 
-  setAttendance: (recordMap: AttendanceRecord) => {
+  setAttendance: async (recordMap: AttendanceRecord): Promise<void> => {
     // 1. Get current state to calculate diff
     const previous = storage.getAttendance();
     
-    // 2. Update local storage and notify UI
+    // 2. Update local storage and notify UI immediately (optimistic update)
     localStorage.setItem(KEYS.ATTENDANCE, JSON.stringify(recordMap));
     notify();
 
     // Guard: Prevent saving to server if initialization/sync isn't finished.
-    // This stops stale empty local state from overwriting remote server data.
     if (!storage.isInitialized) return;
 
     // 3. Identify changes and group them
     const allUpserts: AttendanceRow[] = [];
     // FIX: Store studentId in the object directly — never split a UUID string.
-    // UUIDs contain '-' so key.split('-')[1] would return a fragment of the courseId,
-    // not the studentId. Using ':::' as separator makes it unambiguous.
     const deletionsByStudent: Record<string, { courseId: string, studentId: string, indices: number[] }> = {};
 
     Object.entries(recordMap).forEach(([cId, students]) => {
@@ -277,26 +274,26 @@ export const storage = {
       });
     });
 
-    // 4. Batch deletions (grouped by course and student)
-    Object.entries(deletionsByStudent).forEach(([, data]) => {
-      supabaseService.bulkDeleteAttendance(data.courseId, data.studentId, data.indices).catch(() => { });
-    });
-
-    // 5. Batch upserts (all changes in one request)
-    if (allUpserts.length > 0) {
-      supabaseService.bulkUpsertAttendance(allUpserts).catch(() => { });
-    }
+    // 4 & 5. Await all Supabase operations so errors propagate to the caller.
+    // This is critical — previously these were fire-and-forget which caused
+    // silent failures where the toast showed "Saved" but nothing reached the DB.
+    await Promise.all([
+      ...Object.values(deletionsByStudent).map(data =>
+        supabaseService.bulkDeleteAttendance(data.courseId, data.studentId, data.indices)
+      ),
+      ...(allUpserts.length > 0 ? [supabaseService.bulkUpsertAttendance(allUpserts)] : [])
+    ]);
   },
 
   // Note: syncFromSupabase handles the reverse conversion (Row -> Map)
 
   getParticipation: (): ParticipationRecord => JSON.parse(localStorage.getItem(KEYS.PARTICIPATION) || '{}'),
 
-  setParticipation: (recordMap: ParticipationRecord) => {
+  setParticipation: async (recordMap: ParticipationRecord): Promise<void> => {
     // 1. Get current state for diff
     const previous = storage.getParticipation();
 
-    // 2. Update local storage and notify
+    // 2. Update local storage and notify (optimistic update)
     localStorage.setItem(KEYS.PARTICIPATION, JSON.stringify(recordMap));
     notify();
 
@@ -326,15 +323,13 @@ export const storage = {
       });
     });
 
-    // 4. Batch deletions
-    Object.entries(deletionsByStudent).forEach(([, data]) => {
-      supabaseService.bulkDeleteParticipation(data.courseId, data.studentId, data.indices).catch(() => { });
-    });
-
-    // 5. Batch upserts
-    if (allUpserts.length > 0) {
-      supabaseService.bulkUpsertParticipation(allUpserts).catch(() => { });
-    }
+    // 4 & 5. Await all Supabase operations — errors now propagate to the caller.
+    await Promise.all([
+      ...Object.values(deletionsByStudent).map(data =>
+        supabaseService.bulkDeleteParticipation(data.courseId, data.studentId, data.indices)
+      ),
+      ...(allUpserts.length > 0 ? [supabaseService.bulkUpsertParticipation(allUpserts)] : [])
+    ]);
   },
 
   getSemesters: (): Semester[] => JSON.parse(localStorage.getItem(KEYS.SEMESTERS) || '[]'),

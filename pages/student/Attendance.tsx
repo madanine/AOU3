@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../App';
 import { storage } from '../../storage';
-import { BookMarked, ChevronRight, X, Calendar, CheckCircle2, XCircle, Clock, Star, User } from 'lucide-react';
+import { BookMarked, ChevronRight, X, Calendar, CheckCircle2, XCircle, Clock, Star, User, RefreshCw } from 'lucide-react';
 
 const Attendance: React.FC = () => {
   const { user, translate, lang, settings } = useApp();
   const [selectedCourse, setSelectedCourse] = useState<string | null>(null);
-  
+  const [isSyncing, setIsSyncing] = useState(false);
+
   // Real-time synchronization: listen for storage updates (silent sync)
   const [lastUpdate, setLastUpdate] = React.useState(0);
   useEffect(() => {
@@ -20,6 +21,17 @@ const Attendance: React.FC = () => {
   useEffect(() => {
     storage.syncFromSupabase().catch(() => {});
   }, []);
+
+  // Manual refresh handler — lets student pull latest data on demand
+  const handleRefresh = async () => {
+    setIsSyncing(true);
+    try {
+      await storage.syncFromSupabase();
+    } catch (e) {}
+    finally {
+      setIsSyncing(false);
+    }
+  };
 
   const enrollments = storage.getEnrollments().filter(e => e.studentId === user?.id);
   const courses = storage.getCourses();
@@ -119,6 +131,17 @@ const Attendance: React.FC = () => {
             </p>
           )}
         </div>
+        {/* Refresh button — pulls latest data from Supabase */}
+        <button
+          onClick={handleRefresh}
+          disabled={isSyncing}
+          className="relative z-10 flex items-center gap-2 px-5 py-2.5 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-2xl font-bold text-sm transition-all disabled:opacity-60"
+        >
+          <RefreshCw size={16} className={isSyncing ? 'animate-spin' : ''} />
+          {isSyncing
+            ? (lang === 'AR' ? 'جاري التحديث...' : 'Refreshing...')
+            : (lang === 'AR' ? 'تحديث البيانات' : 'Refresh Data')}
+        </button>
       </div>
 
       <div className="space-y-10">
