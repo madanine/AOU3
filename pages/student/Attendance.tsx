@@ -23,13 +23,19 @@ const Attendance: React.FC = () => {
 
   const activeSemId = settings.activeSemesterId;
 
-  // BUG 3 FIX: Deduplicate enrollments by courseId — keep only the latest enrollment per course.
-  // Without this, students who re-registered produce duplicate rows (one per enrollment record).
+  // Prioritize active semester enrollment to ensure attendance appears in the right tab.
   const uniqueEnrollments = Object.values(
     enrollments.reduce((acc, e) => {
-      // Keep the most recent enrollment for each courseId
-      if (!acc[e.courseId] || new Date(e.enrolledAt) > new Date(acc[e.courseId].enrolledAt)) {
+      const existing = acc[e.courseId];
+      // Keep the most recent enrollment or prioritize the active semester
+      if (!existing) {
         acc[e.courseId] = e;
+      } else if (e.semesterId === activeSemId && existing.semesterId !== activeSemId) {
+        acc[e.courseId] = e;
+      } else if (e.semesterId !== activeSemId && existing.semesterId !== activeSemId) {
+        if (new Date(e.enrolledAt) > new Date(existing.enrolledAt)) {
+          acc[e.courseId] = e;
+        }
       }
       return acc;
     }, {} as Record<string, typeof enrollments[0]>)

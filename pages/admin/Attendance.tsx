@@ -50,18 +50,25 @@ const AdminAttendance: React.FC = () => {
 
   const activeSemId = settings.activeSemesterId;
 
-  // Auto-refresh data on storage update (Silent Sync)
+  // Update basic data, but do NOT overwrite attendance/participation 
+  // to avoid destroying the admin's unsaved checkmarks.
   useEffect(() => {
     const handleUpdate = () => {
       setCourses(storage.getCourses());
       setStudents(storage.getUsers().filter(u => u.role === 'student'));
       setEnrollments(storage.getEnrollments());
-      setAttendance(storage.getAttendance());
-      setParticipation(storage.getParticipation());
     };
     const unsubscribe = storage.subscribe(handleUpdate);
     return () => unsubscribe();
   }, []);
+
+  // When data becomes ready (e.g. initial server sync completes), load the attendance records once.
+  useEffect(() => {
+    if (dataReady) {
+      setAttendance(storage.getAttendance());
+      setParticipation(storage.getParticipation());
+    }
+  }, [dataReady]);
 
   // Guard: If data isn't ready from the server, don't allow interactions or saves.
   if (!dataReady) {
@@ -75,33 +82,8 @@ const AdminAttendance: React.FC = () => {
     );
   }
 
-  // Auto-save attendance with debounce (1.5s after last change)
-  useEffect(() => {
-    if (isFirstAttendanceRender.current) { isFirstAttendanceRender.current = false; return; }
-    clearTimeout(attendanceSaveTimer.current);
-    attendanceSaveTimer.current = setTimeout(async () => {
-      setIsSaving(true);
-      await storage.setAttendance(attendance);
-      setIsSaving(false);
-      setShowToast(true);
-      setTimeout(() => setShowToast(false), 3000);
-    }, 1500);
-    return () => clearTimeout(attendanceSaveTimer.current);
-  }, [attendance]);
-
-  // Auto-save participation with debounce (1.5s after last change)
-  useEffect(() => {
-    if (isFirstParticipationRender.current) { isFirstParticipationRender.current = false; return; }
-    clearTimeout(participationSaveTimer.current);
-    participationSaveTimer.current = setTimeout(async () => {
-      setIsSaving(true);
-      await storage.setParticipation(participation);
-      setIsSaving(false);
-      setShowToast(true);
-      setTimeout(() => setShowToast(false), 3000);
-    }, 1500);
-    return () => clearTimeout(participationSaveTimer.current);
-  }, [participation]);
+  // Auto-saves are REMOVED as requested.
+  // Saving is now purely manual via the handleSave button.
 
   const visibleCourses = (user?.role === 'admin'
     ? courses
@@ -244,12 +226,11 @@ const AdminAttendance: React.FC = () => {
     }
   };
 
-  const handleSave = () => {
-    // Cancel any pending debounced saves and save immediately
-    clearTimeout(attendanceSaveTimer.current);
-    clearTimeout(participationSaveTimer.current);
-    storage.setAttendance(attendance);
-    storage.setParticipation(participation);
+  const handleSave = async () => {
+    setIsSaving(true);
+    await storage.setAttendance(attendance);
+    await storage.setParticipation(participation);
+    setIsSaving(false);
     setShowToast(true);
     setTimeout(() => setShowToast(false), 3000);
   };
