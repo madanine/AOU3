@@ -235,30 +235,45 @@ export const storage = {
   getAttendance: (): AttendanceRecord => JSON.parse(localStorage.getItem(KEYS.ATTENDANCE) || '{}'),
 
   setAttendance: (recordMap: AttendanceRecord) => {
+    // 1. Get current state to calculate diff
+    const previous = storage.getAttendance();
+    
+    // 2. Update local storage and notify UI
     localStorage.setItem(KEYS.ATTENDANCE, JSON.stringify(recordMap));
     notify();
 
-    // Convert Map to Rows for Supabase
-    const rows: { courseId: string; studentId: string; lectureIndex: number; status: boolean; }[] = [];
-    const deletions: { courseId: string; studentId: string; lectureIndex: number; }[] = [];
+    // 3. Identify changes and group them
+    const allUpserts: AttendanceRow[] = [];
+    const deletionsByStudent: Record<string, { courseId: string, indices: number[] }> = {};
 
     Object.entries(recordMap).forEach(([cId, students]) => {
       Object.entries(students).forEach(([sId, attendanceArr]) => {
         attendanceArr.forEach((status, idx) => {
-          if (status !== null) {
-            rows.push({ courseId: cId, studentId: sId, lectureIndex: idx, status });
-          } else {
-            // Track nulls for deletion
-            deletions.push({ courseId: cId, studentId: sId, lectureIndex: idx });
+          const prevStatus = previous[cId]?.[sId]?.[idx] ?? null;
+          
+          if (status !== prevStatus) {
+            if (status !== null) {
+              allUpserts.push({ courseId: cId, studentId: sId, lectureIndex: idx, status });
+            } else {
+              const key = `${cId}-${sId}`;
+              if (!deletionsByStudent[key]) deletionsByStudent[key] = { courseId: cId, indices: [] };
+              deletionsByStudent[key].indices.push(idx);
+            }
           }
         });
       });
     });
 
-    // Upsert non-null values
-    rows.forEach(r => supabaseService.upsertAttendance(r).catch(() => { }));
-    // Delete null values
-    deletions.forEach(d => supabaseService.deleteAttendance(d.courseId, d.studentId, d.lectureIndex).catch(() => { }));
+    // 4. Batch deletions (grouped by course and student)
+    Object.entries(deletionsByStudent).forEach(([key, data]) => {
+      const studentId = key.split('-')[1];
+      supabaseService.bulkDeleteAttendance(data.courseId, studentId, data.indices).catch(() => { });
+    });
+
+    // 5. Batch upserts (all changes in one request)
+    if (allUpserts.length > 0) {
+      supabaseService.bulkUpsertAttendance(allUpserts).catch(() => { });
+    }
   },
 
   // Note: syncFromSupabase handles the reverse conversion (Row -> Map)
@@ -266,30 +281,45 @@ export const storage = {
   getParticipation: (): ParticipationRecord => JSON.parse(localStorage.getItem(KEYS.PARTICIPATION) || '{}'),
 
   setParticipation: (recordMap: ParticipationRecord) => {
+    // 1. Get current state for diff
+    const previous = storage.getParticipation();
+
+    // 2. Update local storage and notify
     localStorage.setItem(KEYS.PARTICIPATION, JSON.stringify(recordMap));
     notify();
 
-    // Convert Map to Rows for Supabase
-    const rows: { courseId: string; studentId: string; lectureIndex: number; status: boolean; }[] = [];
-    const deletions: { courseId: string; studentId: string; lectureIndex: number; }[] = [];
+    // 3. Identify changes
+    const allUpserts: ParticipationRow[] = [];
+    const deletionsByStudent: Record<string, { courseId: string, indices: number[] }> = {};
 
     Object.entries(recordMap).forEach(([cId, students]) => {
       Object.entries(students).forEach(([sId, participationArr]) => {
         participationArr.forEach((status, idx) => {
-          if (status !== null) {
-            rows.push({ courseId: cId, studentId: sId, lectureIndex: idx, status });
-          } else {
-            // Track nulls for deletion
-            deletions.push({ courseId: cId, studentId: sId, lectureIndex: idx });
+          const prevStatus = previous[cId]?.[sId]?.[idx] ?? null;
+
+          if (status !== prevStatus) {
+            if (status !== null) {
+              allUpserts.push({ courseId: cId, studentId: sId, lectureIndex: idx, status });
+            } else {
+              const key = `${cId}-${sId}`;
+              if (!deletionsByStudent[key]) deletionsByStudent[key] = { courseId: cId, indices: [] };
+              deletionsByStudent[key].indices.push(idx);
+            }
           }
         });
       });
     });
 
-    // Upsert non-null values
-    rows.forEach(r => supabaseService.upsertParticipation(r).catch(() => { }));
-    // Delete null values
-    deletions.forEach(d => supabaseService.deleteParticipation(d.courseId, d.studentId, d.lectureIndex).catch(() => { }));
+    // 4. Batch deletions
+    Object.entries(deletionsByStudent).forEach(([key, data]) => {
+      const studentId = key.split('-')[1];
+      supabaseService.bulkDeleteParticipation(data.courseId, studentId, data.indices).catch(() => { });
+    });
+
+    // 5. Batch upserts
+    if (allUpserts.length > 0) {
+      supabaseService.bulkUpsertParticipation(allUpserts).catch(() => { });
+    }
   },
 
   getSemesters: (): Semester[] => JSON.parse(localStorage.getItem(KEYS.SEMESTERS) || '[]'),

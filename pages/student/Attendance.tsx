@@ -40,7 +40,7 @@ const Attendance: React.FC = () => {
 
     const partRecords: (boolean | null)[] = (participation[course.id]?.[user?.id || '']) || Array(12).fill(null);
     const participationGrade = Math.min(partRecords.filter(r => r === true).length, 10);
-    const percentage = recordedCount > 0 ? Math.round((presentCount / recordedCount) * 100) : 0;
+    const percentage = Math.round((presentCount / 12) * 100);
 
     return [{
       course, presentCount, absentCount, unrecordedCount, recordedCount,

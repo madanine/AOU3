@@ -366,6 +366,24 @@ export const supabaseService = {
         if (error) throw error;
     },
 
+    async upsertAssignment(assignment: Assignment) {
+        const payload = {
+            id: assignment.id,
+            course_id: assignment.courseId,
+            semester_id: assignment.semesterId,
+            title: assignment.title,
+            subtitle: assignment.subtitle,
+            type: assignment.type,
+            deadline: assignment.deadline,
+            questions: assignment.questions || [],
+            show_results: assignment.showResults ?? true,
+            total_marks: assignment.totalMarks,
+            created_at: assignment.createdAt
+        };
+        const { error } = await supabase.from('assignments').upsert(payload);
+        if (error) throw error;
+    },
+
     async deleteAssignment(id: string) {
         const { error } = await supabase.from('assignments').delete().eq('id', id);
         if (error) throw error;
@@ -494,6 +512,29 @@ export const supabaseService = {
         if (error) console.error('Attendance Delete Error:', error);
     },
 
+    async bulkUpsertAttendance(records: AttendanceRow[]) {
+        if (records.length === 0) return;
+        const payload = records.map(r => ({
+            course_id: r.courseId,
+            student_id: r.studentId,
+            lecture_index: r.lectureIndex,
+            status: r.status
+        }));
+        const { error } = await supabase.from('attendance').upsert(payload, { onConflict: 'course_id,student_id,lecture_index' });
+        if (error) console.error('Bulk Attendance Upsert Error:', error);
+    },
+
+    async bulkDeleteAttendance(courseId: string, studentId: string, lectureIndices: number[]) {
+        if (lectureIndices.length === 0) return;
+        const { error } = await supabase
+            .from('attendance')
+            .delete()
+            .eq('course_id', courseId)
+            .eq('student_id', studentId)
+            .in('lecture_index', lectureIndices);
+        if (error) console.error('Bulk Attendance Delete Error:', error);
+    },
+
     async deleteParticipation(courseId: string, studentId: string, lectureIndex: number) {
         const { error } = await supabase
             .from('participation')
@@ -502,6 +543,29 @@ export const supabaseService = {
             .eq('student_id', studentId)
             .eq('lecture_index', lectureIndex);
         if (error) console.error('Participation Delete Error:', error);
+    },
+
+    async bulkUpsertParticipation(records: ParticipationRow[]) {
+        if (records.length === 0) return;
+        const payload = records.map(r => ({
+            course_id: r.courseId,
+            student_id: r.studentId,
+            lecture_index: r.lectureIndex,
+            status: r.status
+        }));
+        const { error } = await supabase.from('participation').upsert(payload, { onConflict: 'course_id,student_id,lecture_index' });
+        if (error) console.error('Bulk Participation Upsert Error:', error);
+    },
+
+    async bulkDeleteParticipation(courseId: string, studentId: string, lectureIndices: number[]) {
+        if (lectureIndices.length === 0) return;
+        const { error } = await supabase
+            .from('participation')
+            .delete()
+            .eq('course_id', courseId)
+            .eq('student_id', studentId)
+            .in('lecture_index', lectureIndices);
+        if (error) console.error('Bulk Participation Delete Error:', error);
     },
 
     // ============================================

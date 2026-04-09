@@ -8,9 +8,9 @@ import * as XLSX from 'xlsx';
 
 const AdminAttendance: React.FC = () => {
   const { user, t, translate, lang, settings } = useApp();
-  const [courses] = useState<Course[]>(storage.getCourses());
-  const [students] = useState<User[]>(storage.getUsers().filter(u => u.role === 'student'));
-  const [enrollments] = useState<Enrollment[]>(storage.getEnrollments());
+  const [courses, setCourses] = useState<Course[]>(storage.getCourses());
+  const [students, setStudents] = useState<User[]>(storage.getUsers().filter(u => u.role === 'student'));
+  const [enrollments, setEnrollments] = useState<Enrollment[]>(storage.getEnrollments());
   const [selectedCourseId, setSelectedCourseId] = useState<string>('');
   const [attendance, setAttendance] = useState<AttendanceRecord>(storage.getAttendance());
   const [participation, setParticipation] = useState<ParticipationRecord>(storage.getParticipation());
@@ -41,17 +41,14 @@ const AdminAttendance: React.FC = () => {
   const [studentSearchTerm, setStudentSearchTerm] = useState('');
   const [showStudentDropdown, setShowStudentDropdown] = useState(false);
 
-  // Auto-refresh data on storage update
+  // Auto-refresh data on storage update (Silent Sync)
   useEffect(() => {
     const handleUpdate = () => {
-      // Re-fetch everything
-      const freshCourses = storage.getCourses();
-      // Using refetch isn't easy with state vars unless we set them. 
-      // Ideally we should use a custom hook or Context, but for now we reload page or just rely on user interaction.
-      // But user complained about "0 courses". We need to update local state.
-      // We can't update 'const [courses]' easily as it's state initiated once.
-      // We should change 'courses' to be updated via event.
-      window.location.reload(); // Quick fix for sync issues requested by user: "Materials not syncing"
+      setCourses(storage.getCourses());
+      setStudents(storage.getUsers().filter(u => u.role === 'student'));
+      setEnrollments(storage.getEnrollments());
+      setAttendance(storage.getAttendance());
+      setParticipation(storage.getParticipation());
     };
     window.addEventListener('storage-update', handleUpdate);
     return () => window.removeEventListener('storage-update', handleUpdate);
@@ -82,12 +79,21 @@ const AdminAttendance: React.FC = () => {
     : courses.filter(c => user?.assignedCourses?.includes(c.id))
   ).filter(c => !activeSemId || c.semesterId === activeSemId);
 
-  // Student View: Get courses for selected student
+  // Security Fix: Filter student list for supervisors
+  const searchableStudents = students.filter(s => {
+    if (user?.role === 'admin') return true;
+    return enrollments.some(e => 
+      e.studentId === s.id && 
+      user?.assignedCourses?.includes(e.courseId)
+    );
+  });
+
+  // Student View: Get courses for selected student (Security Filtered)
   const studentCourses = targetStudentId
     ? enrollments
       .filter(e => e.studentId === targetStudentId && (!activeSemId || e.semesterId === activeSemId))
       .map(e => courses.find(c => c.id === e.courseId))
-      .filter(c => c) as Course[]
+      .filter(c => c && (user?.role === 'admin' || user?.assignedCourses?.includes(c.id))) as Course[]
     : [];
 
   const lectures = Array.from({ length: 12 }, (_, i) => i + 1);
@@ -532,7 +538,7 @@ const AdminAttendance: React.FC = () => {
             {/* Autocomplete Dropdown */}
             {showStudentDropdown && studentSearchTerm && (
               <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-2xl shadow-xl max-h-96 overflow-y-auto z-50">
-                {students
+                {searchableStudents
                   .filter(s => {
                     const search = studentSearchTerm.toLowerCase();
                     return (
@@ -561,7 +567,7 @@ const AdminAttendance: React.FC = () => {
                       </div>
                     </button>
                   ))}
-                {students.filter(s => {
+                {searchableStudents.filter(s => {
                   const search = studentSearchTerm.toLowerCase();
                   return (
                     s.fullName.toLowerCase().includes(search) ||
