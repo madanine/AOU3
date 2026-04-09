@@ -99,6 +99,9 @@ export const storage = {
       return settings || storage.getSettings();
     } catch (err) {
       console.warn('Silent sync failure:', err);
+      // Even if sync fails, we mark as initialized so the UI can use local storage fallback
+      storage.isInitialized = true;
+      notify();
       return storage.getSettings();
     }
   },

@@ -86,6 +86,7 @@ const App: React.FC = () => {
   const [lang, setLangState] = useState<Language>(storage.getLanguage() as Language);
   const [settings, setSettings] = useState<SiteSettings>(storage.getSettings());
   const [isLoading, setIsLoading] = useState(true);
+  const [dataReady, setDataReady] = useState(storage.isInitialized);
 
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const stored = localStorage.getItem('aou_dark_mode');
@@ -118,9 +119,8 @@ const App: React.FC = () => {
       storage.seed();
 
       // Update local state with latest settings (already synced above)
-      const freshSettings = storage.getSettings();
-      setSettings(freshSettings);
-
+      setSettings(storage.getSettings());
+      setDataReady(storage.isInitialized);
       setIsLoading(false);
     };
     init();
@@ -149,8 +149,8 @@ const App: React.FC = () => {
     });
 
     const unsubscribeStorage = storage.subscribe(() => {
-      const freshSettings = storage.getSettings();
-      setSettings(freshSettings);
+      setSettings(storage.getSettings());
+      setDataReady(storage.isInitialized);
     });
 
     return () => {
@@ -253,7 +253,7 @@ const App: React.FC = () => {
   return (
     <AppContext.Provider value={{
       user, setUser, lang, setLang, t, settings, updateSettings, translate,
-      isDarkMode, toggleDarkMode, dataReady: storage.isInitialized
+      isDarkMode, toggleDarkMode, dataReady
     }}>
       {isMaintenanceBlocked && !isLoginPage ? (
         <MaintenancePage settings={settings} lang={lang} />
