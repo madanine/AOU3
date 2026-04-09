@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../App';
 import { storage } from '../../storage';
 import { BookMarked, ChevronRight, X, Calendar, CheckCircle2, XCircle, Clock, Star, User } from 'lucide-react';
@@ -9,10 +9,16 @@ const Attendance: React.FC = () => {
   
   // Real-time synchronization: listen for storage updates (silent sync)
   const [lastUpdate, setLastUpdate] = React.useState(0);
-  React.useEffect(() => {
+  useEffect(() => {
     const handleUpdate = () => setLastUpdate(Date.now());
     const unsubscribe = storage.subscribe(handleUpdate);
     return () => unsubscribe();
+  }, []);
+
+  // On mount: force a fresh sync from Supabase so the student always
+  // sees the latest attendance data — even if Realtime didn't fire.
+  useEffect(() => {
+    storage.syncFromSupabase().catch(() => {});
   }, []);
 
   const enrollments = storage.getEnrollments().filter(e => e.studentId === user?.id);

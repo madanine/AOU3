@@ -254,7 +254,10 @@ export const storage = {
 
     // 3. Identify changes and group them
     const allUpserts: AttendanceRow[] = [];
-    const deletionsByStudent: Record<string, { courseId: string, indices: number[] }> = {};
+    // FIX: Store studentId in the object directly — never split a UUID string.
+    // UUIDs contain '-' so key.split('-')[1] would return a fragment of the courseId,
+    // not the studentId. Using ':::' as separator makes it unambiguous.
+    const deletionsByStudent: Record<string, { courseId: string, studentId: string, indices: number[] }> = {};
 
     Object.entries(recordMap).forEach(([cId, students]) => {
       Object.entries(students).forEach(([sId, attendanceArr]) => {
@@ -265,8 +268,8 @@ export const storage = {
             if (status !== null) {
               allUpserts.push({ courseId: cId, studentId: sId, lectureIndex: idx, status });
             } else {
-              const key = `${cId}-${sId}`;
-              if (!deletionsByStudent[key]) deletionsByStudent[key] = { courseId: cId, indices: [] };
+              const key = `${cId}:::${sId}`;
+              if (!deletionsByStudent[key]) deletionsByStudent[key] = { courseId: cId, studentId: sId, indices: [] };
               deletionsByStudent[key].indices.push(idx);
             }
           }
@@ -275,9 +278,8 @@ export const storage = {
     });
 
     // 4. Batch deletions (grouped by course and student)
-    Object.entries(deletionsByStudent).forEach(([key, data]) => {
-      const studentId = key.split('-')[1];
-      supabaseService.bulkDeleteAttendance(data.courseId, studentId, data.indices).catch(() => { });
+    Object.entries(deletionsByStudent).forEach(([, data]) => {
+      supabaseService.bulkDeleteAttendance(data.courseId, data.studentId, data.indices).catch(() => { });
     });
 
     // 5. Batch upserts (all changes in one request)
@@ -303,7 +305,8 @@ export const storage = {
 
     // 3. Identify changes
     const allUpserts: ParticipationRow[] = [];
-    const deletionsByStudent: Record<string, { courseId: string, indices: number[] }> = {};
+    // FIX: Store studentId in the object directly — never split a UUID string.
+    const deletionsByStudent: Record<string, { courseId: string, studentId: string, indices: number[] }> = {};
 
     Object.entries(recordMap).forEach(([cId, students]) => {
       Object.entries(students).forEach(([sId, participationArr]) => {
@@ -314,8 +317,8 @@ export const storage = {
             if (status !== null) {
               allUpserts.push({ courseId: cId, studentId: sId, lectureIndex: idx, status });
             } else {
-              const key = `${cId}-${sId}`;
-              if (!deletionsByStudent[key]) deletionsByStudent[key] = { courseId: cId, indices: [] };
+              const key = `${cId}:::${sId}`;
+              if (!deletionsByStudent[key]) deletionsByStudent[key] = { courseId: cId, studentId: sId, indices: [] };
               deletionsByStudent[key].indices.push(idx);
             }
           }
@@ -324,9 +327,8 @@ export const storage = {
     });
 
     // 4. Batch deletions
-    Object.entries(deletionsByStudent).forEach(([key, data]) => {
-      const studentId = key.split('-')[1];
-      supabaseService.bulkDeleteParticipation(data.courseId, studentId, data.indices).catch(() => { });
+    Object.entries(deletionsByStudent).forEach(([, data]) => {
+      supabaseService.bulkDeleteParticipation(data.courseId, data.studentId, data.indices).catch(() => { });
     });
 
     // 5. Batch upserts
@@ -463,12 +465,10 @@ export const storage = {
   initRealtime: () => {
     supabase.channel('public_db_changes')
       .on('postgres_changes', { event: '*', schema: 'public' }, async () => {
-        // Simple strategy: refetch all on any change. 
-        // Can be optimized to fetch only changed table.
-        // For now, full sync ensures consistency.
-        console.log('Realtime change detected, syncing...');
+        // syncFromSupabase already calls notify() internally after writing to localStorage.
+        // Do NOT call notify() again here — doing so causes a race condition where
+        // the second notify fires with stale localStorage state (before the write completes).
         await storage.syncFromSupabase();
-        notify();
       })
       .subscribe();
   }
