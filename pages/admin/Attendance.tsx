@@ -59,8 +59,8 @@ const AdminAttendance: React.FC = () => {
       setAttendance(storage.getAttendance());
       setParticipation(storage.getParticipation());
     };
-    window.addEventListener('storage-update', handleUpdate);
-    return () => window.removeEventListener('storage-update', handleUpdate);
+    const unsubscribe = storage.subscribe(handleUpdate);
+    return () => unsubscribe();
   }, []);
 
   // Guard: If data isn't ready from the server, don't allow interactions or saves.

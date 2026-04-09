@@ -11,8 +11,8 @@ const Attendance: React.FC = () => {
   const [lastUpdate, setLastUpdate] = React.useState(0);
   React.useEffect(() => {
     const handleUpdate = () => setLastUpdate(Date.now());
-    window.addEventListener('storage-update', handleUpdate);
-    return () => window.removeEventListener('storage-update', handleUpdate);
+    const unsubscribe = storage.subscribe(handleUpdate);
+    return () => unsubscribe();
   }, []);
 
   const enrollments = storage.getEnrollments().filter(e => e.studentId === user?.id);
