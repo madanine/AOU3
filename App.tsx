@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, createContext, useContext } from 'react';
+import React, { useState, useEffect, createContext, useContext, lazy, Suspense } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { storage } from './storage';
 import { supabase } from './supabase';
@@ -8,39 +8,56 @@ import { User, Language, SiteSettings } from './types';
 import { TRANSLATIONS } from './constants';
 import './src/print-styles.css';
 
-// Pages
+// ─── Eagerly loaded (critical path - user sees these immediately) ──────────
 import LoginPage from './pages/auth/Login';
 import SignupPage from './pages/auth/Signup';
-import StudentDashboard from './pages/student/Dashboard';
-import StudentRegistration from './pages/student/Registration';
-import StudentMyCourses from './pages/student/MyCourses';
-import StudentTimetable from './pages/student/Timetable';
-import StudentProfile from './pages/student/Profile';
-import StudentAttendance from './pages/student/Attendance';
-import StudentAssignments from './pages/student/Assignments';
-import StudentAssignmentSubmission from './pages/student/AssignmentSubmission';
-import StudentExams from './pages/student/Exams';
-import StudentTranscript from './pages/student/Transcript';
-
-import AdminDashboard from './pages/admin/Dashboard';
-import AdminCourses from './pages/admin/Courses';
-import AdminStudents from './pages/admin/Students';
-import AdminEnrollments from './pages/admin/Enrollments';
-import AdminExport from './pages/admin/Export';
-import AdminSiteSettings from './pages/admin/SiteSettings';
-import AdminAttendance from './pages/admin/Attendance';
-import AdminSupervisors from './pages/admin/Supervisors';
-import AdminAssignments from './pages/admin/Assignments';
-import AdminGrading from './pages/admin/Grading';
-import AdminManagement from './pages/admin/AdminManagement';
-import ChangePassword from './pages/admin/ChangePassword';
-import UniversityIdRegistry from './pages/admin/UniversityIdRegistry';
-import AdminExams from './pages/admin/Exams';
-import AdminTranscripts from './pages/admin/Transcripts';
-import SupervisorDashboard from './pages/supervisor/Dashboard';
-
 import MainLayout from './components/layout/MainLayout';
 import MaintenancePage from './components/MaintenancePage';
+
+// ─── Lazy loaded (only downloaded when user navigates to that page) ────────
+// Student pages
+const StudentDashboard = lazy(() => import('./pages/student/Dashboard'));
+const StudentRegistration = lazy(() => import('./pages/student/Registration'));
+const StudentMyCourses = lazy(() => import('./pages/student/MyCourses'));
+const StudentTimetable = lazy(() => import('./pages/student/Timetable'));
+const StudentProfile = lazy(() => import('./pages/student/Profile'));
+const StudentAttendance = lazy(() => import('./pages/student/Attendance'));
+const StudentAssignments = lazy(() => import('./pages/student/Assignments'));
+const StudentAssignmentSubmission = lazy(() => import('./pages/student/AssignmentSubmission'));
+const StudentExams = lazy(() => import('./pages/student/Exams'));
+const StudentTranscript = lazy(() => import('./pages/student/Transcript'));
+
+// Admin pages
+const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'));
+const AdminCourses = lazy(() => import('./pages/admin/Courses'));
+const AdminStudents = lazy(() => import('./pages/admin/Students'));
+const AdminEnrollments = lazy(() => import('./pages/admin/Enrollments'));
+const AdminExport = lazy(() => import('./pages/admin/Export'));
+const AdminSiteSettings = lazy(() => import('./pages/admin/SiteSettings'));
+const AdminAttendance = lazy(() => import('./pages/admin/Attendance'));
+const AdminSupervisors = lazy(() => import('./pages/admin/Supervisors'));
+const AdminAssignments = lazy(() => import('./pages/admin/Assignments'));
+const AdminGrading = lazy(() => import('./pages/admin/Grading'));
+const AdminManagement = lazy(() => import('./pages/admin/AdminManagement'));
+const ChangePassword = lazy(() => import('./pages/admin/ChangePassword'));
+const UniversityIdRegistry = lazy(() => import('./pages/admin/UniversityIdRegistry'));
+const AdminExams = lazy(() => import('./pages/admin/Exams'));
+const AdminTranscripts = lazy(() => import('./pages/admin/Transcripts'));
+
+// Supervisor pages
+const SupervisorDashboard = lazy(() => import('./pages/supervisor/Dashboard'));
+
+// ─── Suspense fallback spinner (lightweight, no dependencies) ─────────────
+const PageLoader: React.FC = () => (
+  <div className="fixed inset-0 flex items-center justify-center bg-[var(--background)]">
+    <div className="flex flex-col items-center gap-3">
+      <div className="w-8 h-8 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin" />
+      <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-secondary)] animate-pulse">
+        Loading...
+      </p>
+    </div>
+  </div>
+);
 
 interface AppContextType {
   user: User | null;
@@ -95,11 +112,11 @@ const App: React.FC = () => {
           console.error('Failed to fetch profile on init', e);
         }
       }
-      // Await full sync first, then seed, then update settings
-      await storage.syncFromSupabase(); // Await full sync first
+
+      // Seed defaults if needed (uses already-synced data from above)
       storage.seed();
 
-      // Update local state with latest settings from storage (synced from Cloud)
+      // Update local state with latest settings (already synced above)
       const freshSettings = storage.getSettings();
       setSettings(freshSettings);
 
@@ -242,53 +259,59 @@ const App: React.FC = () => {
       ) : (
         <Router>
           <Routes>
+            {/* Auth routes — eagerly loaded, no Suspense needed */}
             <Route path="/auth/login" element={!user ? <LoginPage /> : <Navigate to={user.role === 'admin' ? "/admin/dashboard" : (user.role === 'supervisor' ? "/supervisor/dashboard" : "/student/dashboard")} />} />
             <Route path="/auth/signup" element={!user ? <SignupPage /> : <Navigate to="/student/dashboard" />} />
 
-          <Route element={user ? <MainLayout /> : <Navigate to="/auth/login" />}>
-            {/* Student Routes */}
-            <Route path="/student/dashboard" element={<StudentDashboard />} />
-            <Route path="/student/registration" element={<StudentRegistration />} />
-            <Route path="/student/my-courses" element={<StudentMyCourses />} />
-            <Route path="/student/timetable" element={<StudentTimetable />} />
-            <Route path="/student/profile" element={<StudentProfile />} />
-            <Route path="/student/attendance" element={<StudentAttendance />} />
-            <Route path="/student/assignments" element={<StudentAssignments />} />
-            <Route path="/student/assignments/:courseId" element={<StudentAssignmentSubmission />} />
-            <Route path="/student/exams" element={<StudentExams />} />
-            <Route path="/student/transcript" element={<StudentTranscript />} />
+            {/* All authenticated routes — wrapped in Suspense for lazy loading */}
+            <Route element={
+              <Suspense fallback={<PageLoader />}>
+                {user ? <MainLayout /> : <Navigate to="/auth/login" />}
+              </Suspense>
+            }>
+              {/* Student Routes */}
+              <Route path="/student/dashboard" element={<StudentDashboard />} />
+              <Route path="/student/registration" element={<StudentRegistration />} />
+              <Route path="/student/my-courses" element={<StudentMyCourses />} />
+              <Route path="/student/timetable" element={<StudentTimetable />} />
+              <Route path="/student/profile" element={<StudentProfile />} />
+              <Route path="/student/attendance" element={<StudentAttendance />} />
+              <Route path="/student/assignments" element={<StudentAssignments />} />
+              <Route path="/student/assignments/:courseId" element={<StudentAssignmentSubmission />} />
+              <Route path="/student/exams" element={<StudentExams />} />
+              <Route path="/student/transcript" element={<StudentTranscript />} />
 
-            {/* Admin Routes */}
-            <Route path="/admin/dashboard" element={<AdminDashboard />} />
-            <Route path="/admin/courses" element={<AdminCourses />} />
-            <Route path="/admin/students" element={<AdminStudents />} />
-            <Route path="/admin/enrollments" element={<AdminEnrollments />} />
-            <Route path="/admin/attendance" element={<AdminAttendance />} />
-            <Route path="/admin/supervisors" element={<AdminSupervisors />} />
-            <Route path="/admin/assignments" element={<AdminAssignments />} />
-            <Route path="/admin/grading" element={<AdminGrading />} />
-            <Route path="/admin/export" element={<AdminExport />} />
-            <Route path="/admin/site-settings" element={<AdminSiteSettings />} />
-            <Route path="/admin/exams" element={<AdminExams />} />
-            <Route path="/admin/transcripts" element={<AdminTranscripts />} />
-            <Route path="/admin/admins" element={<AdminManagement />} />
-            <Route path="/admin/change-password" element={<ChangePassword />} />
-            <Route path="/admin/registry" element={
-              user?.role === 'admin' && (user?.fullAccess || user?.canAccessRegistry) ?
-                <UniversityIdRegistry /> :
-                <Navigate to="/admin/dashboard" />
-            } />
+              {/* Admin Routes */}
+              <Route path="/admin/dashboard" element={<AdminDashboard />} />
+              <Route path="/admin/courses" element={<AdminCourses />} />
+              <Route path="/admin/students" element={<AdminStudents />} />
+              <Route path="/admin/enrollments" element={<AdminEnrollments />} />
+              <Route path="/admin/attendance" element={<AdminAttendance />} />
+              <Route path="/admin/supervisors" element={<AdminSupervisors />} />
+              <Route path="/admin/assignments" element={<AdminAssignments />} />
+              <Route path="/admin/grading" element={<AdminGrading />} />
+              <Route path="/admin/export" element={<AdminExport />} />
+              <Route path="/admin/site-settings" element={<AdminSiteSettings />} />
+              <Route path="/admin/exams" element={<AdminExams />} />
+              <Route path="/admin/transcripts" element={<AdminTranscripts />} />
+              <Route path="/admin/admins" element={<AdminManagement />} />
+              <Route path="/admin/change-password" element={<ChangePassword />} />
+              <Route path="/admin/registry" element={
+                user?.role === 'admin' && (user?.fullAccess || user?.canAccessRegistry) ?
+                  <UniversityIdRegistry /> :
+                  <Navigate to="/admin/dashboard" />
+              } />
 
-            {/* Supervisor Routes */}
-            <Route path="/supervisor/dashboard" element={<SupervisorDashboard />} />
-            <Route path="/supervisor/attendance" element={<AdminAttendance />} />
-            <Route path="/supervisor/assignments" element={<AdminAssignments />} />
-            <Route path="/supervisor/grading" element={<AdminGrading />} />
-          </Route>
+              {/* Supervisor Routes */}
+              <Route path="/supervisor/dashboard" element={<SupervisorDashboard />} />
+              <Route path="/supervisor/attendance" element={<AdminAttendance />} />
+              <Route path="/supervisor/assignments" element={<AdminAssignments />} />
+              <Route path="/supervisor/grading" element={<AdminGrading />} />
+            </Route>
 
-          <Route path="*" element={<Navigate to="/auth/login" />} />
-        </Routes>
-      </Router>
+            <Route path="*" element={<Navigate to="/auth/login" />} />
+          </Routes>
+        </Router>
       )}
     </AppContext.Provider>
   );

@@ -41,14 +41,32 @@ export default defineConfig(({ mode }) => {
       })
     ],
     build: {
+      // Increase warning threshold to avoid false alarms from large-but-expected pages
+      chunkSizeWarningLimit: 1000,
+      cssMinify: true,
       rollupOptions: {
         output: {
-          manualChunks: {
-            vendor: ['react', 'react-dom', 'react-router-dom'],
-            charts: ['recharts'],
-            pdf: ['jspdf', 'html2canvas'],
-            supabase: ['@supabase/supabase-js'],
-            xlsx: ['xlsx']
+          // Smart function-based splitting: separates bundles by user role
+          // so each user only downloads what they need
+          manualChunks(id: string) {
+            // ── Heavy external libraries ─────────────────────────────────────
+            if (id.includes('node_modules/recharts')) return 'lib-charts';
+            if (id.includes('node_modules/jspdf') || id.includes('node_modules/html2canvas')) return 'lib-pdf';
+            if (id.includes('node_modules/xlsx')) return 'lib-xlsx';
+            if (id.includes('node_modules/@supabase')) return 'lib-supabase';
+            if (id.includes('node_modules/react-dom')) return 'lib-react-dom';
+            if (id.includes('node_modules/react-router-dom') || id.includes('node_modules/react-router')) return 'lib-router';
+            if (id.includes('node_modules/react')) return 'lib-react';
+            if (id.includes('node_modules/lucide-react')) return 'lib-icons';
+
+            // ── App pages by role — loaded only when that role logs in ────────
+            if (id.includes('/pages/admin/')) return 'pages-admin';
+            if (id.includes('/pages/student/')) return 'pages-student';
+            if (id.includes('/pages/supervisor/')) return 'pages-supervisor';
+            // Note: pages/auth/ is eagerly loaded so we leave it in the main bundle
+
+            // ── Shared app code ───────────────────────────────────────────────
+            if (id.includes('/components/')) return 'app-components';
           }
         }
       }
