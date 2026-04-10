@@ -30,9 +30,6 @@ export const storage = {
   async syncFromSupabase() {
     try {
       const currentUser = storage.getAuthUser();
-      const isStudent = currentUser?.role === 'student';
-
-      const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'supervisor';
 
       // 1. Fetch public/common data required by everyone
       const [settings, courses, semesters, assignments] = await Promise.all([
@@ -42,12 +39,21 @@ export const storage = {
         supabaseService.getAssignments(),
       ]);
 
-      // 2. Fetch role-specific data conditionally
-      const users = isAdmin ? await supabaseService.getUsers() : [currentUser].filter(Boolean);
-      const enrollments = await supabaseService.getEnrollments(isAdmin ? undefined : currentUser!.id);
-      const submissions = isStudent ? await supabaseService.getSubmissions(currentUser!.id, undefined, true) : [];
-      const attendance = isAdmin ? await supabaseService.getAttendance() : await supabaseService.getAttendance(currentUser!.id);
-      const participation = isAdmin ? await supabaseService.getParticipation() : await supabaseService.getParticipation(currentUser!.id);
+      let users, enrollments, submissions, attendance, participation;
+
+      if (currentUser) {
+        const isAdmin = currentUser.role === 'admin' || currentUser.role === 'supervisor';
+        const isStudent = currentUser.role === 'student';
+
+        // 2. Fetch role-specific data conditionally
+        [users, enrollments, submissions, attendance, participation] = await Promise.all([
+          isAdmin ? supabaseService.getUsers() : Promise.resolve([currentUser]),
+          supabaseService.getEnrollments(isAdmin ? undefined : currentUser.id),
+          isStudent ? supabaseService.getSubmissions(currentUser.id, undefined, true) : Promise.resolve([]),
+          isAdmin ? supabaseService.getAttendance() : supabaseService.getAttendance(currentUser.id),
+          isAdmin ? supabaseService.getParticipation() : supabaseService.getParticipation(currentUser.id)
+        ]);
+      }
 
       if (users) {
         // STRICT SYNC: Overwrite local with remote. Deletions in DB must reflect locally.
@@ -108,7 +114,7 @@ export const storage = {
       return settings || storage.getSettings();
     } catch (e: any) {
       console.error('Failed to sync initial data:', e);
-      alert('Sync Error details: ' + (e?.message || JSON.stringify(e)));
+      console.error('Sync Error details:', e);
       storage.isInitialized = true;
       notify();
       return storage.getSettings();
