@@ -18,7 +18,8 @@ import {
   Trophy,
   XCircle,
   Loader2,
-  ToggleLeft
+  ToggleLeft,
+  ExternalLink
 } from 'lucide-react';
 
 const StudentAssignmentSubmission: React.FC = () => {
@@ -33,7 +34,7 @@ const StudentAssignmentSubmission: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   // Form States
-  const [file, setFile] = useState<{ name: string, data: string } | null>(null);
+  const [file, setFile] = useState<{ name: string, data: File | string } | null>(null);
   const [answers, setAnswers] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -54,7 +55,7 @@ const StudentAssignmentSubmission: React.FC = () => {
       const [allCourses, allAssignments, allSubmissions] = await Promise.all([
         supabaseService.getCourses(),
         supabaseService.getAssignments(),
-        supabaseService.getSubmissions()
+        supabaseService.getSubmissions(user.id)
       ]);
 
       const c = allCourses.find(c => c.id === courseId);
@@ -108,14 +109,8 @@ const StudentAssignmentSubmission: React.FC = () => {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setFile({ name: f.name, data: reader.result as string });
-    };
-    reader.onerror = () => {
-      setUploadError(lang === 'AR' ? 'فشل قراءة الملف. حاول مجدداً.' : 'Could not read the file. Please try again.');
-    };
-    reader.readAsDataURL(f);
+    // Instead of Base64, we store the actual File object for Storage Bucket upload
+    setFile({ name: f.name, data: f });
   };
 
   const calculateAutoGrade = (assignment: Assignment, submittedAnswers: string[]) => {
@@ -163,6 +158,23 @@ const StudentAssignmentSubmission: React.FC = () => {
     try {
       const calculatedGrade = calculateAutoGrade(selectedAssignment, answers);
 
+      let storageUrl = undefined;
+      let base64Fallback = undefined;
+
+      // Upload file to bucket if it exists
+      if (file && file.data instanceof File) {
+        try {
+            storageUrl = await supabaseService.uploadAssignmentFile(user.id, file.data);
+        } catch (uploadErr: any) {
+            console.error('Upload Error:', uploadErr);
+            setUploadError(lang === 'AR' ? 'فشل رفع الملف إلى المستودع السحابي' : 'Failed to upload file to storage');
+            setIsSubmitting(false);
+            return;
+        }
+      } else if (file && typeof file.data === 'string') {
+        base64Fallback = file.data;
+      }
+
       const submission: Submission = {
         id: crypto.randomUUID(),
         assignmentId: selectedAssignment.id,
@@ -170,7 +182,8 @@ const StudentAssignmentSubmission: React.FC = () => {
         courseId: courseId!,
         submittedAt: new Date().toISOString(),
         answers: answers,
-        fileBase64: file?.data,
+        fileUrl: storageUrl,
+        fileBase64: base64Fallback,
         fileName: file?.name,
         grade: calculatedGrade
       };
@@ -387,11 +400,42 @@ const StudentAssignmentSubmission: React.FC = () => {
                                             <p className="text-base font-bold text-text-primary">{q.text}</p>
                                             
                                             {qType === 'file' ? (
-                                                <div className="p-4 bg-surface border border-border rounded-xl flex items-center gap-3">
-                                                    <FileText size={20} className="text-primary" />
-                                                    <div className="text-sm font-bold text-text-primary truncate">
-                                                        {submission.fileName || (lang === 'AR' ? 'تم تسليم ملف' : 'File submitted')}
+                                                <div className="p-4 bg-surface border border-border rounded-xl flex flex-col gap-3 items-start">
+                                                    <div className="flex items-center gap-3 w-full">
+                                                        <FileText size={20} className="text-primary flex-shrink-0" />
+                                                        <div className="text-sm font-bold text-text-primary truncate">
+                                                            {submission.fileName || (lang === 'AR' ? 'تم تسليم ملف' : 'File submitted')}
+                                                        </div>
                                                     </div>
+                                                    {(submission.fileBase64 || submission.fileUrl) && (
+                                                        <button 
+                                                            onClick={async () => {
+                                                                const urlOrBase64 = submission.fileBase64 || submission.fileUrl;
+                                                                if (!urlOrBase64) return;
+                                                                if (urlOrBase64.startsWith('data:')) {
+                                                                    const arr = urlOrBase64.split(',');
+                                                                    const mime = arr[0].match(/:(.*?);/)?.[1] || '';
+                                                                    const bstr = atob(arr[1]);
+                                                                    let n = bstr.length;
+                                                                    const u8arr = new Uint8Array(n);
+                                                                    while (n--) u8arr[n] = bstr.charCodeAt(n);
+                                                                    const blobUrl = URL.createObjectURL(new Blob([u8arr], { type: mime }));
+                                                                    window.open(blobUrl, '_blank');
+                                                                } else {
+                                                                    try {
+                                                                        const signedUrl = await supabaseService.getSignedAssignmentFileUrl(urlOrBase64);
+                                                                        window.open(signedUrl, '_blank');
+                                                                    } catch (err) {
+                                                                        console.error(err);
+                                                                        // fallback error showing (if needed)
+                                                                    }
+                                                                }
+                                                            }}
+                                                            className="text-[10px] font-black uppercase text-primary bg-primary/10 px-4 py-2 rounded-lg hover:bg-primary/20 transition-colors flex items-center gap-2"
+                                                        >
+                                                            <ExternalLink size={14} /> {lang === 'AR' ? 'عرض الملف' : 'View File'}
+                                                        </button>
+                                                    )}
                                                 </div>
                                             ) : (
                                                 <div className="space-y-3 p-4 bg-surface border border-border rounded-xl">

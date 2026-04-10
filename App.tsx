@@ -119,7 +119,6 @@ const App: React.FC = () => {
       storage.seed();
 
       // Update local state with latest settings (already synced above)
-      setSettings(storage.getSettings());
       setDataReady(storage.isInitialized);
       setIsLoading(false);
     };

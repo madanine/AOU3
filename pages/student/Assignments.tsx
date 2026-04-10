@@ -26,7 +26,7 @@ const StudentAssignments: React.FC = () => {
           supabaseService.getEnrollments(),
           supabaseService.getCourses(),
           supabaseService.getAssignments(),
-          supabaseService.getSubmissions()
+          supabaseService.getSubmissions(user.id)
         ]);
 
         const studentEnrollments = enrollments.filter((e: Enrollment) => 

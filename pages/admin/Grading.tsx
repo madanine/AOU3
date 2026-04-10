@@ -48,10 +48,9 @@ const AdminGrading: React.FC = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [allCourses, allAssignments, allSubmissions, allUsers] = await Promise.all([
+        const [allCourses, allAssignments, allUsers] = await Promise.all([
           supabaseService.getCourses(),
           supabaseService.getAssignments(),
-          supabaseService.getSubmissions(),
           supabaseService.getUsers()
         ]);
 
@@ -62,7 +61,6 @@ const AdminGrading: React.FC = () => {
 
         setCourses(filteredCourses);
         setAssignments(allAssignments.filter(a => a.semesterId === activeSemId));
-        setSubmissions(allSubmissions);
         setStudents(allUsers.filter(u => u.role === 'student'));
       } catch (err: any) {
         setError(err.message);
@@ -72,6 +70,25 @@ const AdminGrading: React.FC = () => {
     };
     fetchData();
   }, [activeSemId, user]);
+
+  useEffect(() => {
+    if (!selectedAssignmentId) {
+      setSubmissions([]);
+      return;
+    }
+    const fetchSubmissions = async () => {
+      try {
+        setLoading(true);
+        const fetchedSubmissions = await supabaseService.getSubmissions(undefined, selectedAssignmentId);
+        setSubmissions(fetchedSubmissions);
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchSubmissions();
+  }, [selectedAssignmentId]);
 
   const assignmentSubmissions = submissions.filter(s => s.assignmentId === selectedAssignmentId);
   const selectedAssignment = assignments.find(a => a.id === selectedAssignmentId);
@@ -86,6 +103,21 @@ const AdminGrading: React.FC = () => {
   const handleOpenGrading = (sub: Submission) => {
     setGradingModal(sub);
     setNewGrade(sub.grade || '');
+  };
+
+  const handleDeleteSubmission = async (sub: Submission) => {
+    if (!window.confirm(lang === 'AR' ? 'هل أنت متأكد من حذف هذا التسليم؟ لن تتمكن من التراجع وسيتاح للطالب فرصة التسليم مجدداً.' : 'Are you sure you want to delete this submission? You cannot undo this action, and the student will be able to resubmit.')) return;
+    
+    try {
+      setSaving(true);
+      await supabaseService.deleteSubmissionAndFile(sub);
+      setSubmissions(prev => prev.filter(s => s.id !== sub.id));
+      setShowToast(true);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const saveGrade = async () => {
@@ -202,6 +234,15 @@ const AdminGrading: React.FC = () => {
                     u8arr[n] = bstr.charCodeAt(n);
                 }
                 zip.file(newFileName, u8arr);
+            } else if (fileData) {
+                try {
+                    const signedUrl = await supabaseService.getSignedAssignmentFileUrl(fileData);
+                    const response = await fetch(signedUrl);
+                    const blob = await response.blob();
+                    zip.file(newFileName, blob);
+                } catch (err) {
+                    console.error('Failed to fetch storage file for zip:', newFileName, err);
+                }
             }
         }
         
@@ -299,11 +340,16 @@ const AdminGrading: React.FC = () => {
   };
 
   // Safe file handling
-  const handleViewFile = (fileData?: string) => {
+  const handleViewFile = async (fileData?: string) => {
     if (!fileData) return;
     
     if (!fileData.startsWith('data:')) {
-        window.open(fileData, '_blank');
+        try {
+            const signedUrl = await supabaseService.getSignedAssignmentFileUrl(fileData);
+            window.open(signedUrl, '_blank');
+        } catch (e: any) {
+            setError(lang === 'AR' ? 'فشل جلب الملف من المستودع السحابي' : 'Failed to retrieve file from storage');
+        }
         return;
     }
 
@@ -326,10 +372,21 @@ const AdminGrading: React.FC = () => {
     }
   };
 
-  const handleDownloadFile = (fileData?: string, fileName?: string) => {
+  const handleDownloadFile = async (fileData?: string, fileName?: string) => {
     if (!fileData || !fileName) return;
+
+    let targetUrl = fileData;
+    if (!fileData.startsWith('data:')) {
+        try {
+            targetUrl = await supabaseService.getSignedAssignmentFileUrl(fileData);
+        } catch (e: any) {
+            setError(lang === 'AR' ? 'فشل جلب الملف من المستودع السحابي' : 'Failed to retrieve file from storage');
+            return;
+        }
+    }
+
     const link = document.createElement('a');
-    link.href = fileData;
+    link.href = targetUrl;
     link.download = fileName;
     document.body.appendChild(link);
     link.click();
@@ -531,9 +588,14 @@ const AdminGrading: React.FC = () => {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <button onClick={() => handleOpenGrading(sub)} className="bg-white border border-gray-100 p-2 rounded-xl text-gray-400 hover:text-[var(--primary)] hover:border-[var(--primary)] transition-all shadow-sm">
-                          <Eye size={18} />
-                        </button>
+                        <div className="flex items-center justify-end gap-2">
+                          <button onClick={() => handleDeleteSubmission(sub)} className="bg-white border border-red-100 p-2 rounded-xl text-red-400 hover:text-white hover:bg-red-500 hover:border-red-500 transition-all shadow-sm" title={lang === 'AR' ? 'حذف التسليم' : 'Delete submission'}>
+                            <Trash2 size={18} />
+                          </button>
+                          <button onClick={() => handleOpenGrading(sub)} className="bg-white border border-gray-100 p-2 rounded-xl text-gray-400 hover:text-[var(--primary)] hover:border-[var(--primary)] transition-all shadow-sm" title={lang === 'AR' ? 'عرض وتقييم' : 'View and Grade'}>
+                            <Eye size={18} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );

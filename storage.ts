@@ -29,6 +29,9 @@ export const storage = {
   // Sync logic
   async syncFromSupabase() {
     try {
+      const currentUser = storage.getAuthUser();
+      const isStudent = currentUser?.role === 'student';
+
       const [users, courses, enrollments, settings, semesters, assignments, submissions, attendance, participation] = await Promise.all([
         supabaseService.getUsers(),
         supabaseService.getCourses(),
@@ -36,7 +39,7 @@ export const storage = {
         supabaseService.getSettings(),
         supabaseService.getSemesters(),
         supabaseService.getAssignments(),
-        supabaseService.getSubmissions(),
+        supabaseService.getSubmissions(isStudent ? currentUser.id : undefined),
         supabaseService.getAttendance(),
         supabaseService.getParticipation()
       ]);
@@ -48,7 +51,8 @@ export const storage = {
       if (courses) localStorage.setItem(KEYS.COURSES, JSON.stringify(courses));
       if (enrollments) localStorage.setItem(KEYS.ENROLLMENTS, JSON.stringify(enrollments));
       if (settings) {
-        localStorage.setItem(KEYS.SETTINGS, JSON.stringify(settings));
+        const stampedSettings = { ...settings, settingsVersion: SETTINGS_VERSION };
+        localStorage.setItem(KEYS.SETTINGS, JSON.stringify(stampedSettings));
         // ── activeSemesterId preservation ──────────────────────────────────────
         // The version gate in getSettings() may reset settings to DEFAULT_SETTINGS
         // which has no activeSemesterId, discarding what we just wrote from the DB.
@@ -458,12 +462,15 @@ export const storage = {
   },
 
   initRealtime: () => {
+    // We only listen to site_settings changes globally to avoid massive Disk IO
+    // and infinite data-fetching loops when other tables (like submissions) are updated.
     supabase.channel('public_db_changes')
-      .on('postgres_changes', { event: '*', schema: 'public' }, async () => {
-        // syncFromSupabase already calls notify() internally after writing to localStorage.
-        // Do NOT call notify() again here — doing so causes a race condition where
-        // the second notify fires with stale localStorage state (before the write completes).
-        await storage.syncFromSupabase();
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'site_settings' }, async () => {
+        const settings = await supabaseService.getSettings();
+        if (settings) {
+          storage.setSettings(settings);
+          notify();
+        }
       })
       .subscribe();
   }

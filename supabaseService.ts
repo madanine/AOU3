@@ -120,6 +120,36 @@ export const supabaseService = {
         if (dbError) throw dbError;
     },
 
+    // Assignment Storage (Private Bucket)
+    async uploadAssignmentFile(studentId: string, file: File): Promise<string> {
+        // Path should match Claude's policy: studentId/fileName
+        // We append a timestamp to ensure uniqueness
+        const ext = file.name.split('.').pop() || '';
+        const cleanName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '').slice(0, 50);
+        const path = `${studentId}/${Date.now()}_${cleanName}`;
+
+        const { error: uploadError } = await supabase.storage
+            .from('assignments')
+            .upload(path, file, { contentType: file.type || 'application/octet-stream' });
+
+        if (uploadError) throw uploadError;
+
+        return path;
+    },
+
+    async getSignedAssignmentFileUrl(path: string): Promise<string> {
+        const { data, error } = await supabase.storage
+            .from('assignments')
+            .createSignedUrl(path, 60 * 60); // 1 hour expiry
+
+        if (error || !data) {
+            console.error('Error generating signed URL:', error);
+            throw new Error('Failed to generate secure URL for file');
+        }
+
+        return data.signedUrl;
+    },
+
     async getUsers() {
         const { data, error } = await supabase.from('profiles').select('*');
         if (error) throw error;
@@ -390,8 +420,16 @@ export const supabaseService = {
     },
 
     // Submissions
-    async getSubmissions() {
-        const { data, error } = await supabase.from('submissions').select('*');
+    async getSubmissions(studentId?: string, assignmentId?: string) {
+        let query = supabase.from('submissions').select('*');
+        if (studentId) {
+            query = query.eq('student_id', studentId);
+        }
+        if (assignmentId) {
+            query = query.eq('assignment_id', assignmentId);
+        }
+        
+        const { data, error } = await query;
         if (error) throw error;
 
         // Map snake_case to camelCase
@@ -418,7 +456,7 @@ export const supabaseService = {
             course_id: submission.courseId,
             submitted_at: submission.submittedAt,
             answers: submission.answers || [],
-            file_url: submission.fileUrl || submission.fileBase64, // Use base64 as URL for now
+            file_url: submission.fileUrl || null,
             file_name: submission.fileName,
             grade: submission.grade
         };
@@ -435,7 +473,7 @@ export const supabaseService = {
             course_id: s.courseId,
             submitted_at: s.submittedAt,
             answers: s.answers || [],
-            file_url: s.fileUrl || s.fileBase64,
+            file_url: s.fileUrl || null,
             file_name: s.fileName,
             grade: s.grade
         }));
@@ -444,6 +482,24 @@ export const supabaseService = {
         if (error) throw error;
     },
 
+    async deleteSubmissionAndFile(submission: Submission) {
+        // 1. Delete the file from Storage if it's a valid Storage URL
+        if (submission.fileUrl && !submission.fileUrl.startsWith('data:')) {
+            const { error: storageError } = await supabase.storage
+                .from('assignments')
+                .remove([submission.fileUrl]);
+            
+            if (storageError) {
+                console.error('Failed to delete file from storage', storageError);
+            }
+        }
+
+        // 2. Delete the record from DB
+        const { error } = await supabase.from('submissions').delete().eq('id', submission.id);
+        if (error) throw error;
+    },
+
+    // Legacy fallback (used in storage offline optimistic UI if any)
     async deleteSubmission(id: string) {
         const { error } = await supabase.from('submissions').delete().eq('id', id);
         if (error) throw error;
