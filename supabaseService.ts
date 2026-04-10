@@ -420,8 +420,12 @@ export const supabaseService = {
     },
 
     // Submissions
-    async getSubmissions(studentId?: string, assignmentId?: string) {
-        let query = supabase.from('submissions').select('*');
+    async getSubmissions(studentId?: string, assignmentId?: string, excludeFileUrl: boolean = false) {
+        let selectQuery = excludeFileUrl ? 
+            'id, assignment_id, student_id, course_id, submitted_at, answers, file_name, grade' : 
+            '*';
+        let query = supabase.from('submissions').select(selectQuery);
+
         if (studentId) {
             query = query.eq('student_id', studentId);
         }

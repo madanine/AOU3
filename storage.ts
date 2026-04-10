@@ -39,7 +39,7 @@ export const storage = {
         supabaseService.getSettings(),
         supabaseService.getSemesters(),
         supabaseService.getAssignments(),
-        isStudent ? supabaseService.getSubmissions(currentUser.id) : Promise.resolve([]),
+        isStudent ? supabaseService.getSubmissions(currentUser.id, undefined, true) : Promise.resolve([]),
         supabaseService.getAttendance(),
         supabaseService.getParticipation()
       ]);
