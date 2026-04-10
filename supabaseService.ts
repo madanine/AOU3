@@ -265,8 +265,10 @@ export const supabaseService = {
     },
 
     // Enrollments
-    async getEnrollments() {
-        const { data, error } = await supabase.from('enrollments').select('*');
+    async getEnrollments(studentId?: string) {
+        let query = supabase.from('enrollments').select('*');
+        if (studentId) query = query.eq('student_id', studentId);
+        const { data, error } = await query;
         if (error) throw error;
         return (data || [])
             // Guard: exclude legacy records with no semester_id — they are orphaned ghost data
@@ -509,9 +511,10 @@ export const supabaseService = {
         if (error) throw error;
     },
 
-    // Attendance
-    async getAttendance() {
-        const { data, error } = await supabase.from('attendance').select('*');
+    async getAttendance(studentId?: string) {
+        let query = supabase.from('attendance').select('*');
+        if (studentId) query = query.eq('student_id', studentId);
+        const { data, error } = await query;
         if (error) throw error;
         return (data || []).map(a => ({
             id: a.id,
@@ -538,8 +541,10 @@ export const supabaseService = {
     },
 
     // Participation (mirrors Attendance structure)
-    async getParticipation() {
-        const { data, error } = await supabase.from('participation').select('*');
+    async getParticipation(studentId?: string) {
+        let query = supabase.from('participation').select('*');
+        if (studentId) query = query.eq('student_id', studentId);
+        const { data, error } = await query;
         if (error) throw error;
         return (data || []).map(p => ({
             id: p.id,

@@ -32,17 +32,22 @@ export const storage = {
       const currentUser = storage.getAuthUser();
       const isStudent = currentUser?.role === 'student';
 
-      const [users, courses, enrollments, settings, semesters, assignments, submissions, attendance, participation] = await Promise.all([
-        supabaseService.getUsers(),
-        supabaseService.getCourses(),
-        supabaseService.getEnrollments(),
+      const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'supervisor';
+
+      // 1. Fetch public/common data required by everyone
+      const [settings, courses, semesters, assignments] = await Promise.all([
         supabaseService.getSettings(),
+        supabaseService.getCourses(),
         supabaseService.getSemesters(),
         supabaseService.getAssignments(),
-        isStudent ? supabaseService.getSubmissions(currentUser.id, undefined, true) : Promise.resolve([]),
-        supabaseService.getAttendance(),
-        supabaseService.getParticipation()
       ]);
+
+      // 2. Fetch role-specific data conditionally
+      const users = isAdmin ? await supabaseService.getUsers() : [currentUser].filter(Boolean);
+      const enrollments = await supabaseService.getEnrollments(isAdmin ? undefined : currentUser!.id);
+      const submissions = isStudent ? await supabaseService.getSubmissions(currentUser!.id, undefined, true) : [];
+      const attendance = isAdmin ? await supabaseService.getAttendance() : await supabaseService.getAttendance(currentUser!.id);
+      const participation = isAdmin ? await supabaseService.getParticipation() : await supabaseService.getParticipation(currentUser!.id);
 
       if (users) {
         // STRICT SYNC: Overwrite local with remote. Deletions in DB must reflect locally.
