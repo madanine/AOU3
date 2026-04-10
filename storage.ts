@@ -101,9 +101,9 @@ export const storage = {
       storage.isInitialized = true;
       notify();
       return settings || storage.getSettings();
-    } catch (err) {
-      console.warn('Silent sync failure:', err);
-      // Even if sync fails, we mark as initialized so the UI can use local storage fallback
+    } catch (e: any) {
+      console.error('Failed to sync initial data:', e);
+      alert('Sync Error details: ' + (e?.message || JSON.stringify(e)));
       storage.isInitialized = true;
       notify();
       return storage.getSettings();
