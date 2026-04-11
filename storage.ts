@@ -47,7 +47,7 @@ export const storage = {
 
         // 2. Fetch role-specific data conditionally
         [users, enrollments, submissions, attendance, participation] = await Promise.all([
-          isAdmin ? supabaseService.getUsers() : Promise.resolve([currentUser]),
+          isAdmin ? supabaseService.getUsers() : (currentUser.id ? supabaseService.getProfile(currentUser.id).then(p => p ? [p] : []) : Promise.resolve([])),
           supabaseService.getEnrollments(isAdmin ? undefined : currentUser.id),
           isStudent ? supabaseService.getSubmissions(currentUser.id, undefined, true) : Promise.resolve([]),
           isAdmin ? supabaseService.getAttendance() : supabaseService.getAttendance(currentUser.id),
