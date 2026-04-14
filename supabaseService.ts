@@ -511,9 +511,10 @@ export const supabaseService = {
         if (error) throw error;
     },
 
-    async getAttendance(studentId?: string) {
-        let query = supabase.from('attendance').select('*');
+    async getAttendance(studentId?: string, courseId?: string) {
+        let query = supabase.from('attendance').select('*').limit(10000);
         if (studentId) query = query.eq('student_id', studentId);
+        if (courseId) query = query.eq('course_id', courseId);
         const { data, error } = await query;
         if (error) throw error;
         return (data || []).map(a => ({
@@ -541,9 +542,10 @@ export const supabaseService = {
     },
 
     // Participation (mirrors Attendance structure)
-    async getParticipation(studentId?: string) {
-        let query = supabase.from('participation').select('*');
+    async getParticipation(studentId?: string, courseId?: string) {
+        let query = supabase.from('participation').select('*').limit(10000);
         if (studentId) query = query.eq('student_id', studentId);
+        if (courseId) query = query.eq('course_id', courseId);
         const { data, error } = await query;
         if (error) throw error;
         return (data || []).map(p => ({

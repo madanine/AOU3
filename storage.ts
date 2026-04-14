@@ -84,7 +84,9 @@ export const storage = {
       if (submissions) localStorage.setItem(KEYS.SUBMISSIONS, JSON.stringify(submissions));
 
       if (attendance) {
-        // Convert Row[] to Map
+        // Convert Row[] to Map - Deep clone or ensure we don't wipe everything if we only get partials
+        // Actually, for the global sync, we want to mirror the server's truth.
+        // But with the 10,000 limit, it's safer.
         const map: AttendanceRecord = {};
         attendance.forEach((r: AttendanceRow) => {
           if (!map[r.courseId]) map[r.courseId] = {};
@@ -97,7 +99,6 @@ export const storage = {
       }
 
       if (participation) {
-        // Convert Row[] to Map
         const map: ParticipationRecord = {};
         participation.forEach((r: ParticipationRow) => {
           if (!map[r.courseId]) map[r.courseId] = {};
@@ -255,6 +256,30 @@ export const storage = {
 
   getAttendance: (): AttendanceRecord => JSON.parse(localStorage.getItem(KEYS.ATTENDANCE) || '{}'),
 
+  syncAttendanceForCourse: async (courseId: string) => {
+    try {
+      const rows = await supabaseService.getAttendance(undefined, courseId);
+      const current = storage.getAttendance();
+      
+      // Merge only this course's data into the existing map
+      const courseMap: Record<string, (boolean | null)[]> = {};
+      rows.forEach(r => {
+        if (!courseMap[r.studentId]) courseMap[r.studentId] = Array(12).fill(null);
+        if (r.lectureIndex >= 0 && r.lectureIndex < 12) {
+          courseMap[r.studentId][r.lectureIndex] = r.status;
+        }
+      });
+
+      const updated = { ...current, [courseId]: courseMap };
+      localStorage.setItem(KEYS.ATTENDANCE, JSON.stringify(updated));
+      notify();
+      return updated;
+    } catch (e) {
+      console.error('Failed to sync course attendance:', e);
+      return storage.getAttendance();
+    }
+  },
+
   setAttendance: async (recordMap: AttendanceRecord): Promise<void> => {
     // 1. Get current state to calculate diff
     const previous = storage.getAttendance();
@@ -303,6 +328,30 @@ export const storage = {
   // Note: syncFromSupabase handles the reverse conversion (Row -> Map)
 
   getParticipation: (): ParticipationRecord => JSON.parse(localStorage.getItem(KEYS.PARTICIPATION) || '{}'),
+
+  syncParticipationForCourse: async (courseId: string) => {
+    try {
+      const rows = await supabaseService.getParticipation(undefined, courseId);
+      const current = storage.getParticipation();
+
+      // Merge only this course's data
+      const courseMap: Record<string, (boolean | null)[]> = {};
+      rows.forEach(r => {
+        if (!courseMap[r.studentId]) courseMap[r.studentId] = Array(12).fill(null);
+        if (r.lectureIndex >= 0 && r.lectureIndex < 12) {
+          courseMap[r.studentId][r.lectureIndex] = r.status;
+        }
+      });
+
+      const updated = { ...current, [courseId]: courseMap };
+      localStorage.setItem(KEYS.PARTICIPATION, JSON.stringify(updated));
+      notify();
+      return updated;
+    } catch (e) {
+      console.error('Failed to sync course participation:', e);
+      return storage.getParticipation();
+    }
+  },
 
   setParticipation: async (recordMap: ParticipationRecord): Promise<void> => {
     // 1. Get current state for diff

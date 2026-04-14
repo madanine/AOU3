@@ -71,6 +71,32 @@ const AdminAttendance: React.FC = () => {
     }
   }, [dataReady]);
 
+  // RELIABILITY FIX: Sync specific course data from Supabase whenever a course is selected.
+  // This bypasses the global 1000-row limit issue and ensures the admin sees 
+  // exactly what is in the database for the active course.
+  useEffect(() => {
+    if (selectedCourseId) {
+      const syncCourseData = async () => {
+        setIsSaving(true); // Show a subtle "loading" state
+        try {
+          // Both will update localStorage and notify listeners
+          await Promise.all([
+            (storage as any).syncAttendanceForCourse(selectedCourseId),
+            (storage as any).syncParticipationForCourse(selectedCourseId)
+          ]);
+          // After sync, update local component state
+          setAttendance(storage.getAttendance());
+          setParticipation(storage.getParticipation());
+        } catch (err) {
+          console.error('Failed to sync course data:', err);
+        } finally {
+          setIsSaving(false);
+        }
+      };
+      syncCourseData();
+    }
+  }, [selectedCourseId]);
+
   // Guard: If data isn't ready from the server, don't allow interactions or saves.
   if (!dataReady) {
     return (
