@@ -133,7 +133,8 @@ const App: React.FC = () => {
 
     // 2. Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session) {
+      // تم إزالة INITIAL_SESSION لمنع جلب البروفايل مرتين عند بداية فتح الموقع
+      if (event === 'SIGNED_IN' && session) {
         try {
           const profile = await supabaseService.getProfile(session.user.id);
           setUserState(profile);
