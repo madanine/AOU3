@@ -319,16 +319,18 @@ const StudentExams: React.FC = () => {
                                 )}
 
                                 {q.type === 'matrix' && (
-                                    <div className={`ml-11 overflow-x-auto rounded-2xl border-2 border-border`} style={{ printColorAdjust: 'exact', WebkitPrintColorAdjust: 'exact' } as React.CSSProperties}>
-                                        <table className="w-full border-collapse text-base" style={{ minWidth: '480px' }}>
+                                    <div className="mt-3 overflow-x-auto rounded-2xl border-2 border-border">
+                                        <table className="w-full border-collapse" style={{ tableLayout: 'fixed' }}>
                                             <thead>
                                                 <tr style={{ background: 'var(--surface)' }}>
-                                                    {/* Row-label corner cell */}
-                                                    <th className="border-b-2 border-r-2 border-border px-5 py-4 text-right font-black text-xs uppercase tracking-widest" style={{ color: 'var(--text-secondary)', minWidth: '140px' }}>
+                                                    <th className="border-b-2 border-r-2 border-border px-2 py-2 text-right font-black uppercase tracking-widest"
+                                                        style={{ color: 'var(--text-secondary)', width: '30%', fontSize: '10px' }}>
                                                         {isAR ? 'العبارة' : 'Statement'}
                                                     </th>
                                                     {q.options?.map(o => (
-                                                        <th key={o.id} className="border-b-2 border-r border-border px-4 py-4 text-center font-black text-sm" style={{ color: 'var(--text-primary)', minWidth: '120px' }}>
+                                                        <th key={o.id}
+                                                            className="border-b-2 border-r border-border px-1 py-2 text-center font-black"
+                                                            style={{ color: 'var(--text-primary)', fontSize: '10px', wordBreak: 'break-word' }}>
                                                             {o.optionText}
                                                         </th>
                                                     ))}
@@ -339,19 +341,23 @@ const StudentExams: React.FC = () => {
                                                     const rowSelections: string[] = (draftAnswers[q.id] || {})[ri.toString()] || [];
                                                     return (
                                                         <tr key={ri} style={{ background: ri % 2 === 0 ? 'var(--card)' : 'var(--surface)' }}>
-                                                            {/* Row label */}
-                                                            <td className="border-r-2 border-b border-border px-5 py-4 font-bold text-sm" style={{ color: 'var(--text-primary)' }}>
-                                                                <span className="inline-flex items-center gap-2">
-                                                                    <span className="w-6 h-6 rounded-full bg-primary/10 text-primary text-xs flex items-center justify-center font-black flex-shrink-0">{ri + 1}</span>
+                                                            <td className="border-r-2 border-b border-border px-2 py-3 font-bold"
+                                                                style={{ color: 'var(--text-primary)', fontSize: '11px', wordBreak: 'break-word' }}>
+                                                                <span className="inline-flex items-center gap-1">
+                                                                    <span className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center font-black shrink-0"
+                                                                        style={{ fontSize: '10px' }}>
+                                                                        {ri + 1}
+                                                                    </span>
                                                                     {row}
                                                                 </span>
                                                             </td>
                                                             {q.options?.map(o => {
                                                                 const isChecked = rowSelections.includes(o.id);
                                                                 return (
-                                                                    <td key={o.id} className="border-r border-b border-border text-center p-2"
+                                                                    <td key={o.id}
+                                                                        className="border-r border-b border-border text-center p-1"
                                                                         style={{ background: isChecked ? 'rgba(196,150,66,0.12)' : undefined }}>
-                                                                        <label className="flex items-center justify-center cursor-pointer w-full h-full min-h-[48px]">
+                                                                        <label className="flex items-center justify-center cursor-pointer w-full h-full min-h-[40px]">
                                                                             <input
                                                                                 type="checkbox"
                                                                                 checked={isChecked}
@@ -359,17 +365,19 @@ const StudentExams: React.FC = () => {
                                                                                 onChange={() => {
                                                                                     const prev = { ...(draftAnswers[q.id] || {}) };
                                                                                     const current: string[] = prev[ri.toString()] || [];
-                                                                                    prev[ri.toString()] = isChecked ? current.filter(id => id !== o.id) : [...current, o.id];
+                                                                                    prev[ri.toString()] = isChecked
+                                                                                        ? current.filter(id => id !== o.id)
+                                                                                        : [...current, o.id];
                                                                                     updateAnswer(q.id, prev);
                                                                                 }}
                                                                             />
-                                                                            {/* Visual checkbox — gold accent when checked */}
-                                                                            <span className={`w-8 h-8 rounded-xl border-2 flex items-center justify-center transition-all duration-150 ${isChecked
-                                                                                ? 'border-[#c49642] bg-[#c49642] shadow-md'
-                                                                                : 'border-border bg-card hover:border-primary/50'
-                                                                                }`}>
+                                                                            <span className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all duration-150 ${
+                                                                                isChecked
+                                                                                    ? 'border-[#c49642] bg-[#c49642] shadow-md'
+                                                                                    : 'border-border bg-card hover:border-primary/50'
+                                                                            }`}>
                                                                                 {isChecked && (
-                                                                                    <svg viewBox="0 0 12 10" fill="none" className="w-4 h-4">
+                                                                                    <svg viewBox="0 0 12 10" fill="none" className="w-3 h-3">
                                                                                         <path d="M1 5l3.5 3.5L11 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                                                                                     </svg>
                                                                                 )}
