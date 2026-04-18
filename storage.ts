@@ -23,11 +23,27 @@ const listeners: Listener[] = [];
 const notify = () => listeners.forEach(l => l());
 
 
+let _isSyncing = false; // Mutex: prevents concurrent syncFromSupabase calls
+
 export const storage = {
   isInitialized: false,
 
   // Sync logic
   async syncFromSupabase() {
+    // ── Mutex guard: never run two syncs at the same time ───────────────────
+    if (_isSyncing) {
+      // Wait for the in-progress sync then return cached settings
+      await new Promise<void>(resolve => {
+        const unsub = storage.subscribe(() => { unsub(); resolve(); });
+      });
+      return storage.getSettings();
+    }
+    _isSyncing = true;
+
+    // ── 15-second abort timeout so a dead network never hangs the app ────────
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15_000);
+
     try {
       const currentUser = storage.getAuthUser();
       const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'supervisor';
@@ -43,43 +59,18 @@ export const storage = {
         }
       }
 
-      // 1. Fetch public/common data required by everyone
-      const [settings, courses, semesters, assignments] = await Promise.all([
+      // ── Phase 1: Critical data only (settings, courses, semesters) ──────────
+      // Fetch the minimum needed to render the app quickly.
+      const [settings, courses, semesters] = await Promise.all([
         supabaseService.getSettings(),
         supabaseService.getCourses(),
         supabaseService.getSemesters(),
-        supabaseService.getAssignments(),
       ]);
 
-      let users, enrollments, submissions, attendance, participation;
-
-      if (currentUser) {
-        const isAdmin = currentUser.role === 'admin' || currentUser.role === 'supervisor';
-        const isStudent = currentUser.role === 'student';
-
-        // 2. Fetch role-specific data conditionally
-        [users, enrollments, submissions, attendance, participation] = await Promise.all([
-          isAdmin ? supabaseService.getUsers() : (currentUser.id ? supabaseService.getProfile(currentUser.id).then(p => p ? [p] : []) : Promise.resolve([])),
-          supabaseService.getEnrollments(isAdmin ? undefined : currentUser.id),
-          isStudent ? supabaseService.getSubmissions(currentUser.id, undefined, true) : Promise.resolve([]),
-          isAdmin ? supabaseService.getAttendance() : supabaseService.getAttendance(currentUser.id),
-          isAdmin ? supabaseService.getParticipation() : supabaseService.getParticipation(currentUser.id)
-        ]);
-      }
-
-      if (users) {
-        // STRICT SYNC: Overwrite local with remote. Deletions in DB must reflect locally.
-        localStorage.setItem(KEYS.USERS, JSON.stringify(users));
-      }
-      if (courses) localStorage.setItem(KEYS.COURSES, JSON.stringify(courses));
-      if (enrollments) localStorage.setItem(KEYS.ENROLLMENTS, JSON.stringify(enrollments));
       if (settings) {
         const stampedSettings = { ...settings, settingsVersion: SETTINGS_VERSION };
         localStorage.setItem(KEYS.SETTINGS, JSON.stringify(stampedSettings));
         // ── activeSemesterId preservation ──────────────────────────────────────
-        // The version gate in getSettings() may reset settings to DEFAULT_SETTINGS
-        // which has no activeSemesterId, discarding what we just wrote from the DB.
-        // Re-read and patch so activeSemesterId is never lost through a gate reset.
         const verified = storage.getSettings();
         if (settings.activeSemesterId && !verified.activeSemesterId) {
           const patched = {
@@ -90,15 +81,57 @@ export const storage = {
           localStorage.setItem(KEYS.SETTINGS, JSON.stringify(patched));
         }
       }
-
+      if (courses) localStorage.setItem(KEYS.COURSES, JSON.stringify(courses));
       if (semesters) localStorage.setItem(KEYS.SEMESTERS, JSON.stringify(semesters));
-      if (assignments) localStorage.setItem(KEYS.ASSIGNMENTS, JSON.stringify(assignments));
+
+      // Mark as initialized early so the UI can render
+      storage.isInitialized = true;
+      localStorage.setItem('last_sync_time', Date.now().toString());
+      notify();
+
+      // ── Phase 2: Secondary data (deferred, non-blocking) ────────────────────
+      // Fetch assignments + role-specific data after the page is already shown.
+      if (!controller.signal.aborted) {
+        storage._syncSecondaryData(currentUser, isAdmin).catch(e =>
+          console.error('Secondary sync failed (non-critical):', e)
+        );
+      }
+
+      return settings || storage.getSettings();
+    } catch (e: any) {
+      console.error('Failed to sync initial data:', e);
+      storage.isInitialized = true;
+      notify();
+      return storage.getSettings();
+    } finally {
+      clearTimeout(timeoutId);
+      _isSyncing = false;
+    }
+  },
+
+  // Secondary (non-critical) data sync — runs after initial render
+  async _syncSecondaryData(currentUser: User | null, isAdmin: boolean) {
+    const assignments = await supabaseService.getAssignments();
+    if (assignments) localStorage.setItem(KEYS.ASSIGNMENTS, JSON.stringify(assignments));
+
+    if (currentUser) {
+      const isStudent = currentUser.role === 'student';
+
+      const [users, enrollments, submissions, attendance, participation] = await Promise.all([
+        isAdmin
+          ? supabaseService.getUsers()
+          : (currentUser.id ? supabaseService.getProfile(currentUser.id).then(p => p ? [p] : []) : Promise.resolve([])),
+        supabaseService.getEnrollments(isAdmin ? undefined : currentUser.id),
+        isStudent ? supabaseService.getSubmissions(currentUser.id, undefined, true) : Promise.resolve([]),
+        isAdmin ? supabaseService.getAttendance() : supabaseService.getAttendance(currentUser.id),
+        isAdmin ? supabaseService.getParticipation() : supabaseService.getParticipation(currentUser.id)
+      ]);
+
+      if (users) localStorage.setItem(KEYS.USERS, JSON.stringify(users));
+      if (enrollments) localStorage.setItem(KEYS.ENROLLMENTS, JSON.stringify(enrollments));
       if (submissions) localStorage.setItem(KEYS.SUBMISSIONS, JSON.stringify(submissions));
 
       if (attendance) {
-        // Convert Row[] to Map - Deep clone or ensure we don't wipe everything if we only get partials
-        // Actually, for the global sync, we want to mirror the server's truth.
-        // But with the 10,000 limit, it's safer.
         const map: AttendanceRecord = {};
         attendance.forEach((r: AttendanceRow) => {
           if (!map[r.courseId]) map[r.courseId] = {};
@@ -122,16 +155,7 @@ export const storage = {
         localStorage.setItem(KEYS.PARTICIPATION, JSON.stringify(map));
       }
 
-      storage.isInitialized = true;
-      localStorage.setItem('last_sync_time', Date.now().toString());
       notify();
-      return settings || storage.getSettings();
-    } catch (e: any) {
-      console.error('Failed to sync initial data:', e);
-      console.error('Sync Error details:', e);
-      storage.isInitialized = true;
-      notify();
-      return storage.getSettings();
     }
   },
 
