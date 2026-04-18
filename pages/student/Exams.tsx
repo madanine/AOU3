@@ -320,17 +320,20 @@ const StudentExams: React.FC = () => {
 
                                 {q.type === 'matrix' && (
                                     <div className="mt-3 overflow-x-auto rounded-2xl border-2 border-border">
-                                        <table className="w-full border-collapse" style={{ tableLayout: 'fixed' }}>
+                                        <table className="border-collapse" style={{
+                                            minWidth: `${140 + (q.options?.length || 1) * 90}px`,
+                                            width: '100%'
+                                        }}>
                                             <thead>
                                                 <tr style={{ background: 'var(--surface)' }}>
-                                                    <th className="border-b-2 border-r-2 border-border px-2 py-2 text-right font-black uppercase tracking-widest"
-                                                        style={{ color: 'var(--text-secondary)', width: '30%', fontSize: '10px' }}>
+                                                    <th className="border-b-2 border-r-2 border-border px-3 py-3 text-right font-black uppercase tracking-widest"
+                                                        style={{ color: 'var(--text-secondary)', minWidth: '140px', fontSize: '11px' }}>
                                                         {isAR ? 'العبارة' : 'Statement'}
                                                     </th>
                                                     {q.options?.map(o => (
                                                         <th key={o.id}
-                                                            className="border-b-2 border-r border-border px-1 py-2 text-center font-black"
-                                                            style={{ color: 'var(--text-primary)', fontSize: '10px', wordBreak: 'break-word' }}>
+                                                            className="border-b-2 border-r border-border px-2 py-3 text-center font-black"
+                                                            style={{ color: 'var(--text-primary)', minWidth: '90px', fontSize: '11px' }}>
                                                             {o.optionText}
                                                         </th>
                                                     ))}
@@ -341,9 +344,9 @@ const StudentExams: React.FC = () => {
                                                     const rowSelections: string[] = (draftAnswers[q.id] || {})[ri.toString()] || [];
                                                     return (
                                                         <tr key={ri} style={{ background: ri % 2 === 0 ? 'var(--card)' : 'var(--surface)' }}>
-                                                            <td className="border-r-2 border-b border-border px-2 py-3 font-bold"
-                                                                style={{ color: 'var(--text-primary)', fontSize: '11px', wordBreak: 'break-word' }}>
-                                                                <span className="inline-flex items-center gap-1">
+                                                            <td className="border-r-2 border-b border-border px-3 py-3 font-bold"
+                                                                style={{ color: 'var(--text-primary)', fontSize: '12px', minWidth: '140px' }}>
+                                                                <span className="inline-flex items-center gap-2">
                                                                     <span className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center font-black shrink-0"
                                                                         style={{ fontSize: '10px' }}>
                                                                         {ri + 1}
@@ -355,9 +358,9 @@ const StudentExams: React.FC = () => {
                                                                 const isChecked = rowSelections.includes(o.id);
                                                                 return (
                                                                     <td key={o.id}
-                                                                        className="border-r border-b border-border text-center p-1"
-                                                                        style={{ background: isChecked ? 'rgba(196,150,66,0.12)' : undefined }}>
-                                                                        <label className="flex items-center justify-center cursor-pointer w-full h-full min-h-[40px]">
+                                                                        className="border-r border-b border-border text-center p-2"
+                                                                        style={{ background: isChecked ? 'rgba(196,150,66,0.12)' : undefined, minWidth: '90px' }}>
+                                                                        <label className="flex items-center justify-center cursor-pointer w-full h-full min-h-[44px]">
                                                                             <input
                                                                                 type="checkbox"
                                                                                 checked={isChecked}
@@ -371,13 +374,13 @@ const StudentExams: React.FC = () => {
                                                                                     updateAnswer(q.id, prev);
                                                                                 }}
                                                                             />
-                                                                            <span className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all duration-150 ${
+                                                                            <span className={`w-7 h-7 rounded-xl border-2 flex items-center justify-center transition-all duration-150 ${
                                                                                 isChecked
                                                                                     ? 'border-[#c49642] bg-[#c49642] shadow-md'
                                                                                     : 'border-border bg-card hover:border-primary/50'
                                                                             }`}>
                                                                                 {isChecked && (
-                                                                                    <svg viewBox="0 0 12 10" fill="none" className="w-3 h-3">
+                                                                                    <svg viewBox="0 0 12 10" fill="none" className="w-3.5 h-3.5">
                                                                                         <path d="M1 5l3.5 3.5L11 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                                                                                     </svg>
                                                                                 )}
