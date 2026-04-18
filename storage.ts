@@ -23,90 +23,90 @@ const listeners: Listener[] = [];
 const notify = () => listeners.forEach(l => l());
 
 
-let _isSyncing = false; // Mutex: prevents concurrent syncFromSupabase calls
+// Promise Deduplication: all concurrent callers share the same in-flight Promise.
+// This is immune to notify() re-entry because the reference is captured before any notify fires.
+let _syncPromise: Promise<SiteSettings | undefined> | null = null;
 
 export const storage = {
   isInitialized: false,
 
   // Sync logic
-  async syncFromSupabase() {
-    // ── Mutex guard: never run two syncs at the same time ───────────────────
-    if (_isSyncing) {
-      // Wait for the in-progress sync then return cached settings
-      await new Promise<void>(resolve => {
-        const unsub = storage.subscribe(() => { unsub(); resolve(); });
-      });
-      return storage.getSettings();
-    }
-    _isSyncing = true;
+  syncFromSupabase(): Promise<SiteSettings | undefined> {
+    // If a sync is already in-flight, return the same Promise — no duplicate requests.
+    if (_syncPromise) return _syncPromise;
 
-    // ── 15-second abort timeout so a dead network never hangs the app ────────
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15_000);
+    _syncPromise = (async () => {
+      // ── 15-second abort timeout so a dead network never hangs the app ────────
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15_000);
 
-    try {
-      const currentUser = storage.getAuthUser();
-      const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'supervisor';
+      try {
+        const currentUser = storage.getAuthUser();
+        const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'supervisor';
 
-      // الأدمن يجلب دائماً بدون كاش
-      if (!isAdmin) {
-        const lastSync = localStorage.getItem('last_sync_time');
-        const twoMinutes = 2 * 60 * 1000;
-        if (lastSync && Date.now() - parseInt(lastSync) < twoMinutes) {
-          storage.isInitialized = true;
-          notify();
-          return storage.getSettings();
+        // الأدمن يجلب دائماً بدون كاش
+        if (!isAdmin) {
+          const lastSync = localStorage.getItem('last_sync_time');
+          const twoMinutes = 2 * 60 * 1000;
+          if (lastSync && Date.now() - parseInt(lastSync) < twoMinutes) {
+            storage.isInitialized = true;
+            notify();
+            return storage.getSettings();
+          }
         }
-      }
 
-      // ── Phase 1: Critical data only (settings, courses, semesters) ──────────
-      // Fetch the minimum needed to render the app quickly.
-      const [settings, courses, semesters] = await Promise.all([
-        supabaseService.getSettings(),
-        supabaseService.getCourses(),
-        supabaseService.getSemesters(),
-      ]);
+        // ── Phase 1: Critical data only (settings, courses, semesters) ──────────
+        // Fetch the minimum needed to render the app quickly.
+        const [settings, courses, semesters] = await Promise.all([
+          supabaseService.getSettings(),
+          supabaseService.getCourses(),
+          supabaseService.getSemesters(),
+        ]);
 
-      if (settings) {
-        const stampedSettings = { ...settings, settingsVersion: SETTINGS_VERSION };
-        localStorage.setItem(KEYS.SETTINGS, JSON.stringify(stampedSettings));
-        // ── activeSemesterId preservation ──────────────────────────────────────
-        const verified = storage.getSettings();
-        if (settings.activeSemesterId && !verified.activeSemesterId) {
-          const patched = {
-            ...verified,
-            activeSemesterId: settings.activeSemesterId,
-            defaultSemesterId: settings.defaultSemesterId ?? verified.defaultSemesterId,
-          };
-          localStorage.setItem(KEYS.SETTINGS, JSON.stringify(patched));
+        if (settings) {
+          const stampedSettings = { ...settings, settingsVersion: SETTINGS_VERSION };
+          localStorage.setItem(KEYS.SETTINGS, JSON.stringify(stampedSettings));
+          // ── activeSemesterId preservation ──────────────────────────────────────
+          const verified = storage.getSettings();
+          if (settings.activeSemesterId && !verified.activeSemesterId) {
+            const patched = {
+              ...verified,
+              activeSemesterId: settings.activeSemesterId,
+              defaultSemesterId: settings.defaultSemesterId ?? verified.defaultSemesterId,
+            };
+            localStorage.setItem(KEYS.SETTINGS, JSON.stringify(patched));
+          }
         }
+        if (courses) localStorage.setItem(KEYS.COURSES, JSON.stringify(courses));
+        if (semesters) localStorage.setItem(KEYS.SEMESTERS, JSON.stringify(semesters));
+
+        // Mark as initialized early so the UI can render
+        storage.isInitialized = true;
+        localStorage.setItem('last_sync_time', Date.now().toString());
+        notify();
+
+        // ── Phase 2: Secondary data (deferred, non-blocking) ────────────────────
+        // Runs fire-and-forget AFTER the Promise resolves for all callers.
+        if (!controller.signal.aborted) {
+          storage._syncSecondaryData(currentUser, isAdmin).catch(e =>
+            console.error('Secondary sync failed (non-critical):', e)
+          );
+        }
+
+        return settings || storage.getSettings();
+      } catch (e: any) {
+        console.error('Failed to sync initial data:', e);
+        storage.isInitialized = true;
+        notify();
+        return storage.getSettings();
+      } finally {
+        clearTimeout(timeoutId);
+        // Clear the shared promise so the next independent call starts fresh.
+        _syncPromise = null;
       }
-      if (courses) localStorage.setItem(KEYS.COURSES, JSON.stringify(courses));
-      if (semesters) localStorage.setItem(KEYS.SEMESTERS, JSON.stringify(semesters));
+    })();
 
-      // Mark as initialized early so the UI can render
-      storage.isInitialized = true;
-      localStorage.setItem('last_sync_time', Date.now().toString());
-      notify();
-
-      // ── Phase 2: Secondary data (deferred, non-blocking) ────────────────────
-      // Fetch assignments + role-specific data after the page is already shown.
-      if (!controller.signal.aborted) {
-        storage._syncSecondaryData(currentUser, isAdmin).catch(e =>
-          console.error('Secondary sync failed (non-critical):', e)
-        );
-      }
-
-      return settings || storage.getSettings();
-    } catch (e: any) {
-      console.error('Failed to sync initial data:', e);
-      storage.isInitialized = true;
-      notify();
-      return storage.getSettings();
-    } finally {
-      clearTimeout(timeoutId);
-      _isSyncing = false;
-    }
+    return _syncPromise;
   },
 
   // Secondary (non-critical) data sync — runs after initial render
