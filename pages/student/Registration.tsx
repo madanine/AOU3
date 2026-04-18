@@ -150,17 +150,16 @@ const Registration: React.FC = () => {
 
     setIsSubmitting(true);
     try {
-      // Step 1: Delete old enrollments for this semester from Supabase first
+      // حذف كل التسجيلات القديمة دفعة واحدة
       const oldSemesterEnrollments = confirmedEnrollments.filter(e =>
         e.studentId === user?.id && (!activeSemId || e.semesterId === activeSemId)
       );
 
-      // Delete each old enrollment from Supabase
-      for (const oldEnroll of oldSemesterEnrollments) {
-        await storage.deleteEnrollment(oldEnroll.id);
-      }
+      await Promise.all(
+        oldSemesterEnrollments.map(e => storage.deleteEnrollment(e.id))
+      );
 
-      // Step 2: Create new enrollments with proper UUIDs
+      // إنشاء التسجيلات الجديدة
       const newEnrollments: Enrollment[] = Array.from(pendingSelection as Set<string>).map(courseId => ({
         id: crypto.randomUUID(),
         studentId: user?.id || '',
@@ -169,18 +168,16 @@ const Registration: React.FC = () => {
         semesterId: activeSemId || ''
       }));
 
-      // Step 3: Save each new enrollment to Supabase
-      for (const enrollment of newEnrollments) {
-        await storage.saveEnrollment(enrollment);
-      }
+      // حفظ كل التسجيلات الجديدة دفعة واحدة
+      await Promise.all(
+        newEnrollments.map(e => storage.saveEnrollment(e))
+      );
 
-      // Step 4: Build final list (other semesters + new current semester)
       const otherEnrollments = confirmedEnrollments.filter(e =>
         !(e.studentId === user?.id && (!activeSemId || e.semesterId === activeSemId))
       );
       const final = [...otherEnrollments, ...newEnrollments];
 
-      // Update local state
       setConfirmedEnrollments(final);
       localStorage.setItem('aou_enrollments', JSON.stringify(final));
       setPendingSelection(new Set());
