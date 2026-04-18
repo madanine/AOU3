@@ -30,6 +30,18 @@ export const storage = {
   async syncFromSupabase() {
     try {
       const currentUser = storage.getAuthUser();
+      const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'supervisor';
+
+      // الأدمن يجلب دائماً بدون كاش
+      if (!isAdmin) {
+        const lastSync = localStorage.getItem('last_sync_time');
+        const twoMinutes = 2 * 60 * 1000;
+        if (lastSync && Date.now() - parseInt(lastSync) < twoMinutes) {
+          storage.isInitialized = true;
+          notify();
+          return storage.getSettings();
+        }
+      }
 
       // 1. Fetch public/common data required by everyone
       const [settings, courses, semesters, assignments] = await Promise.all([
@@ -111,6 +123,7 @@ export const storage = {
       }
 
       storage.isInitialized = true;
+      localStorage.setItem('last_sync_time', Date.now().toString());
       notify();
       return settings || storage.getSettings();
     } catch (e: any) {
