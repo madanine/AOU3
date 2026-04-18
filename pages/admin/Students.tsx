@@ -13,6 +13,8 @@ const AdminStudents: React.FC = () => {
   const [sortOrder, setSortOrder] = useState<'default' | 'A-Z' | 'newest'>('default');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
 
   const [formData, setFormData] = useState<Partial<User>>({
     fullName: '',
@@ -42,6 +44,9 @@ const AdminStudents: React.FC = () => {
     if (sortOrder === 'newest') return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
     return 0;
   });
+
+  const totalPages = Math.ceil(filteredStudents.length / itemsPerPage);
+  const paginatedStudents = filteredStudents.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const handleToggleStatus = (id: string) => {
     const updated = users.map(u => {
@@ -133,7 +138,10 @@ const AdminStudents: React.FC = () => {
             type="text"
             placeholder={t.search}
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setCurrentPage(1);
+            }}
             className="w-full pl-12 pr-4 py-3 bg-card border border-border rounded-2xl outline-none font-bold text-xs transition-all text-text-primary focus:ring-2 focus:ring-primary focus:bg-surface"
           />
         </div>
@@ -166,7 +174,7 @@ const AdminStudents: React.FC = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {filteredStudents.map(student => (
+            {paginatedStudents.map(student => (
               <tr
                 key={student.id}
                 className={`transition-colors ${student.isDisabled ? 'opacity-50 grayscale bg-surface' : 'hover:bg-surface'}`}
@@ -230,6 +238,29 @@ const AdminStudents: React.FC = () => {
         {filteredStudents.length === 0 && (
           <div className="text-center py-20 uppercase tracking-widest font-black text-[10px] text-text-secondary">
             {t.noData}
+          </div>
+        )}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between p-4 border-t border-border bg-card">
+            <span className="text-[10px] font-black text-text-secondary uppercase tracking-widest">
+              {lang === 'AR' ? `صفحة ${currentPage} من ${totalPages}` : `Page ${currentPage} of ${totalPages}`}
+            </span>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest border border-border bg-surface hover:bg-primary/10 hover:text-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed text-text-primary"
+              >
+                {lang === 'AR' ? 'السابق' : 'Previous'}
+              </button>
+              <button
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest border border-border bg-surface hover:bg-primary/10 hover:text-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed text-text-primary"
+              >
+                {lang === 'AR' ? 'التالي' : 'Next'}
+              </button>
+            </div>
           </div>
         )}
       </div>

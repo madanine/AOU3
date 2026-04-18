@@ -15,6 +15,8 @@ const AdminEnrollments: React.FC = () => {
   const [filterMode, setFilterMode] = useState<'all' | 'course' | 'student'>('all');
   const [courseFilter, setCourseFilter] = useState('');
   const [studentFilter, setStudentFilter] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newEnrollment, setNewEnrollment] = useState({ studentId: '', courseId: '' });
@@ -46,6 +48,9 @@ const AdminEnrollments: React.FC = () => {
     }
     return true;
   });
+
+  const totalPages = Math.ceil(filtered.length / itemsPerPage);
+  const paginated = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const handleAddEnrollment = (e: React.FormEvent) => {
     e.preventDefault();
@@ -158,9 +163,9 @@ const AdminEnrollments: React.FC = () => {
 
       <div className="bg-card p-4 md:p-6 rounded-[2.5rem] border border-border shadow-sm flex flex-col md:flex-row gap-4 items-center">
         <div className="flex flex-wrap items-center gap-2 bg-surface p-1.5 rounded-xl border border-border w-full md:w-auto">
-          <button onClick={() => setFilterMode('all')} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${filterMode === 'all' ? 'bg-card text-primary shadow-sm border border-border' : 'text-text-secondary hover:text-text-primary border border-transparent hover:bg-card/50'}`}>{t.filterAll}</button>
-          <button onClick={() => setFilterMode('course')} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${filterMode === 'course' ? 'bg-card text-primary shadow-sm border border-border' : 'text-text-secondary hover:text-text-primary border border-transparent hover:bg-card/50'}`}>{t.filterByCourse}</button>
-          <button onClick={() => setFilterMode('student')} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${filterMode === 'student' ? 'bg-card text-primary shadow-sm border border-border' : 'text-text-secondary hover:text-text-primary border border-transparent hover:bg-card/50'}`}>{t.filterByStudent}</button>
+          <button onClick={() => { setFilterMode('all'); setCurrentPage(1); }} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${filterMode === 'all' ? 'bg-card text-primary shadow-sm border border-border' : 'text-text-secondary hover:text-text-primary border border-transparent hover:bg-card/50'}`}>{t.filterAll}</button>
+          <button onClick={() => { setFilterMode('course'); setCurrentPage(1); }} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${filterMode === 'course' ? 'bg-card text-primary shadow-sm border border-border' : 'text-text-secondary hover:text-text-primary border border-transparent hover:bg-card/50'}`}>{t.filterByCourse}</button>
+          <button onClick={() => { setFilterMode('student'); setCurrentPage(1); }} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${filterMode === 'student' ? 'bg-card text-primary shadow-sm border border-border' : 'text-text-secondary hover:text-text-primary border border-transparent hover:bg-card/50'}`}>{t.filterByStudent}</button>
         </div>
 
         <div className="relative flex-1 w-full min-w-[200px]">
@@ -169,13 +174,13 @@ const AdminEnrollments: React.FC = () => {
             type="text"
             placeholder={lang === 'AR' ? 'بحث باسم الطالب أو الرقم الجامعي...' : 'Search student...'}
             value={studentFilter}
-            onChange={e => { setStudentFilter(e.target.value); setFilterMode('student'); }}
+            onChange={e => { setStudentFilter(e.target.value); setFilterMode('student'); setCurrentPage(1); }}
             className="w-full pl-10 pr-4 py-2.5 bg-surface border border-border rounded-xl outline-none font-bold text-xs text-text-primary focus:ring-2 focus:ring-primary transition-all"
           />
         </div>
 
         {filterMode === 'course' && (
-          <select value={courseFilter} onChange={e => setCourseFilter(e.target.value)} className="w-full md:w-auto md:flex-1 px-4 py-2.5 bg-surface border border-border rounded-xl outline-none font-bold text-xs uppercase tracking-widest text-text-primary focus:ring-2 focus:ring-primary transition-all appearance-none cursor-pointer">
+          <select value={courseFilter} onChange={e => { setCourseFilter(e.target.value); setCurrentPage(1); }} className="w-full md:w-auto md:flex-1 px-4 py-2.5 bg-surface border border-border rounded-xl outline-none font-bold text-xs uppercase tracking-widest text-text-primary focus:ring-2 focus:ring-primary transition-all appearance-none cursor-pointer">
             <option value="">{lang === 'AR' ? 'جميع المواد' : 'All Courses'}</option>
             {courses.filter(c => !settings.activeSemesterId || c.semesterId === settings.activeSemesterId).map(c => <option key={c.id} value={c.id}>{c.code} - {translate(c, 'title')}</option>)}
           </select>
@@ -197,7 +202,7 @@ const AdminEnrollments: React.FC = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {filtered.map(e => {
+            {paginated.map(e => {
               const student = students.find(s => s.id === e.studentId);
               const course = courses.find(c => c.id === e.courseId);
               return (
@@ -229,6 +234,29 @@ const AdminEnrollments: React.FC = () => {
         </table>
         {filtered.length === 0 && (
           <div className="text-center py-20 text-text-secondary text-xs font-black uppercase tracking-widest">{t.noData}</div>
+        )}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between p-4 border-t border-border bg-card">
+            <span className="text-[10px] font-black text-text-secondary uppercase tracking-widest">
+              {lang === 'AR' ? `صفحة ${currentPage} من ${totalPages}` : `Page ${currentPage} of ${totalPages}`}
+            </span>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest border border-border bg-surface hover:bg-primary/10 hover:text-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed text-text-primary"
+              >
+                {lang === 'AR' ? 'السابق' : 'Previous'}
+              </button>
+              <button
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest border border-border bg-surface hover:bg-primary/10 hover:text-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed text-text-primary"
+              >
+                {lang === 'AR' ? 'التالي' : 'Next'}
+              </button>
+            </div>
+          </div>
         )}
       </div>
 

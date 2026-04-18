@@ -14,6 +14,9 @@ const UniversityIdRegistry: React.FC = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [filter, setFilter] = useState<'all' | 'available' | 'used'>('all');
     const [sortOrder, setSortOrder] = useState<'default' | 'A-Z' | 'newest'>('default');
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 20;
+
     const [isLoading, setIsLoading] = useState(true);
     const [uploadMessage, setUploadMessage] = useState('');
     const [stats, setStats] = useState({ total: 0, available: 0, used: 0 });
@@ -54,7 +57,11 @@ const UniversityIdRegistry: React.FC = () => {
 
     useEffect(() => {
         filterStudents();
+        setCurrentPage(1);
     }, [students, searchQuery, filter, sortOrder]);
+
+    const totalPages = Math.ceil(filteredStudents.length / itemsPerPage);
+    const paginatedStudents = filteredStudents.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
     const loadData = async () => {
         setIsLoading(true);
@@ -418,7 +425,7 @@ const UniversityIdRegistry: React.FC = () => {
                                 </td>
                             </tr>
                         ) : (
-                            filteredStudents.map((student) => (
+                            paginatedStudents.map((student) => (
                                 <tr key={student.id} className="hover:bg-surface transition-colors group">
                                     <td className="px-6 py-4">
                                         <span className="font-mono font-bold text-sm text-text-primary">{student.universityId}</span>
@@ -476,6 +483,29 @@ const UniversityIdRegistry: React.FC = () => {
                         )}
                     </tbody>
                 </table>
+                {totalPages > 1 && (
+                    <div className="flex items-center justify-between p-4 border-t border-border bg-card">
+                        <span className="text-[10px] font-black text-text-secondary uppercase tracking-widest">
+                            {lang === 'AR' ? `صفحة ${currentPage} من ${totalPages}` : `Page ${currentPage} of ${totalPages}`}
+                        </span>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                disabled={currentPage === 1}
+                                className="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest border border-border bg-surface hover:bg-primary/10 hover:text-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed text-text-primary"
+                            >
+                                {lang === 'AR' ? 'السابق' : 'Previous'}
+                            </button>
+                            <button
+                                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                disabled={currentPage === totalPages}
+                                className="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest border border-border bg-surface hover:bg-primary/10 hover:text-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed text-text-primary"
+                            >
+                                {lang === 'AR' ? 'التالي' : 'Next'}
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {isAddModalOpen && (
