@@ -36,9 +36,13 @@ export const storage = {
     if (_syncPromise) return _syncPromise;
 
     _syncPromise = (async () => {
-      // ── 15-second abort timeout so a dead network never hangs the app ────────
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15_000);
+      // ── 15-second real timeout using Promise.race ─────────────────────────────
+      // AbortController can't reach Supabase internals, so we use Promise.race:
+      // if Phase 1 takes > 15 s the timeout promise rejects, the catch block runs,
+      // and the app falls back to cached local settings immediately.
+      const timeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Sync timeout: network took > 15s')), 15_000)
+      );
 
       try {
         const currentUser = storage.getAuthUser();
@@ -56,11 +60,14 @@ export const storage = {
         }
 
         // ── Phase 1: Critical data only (settings, courses, semesters) ──────────
-        // Fetch the minimum needed to render the app quickly.
-        const [settings, courses, semesters] = await Promise.all([
-          supabaseService.getSettings(),
-          supabaseService.getCourses(),
-          supabaseService.getSemesters(),
+        // Promise.race ensures we never wait more than 15 s for these three calls.
+        const [settings, courses, semesters] = await Promise.race([
+          Promise.all([
+            supabaseService.getSettings(),
+            supabaseService.getCourses(),
+            supabaseService.getSemesters(),
+          ]),
+          timeout,
         ]);
 
         if (settings) {
@@ -86,12 +93,10 @@ export const storage = {
         notify();
 
         // ── Phase 2: Secondary data (deferred, non-blocking) ────────────────────
-        // Runs fire-and-forget AFTER the Promise resolves for all callers.
-        if (!controller.signal.aborted) {
-          storage._syncSecondaryData(currentUser, isAdmin).catch(e =>
-            console.error('Secondary sync failed (non-critical):', e)
-          );
-        }
+        // Always runs fire-and-forget after Phase 1 succeeds.
+        storage._syncSecondaryData(currentUser, isAdmin).catch(e =>
+          console.error('Secondary sync failed (non-critical):', e)
+        );
 
         return settings || storage.getSettings();
       } catch (e: any) {
@@ -100,7 +105,6 @@ export const storage = {
         notify();
         return storage.getSettings();
       } finally {
-        clearTimeout(timeoutId);
         // Clear the shared promise so the next independent call starts fresh.
         _syncPromise = null;
       }
