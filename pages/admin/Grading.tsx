@@ -539,11 +539,12 @@ const AdminGrading: React.FC = () => {
             </div>
           )}
 
-          <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden auto-hide-scrollbar">
-            <table className="w-full text-left border-collapse">
+          {/* الجدول مع التمرير الأفقي - محسّن للجوال */}
+          <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-x-auto auto-hide-scrollbar">
+            <table className="w-full text-left border-collapse min-w-[800px]">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-100">
-                  <th className="px-6 py-4 font-black uppercase text-[10px] tracking-widest text-gray-400 text-center w-12">
+                  <th className="px-3 sm:px-6 py-4 font-black uppercase text-[10px] tracking-widest text-gray-400 text-center w-12">
                     <input
                       type="checkbox"
                       checked={selectedSubmissions.size === filteredSubmissions.length && filteredSubmissions.length > 0}
@@ -551,10 +552,10 @@ const AdminGrading: React.FC = () => {
                       className="w-4 h-4 rounded border-gray-300 cursor-pointer"
                     />
                   </th>
-                  <th className="px-6 py-4 font-black uppercase text-[10px] tracking-widest text-gray-400">{t.student}</th>
-                  <th className="px-6 py-4 font-black uppercase text-[10px] tracking-widest text-gray-400">{lang === 'AR' ? 'تاريخ التسليم' : 'Submitted At'}</th>
-                  <th className="px-6 py-4 font-black uppercase text-[10px] tracking-widest text-gray-400 text-center">{t.grade}</th>
-                  <th className="px-6 py-4 font-black uppercase text-[10px] tracking-widest text-gray-400 text-right">{t.action}</th>
+                  <th className="px-3 sm:px-6 py-4 font-black uppercase text-[10px] tracking-widest text-gray-400 whitespace-nowrap">{t.student}</th>
+                  <th className="px-3 sm:px-6 py-4 font-black uppercase text-[10px] tracking-widest text-gray-400 whitespace-nowrap">{lang === 'AR' ? 'تاريخ التسليم' : 'Submitted At'}</th>
+                  <th className="px-3 sm:px-6 py-4 font-black uppercase text-[10px] tracking-widest text-gray-400 text-center whitespace-nowrap">{t.grade}</th>
+                  <th className="px-3 sm:px-6 py-4 font-black uppercase text-[10px] tracking-widest text-gray-400 text-right whitespace-nowrap sticky right-0 bg-gray-50 shadow-[-4px_0_8px_rgba(0,0,0,0.03)]">{t.action}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -562,7 +563,7 @@ const AdminGrading: React.FC = () => {
                   const student = students.find(s => s.id === sub.studentId);
                   return (
                     <tr key={sub.id} className={`hover:bg-slate-50 transition-colors ${selectedSubmissions.has(sub.id) ? 'bg-indigo-50/30' : ''}`}>
-                      <td className="px-6 py-4 text-center">
+                      <td className="px-3 sm:px-6 py-4 text-center">
                         <input
                           type="checkbox"
                           checked={selectedSubmissions.has(sub.id)}
@@ -570,24 +571,24 @@ const AdminGrading: React.FC = () => {
                           className="w-4 h-4 rounded border-gray-300 cursor-pointer"
                         />
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-3 sm:px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-xl bg-gray-100 text-gray-400 flex items-center justify-center"><UserIcon size={18} /></div>
                           <div>
-                            <p className="font-bold" style={{ color: 'var(--text-primary)' }}>{student?.fullName}</p>
-                            <p className="text-[10px] font-mono" style={{ color: 'var(--text-secondary)' }}>{student?.universityId}</p>
+                            <p className="font-bold whitespace-nowrap" style={{ color: 'var(--text-primary)' }}>{student?.fullName}</p>
+                            <p className="text-[10px] font-mono whitespace-nowrap" style={{ color: 'var(--text-secondary)' }}>{student?.universityId}</p>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-xs font-bold" style={{ color: 'var(--text-secondary)' }}>
+                      <td className="px-3 sm:px-6 py-4 text-xs font-bold whitespace-nowrap" style={{ color: 'var(--text-secondary)' }}>
                         {new Date(sub.submittedAt).toLocaleString()}
                       </td>
-                      <td className="px-6 py-4 text-center">
-                        <span className={`px-4 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${sub.grade ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
+                      <td className="px-3 sm:px-6 py-4 text-center">
+                        <span className={`px-4 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider whitespace-nowrap ${sub.grade ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
                           {sub.grade || (lang === 'AR' ? 'لم يرصد' : 'No Grade')}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-right">
+                      <td className="px-3 sm:px-6 py-4 text-right sticky right-0 bg-white shadow-[-4px_0_8px_rgba(0,0,0,0.03)]">
                         <div className="flex items-center justify-end gap-2">
                           <button onClick={() => handleDeleteSubmission(sub)} className="bg-white border border-red-100 p-2 rounded-xl text-red-400 hover:text-white hover:bg-red-500 hover:border-red-500 transition-all shadow-sm" title={lang === 'AR' ? 'حذف التسليم' : 'Delete submission'}>
                             <Trash2 size={18} />
