@@ -522,10 +522,16 @@ export const storage = {
   },
 
   initRealtime: () => {
-    // We only listen to site_settings changes globally to avoid massive Disk IO
-    // and infinite data-fetching loops when other tables (like submissions) are updated.
-    supabase.channel('public_db_changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'site_settings' }, async () => {
+    // منع إنشاء أكثر من channel واحد
+    const existingChannels = supabase.getChannels();
+    if (existingChannels.some(ch => ch.topic === 'realtime:public:site_settings')) return;
+
+    supabase.channel('public:site_settings')
+      .on('postgres_changes', { 
+        event: 'UPDATE',
+        schema: 'public', 
+        table: 'site_settings'
+      }, async () => {
         const settings = await supabaseService.getSettings();
         if (settings) {
           storage.setSettings(settings);
