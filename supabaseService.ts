@@ -588,7 +588,7 @@ export const supabaseService = {
             status: r.status
         }));
         const { error } = await supabase.from('attendance').upsert(payload, { onConflict: 'course_id,student_id,lecture_index' });
-        if (error) console.error('Bulk Attendance Upsert Error:', error);
+        if (error) throw error;
     },
 
     async bulkDeleteAttendance(courseId: string, studentId: string, lectureIndices: number[]) {
@@ -621,7 +621,7 @@ export const supabaseService = {
             status: r.status
         }));
         const { error } = await supabase.from('participation').upsert(payload, { onConflict: 'course_id,student_id,lecture_index' });
-        if (error) console.error('Bulk Participation Upsert Error:', error);
+        if (error) throw error;
     },
 
     async bulkDeleteParticipation(courseId: string, studentId: string, lectureIndices: number[]) {

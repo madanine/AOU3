@@ -110,6 +110,11 @@ const App: React.FC = () => {
           const profile = await supabaseService.getProfile(session.user.id);
           setUserState(profile);
           storage.setAuthUser(profile);
+          // On mobile, localStorage may be wiped so _syncSecondaryData ran with
+          // currentUser=null and skipped enrollments. Re-run it now that we know
+          // the user identity. Bypasses the cache intentionally (secondary data only).
+          const isAdmin = profile.role === 'admin' || profile.role === 'supervisor';
+          storage._syncSecondaryData(profile, isAdmin).catch(e => console.error('Re-sync secondary data failed:', e));
         } catch (e) {
           console.error('Failed to fetch profile on init', e);
         }

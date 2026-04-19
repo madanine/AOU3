@@ -86,7 +86,8 @@ const MainLayout: React.FC = () => {
 
       if (isPrimaryAdmin || user.permissions?.manageAdmins) {
         filtered.push({ label: lang === 'AR' ? 'إدارة المسؤولين' : 'Admin Management', path: '/admin/admins', icon: Lock, key: 'adminManagement' });
-      } else {
+      }
+      if (!isPrimaryAdmin) {
         filtered.push({ label: lang === 'AR' ? 'تغيير كلمة المرور' : 'Change Password', path: '/admin/change-password', icon: Key, key: 'changePassword' });
       }
 

@@ -12,7 +12,28 @@ const AdminManagement: React.FC = () => {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [showToast, setShowToast] = useState<{ show: boolean, msg: string, type: 'success' | 'error' }>({ show: false, msg: '', type: 'success' });
 
-  const admins = users.filter(u => u.role === 'admin' && u.universityId !== 'aouadmin');
+  // يخفي الحساب الرئيسي وحساب المستخدم الحالي
+  const admins = users.filter(u =>
+    u.role === 'admin' &&
+    u.universityId !== 'aouadmin' &&
+    u.id !== currentUser?.id
+  );
+
+  const defaultPermissions = {
+    dashboard: true,
+    courses: true,
+    attendance: true,
+    supervisors: true,
+    students: true,
+    enrollments: true,
+    exportData: true,
+    siteSettings: true,
+    exams: true,
+    assignments: true,   // مضاف
+    grading: true,       // مضاف
+    transcripts: true,   // مضاف
+    manageAdmins: false
+  };
 
   const [formData, setFormData] = useState({
     universityId: '',
@@ -21,18 +42,7 @@ const AdminManagement: React.FC = () => {
     email: '',
     fullAccess: true,
     canAccessRegistry: false,
-    permissions: {
-      dashboard: true,
-      courses: true,
-      attendance: true,
-      supervisors: true,
-      students: true,
-      enrollments: true,
-      exportData: true,
-      siteSettings: true,
-      exams: true,
-      manageAdmins: false
-    }
+    permissions: { ...defaultPermissions }
   });
 
   const permissionLabels: Record<string, string> = {
@@ -45,6 +55,9 @@ const AdminManagement: React.FC = () => {
     exportData: lang === 'AR' ? 'تصدير البيانات' : 'Export Data',
     siteSettings: lang === 'AR' ? 'إعدادات الموقع' : 'Site Settings',
     exams: lang === 'AR' ? 'الامتحانات' : 'Exams',
+    assignments: lang === 'AR' ? 'التكليفات' : 'Assignments',
+    grading: lang === 'AR' ? 'التصحيح' : 'Grading',
+    transcripts: lang === 'AR' ? 'السجلات الأكاديمية' : 'Transcripts',
     manageAdmins: lang === 'AR' ? 'إدارة المسؤولين' : 'Manage Admins',
     canAccessRegistry: t.registryAccess
   };
@@ -58,10 +71,7 @@ const AdminManagement: React.FC = () => {
       email: '',
       fullAccess: true,
       canAccessRegistry: false,
-      permissions: {
-        dashboard: true, courses: true, attendance: true, supervisors: true,
-        students: true, enrollments: true, exportData: true, siteSettings: true, exams: true, manageAdmins: false
-      }
+      permissions: { ...defaultPermissions }
     });
     setIsModalOpen(true);
   };
@@ -76,9 +86,8 @@ const AdminManagement: React.FC = () => {
       fullAccess: adm.fullAccess !== undefined ? adm.fullAccess : true,
       canAccessRegistry: adm.canAccessRegistry || false,
       permissions: {
-        dashboard: true, courses: true, attendance: true, supervisors: true,
-        students: true, enrollments: true, exportData: true, siteSettings: true, exams: true, manageAdmins: false,
-        ...(adm.permissions || {})
+        ...defaultPermissions,
+        ...((adm.permissions as Record<string, boolean>) || {})
       }
     });
     setIsModalOpen(true);
