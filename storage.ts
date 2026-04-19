@@ -294,8 +294,15 @@ export const storage = {
   setSettings: (settings: SiteSettings) => {
     // Always stamp the current version so the version-gate never resets valid settings.
     const versioned: SiteSettings = { ...settings, settingsVersion: SETTINGS_VERSION };
+    const current = localStorage.getItem(KEYS.SETTINGS);
+    const currentParsed = current ? JSON.parse(current) : null;
+    
     localStorage.setItem(KEYS.SETTINGS, JSON.stringify(versioned));
-    supabaseService.updateSettings(versioned).catch(() => { });
+    
+    // فقط اكتب لـ Supabase لو البيانات تغيرت فعلاً
+    if (JSON.stringify(currentParsed) !== JSON.stringify(versioned)) {
+      supabaseService.updateSettings(versioned).catch(() => {});
+    }
   },
 
   getAuthUser: (): User | null => JSON.parse(localStorage.getItem(KEYS.AUTH_USER) || 'null'),
@@ -613,19 +620,16 @@ export const storage = {
   initRealtime: () => {
     // منع إنشاء أكثر من channel واحد
     const existingChannels = supabase.getChannels();
-    if (existingChannels.some(ch => ch.topic === 'realtime:public:site_settings')) return;
+    if (existingChannels.some(ch => ch.topic === 'realtime:public_db_changes')) return;
 
-    supabase.channel('public:site_settings')
-      .on('postgres_changes', { 
-        event: 'UPDATE',
-        schema: 'public', 
-        table: 'site_settings'
-      }, async () => {
-        const settings = await supabaseService.getSettings();
-        if (settings) {
-          storage.setSettings(settings);
-          notify();
-        }
+    let syncTimeout: NodeJS.Timeout;
+    supabase.channel('public_db_changes')
+      .on('postgres_changes', { event: '*', schema: 'public' }, () => {
+        // انتظر 3 ثوانٍ من آخر تغيير قبل الـ sync لمنع الضغط الكبير على السيرفر
+        clearTimeout(syncTimeout);
+        syncTimeout = setTimeout(async () => {
+          await storage.syncFromSupabase();
+        }, 3000);
       })
       .subscribe();
   }
