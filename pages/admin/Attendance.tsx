@@ -35,6 +35,7 @@ const AdminAttendance: React.FC = () => {
   const participationSaveTimer = useRef<ReturnType<typeof setTimeout>>();
   const isFirstAttendanceRender = useRef(true);
   const isFirstParticipationRender = useRef(true);
+  const isDirty = useRef(false);
 
   // Status for feedback
   const [isSaving, setIsSaving] = useState(false);
@@ -58,6 +59,10 @@ const AdminAttendance: React.FC = () => {
       setCourses(storage.getCourses());
       setStudents(storage.getUsers().filter(u => u.role === 'student'));
       setEnrollments(storage.getEnrollments());
+      if (!isDirty.current) {
+        setAttendance(storage.getAttendance());
+        setParticipation(storage.getParticipation());
+      }
     };
     const unsubscribe = storage.subscribe(handleUpdate);
     return () => unsubscribe();
@@ -96,6 +101,23 @@ const AdminAttendance: React.FC = () => {
       syncCourseData();
     }
   }, [selectedCourseId]);
+
+  useEffect(() => {
+    if (targetStudentId) {
+      const syncStudentData = async () => {
+        try {
+          await Promise.all([
+            (storage as any).syncStudentAttendance(targetStudentId),
+          ]);
+          setAttendance(storage.getAttendance());
+          setParticipation(storage.getParticipation());
+        } catch (err) {
+          console.error('Failed to sync student data:', err);
+        }
+      };
+      syncStudentData();
+    }
+  }, [targetStudentId]);
 
   // Guard: If data isn't ready from the server, don't allow interactions or saves.
   if (!dataReady) {
@@ -154,6 +176,7 @@ const AdminAttendance: React.FC = () => {
   });
 
   const handleToggle = (studentId: string, lectureIdx: number, courseId: string = selectedCourseId) => {
+    isDirty.current = true;
     setAttendance(prev => {
       const courseRecord = prev[courseId] || {};
       const studentArr = [...(courseRecord[studentId] || Array(12).fill(null))];
@@ -176,6 +199,7 @@ const AdminAttendance: React.FC = () => {
   };
 
   const handleParticipationToggle = (studentId: string, lectureIdx: number, courseId: string = selectedCourseId) => {
+    isDirty.current = true;
     setParticipation(prev => {
       const courseRecord = prev[courseId] || {};
       const studentArr = [...(courseRecord[studentId] || Array(12).fill(null))];
@@ -196,6 +220,7 @@ const AdminAttendance: React.FC = () => {
   };
 
   const applyBulk = (type: 'present' | 'absent', scope: 'selected' | 'all') => {
+    isDirty.current = true;
     setUndoStack(JSON.parse(JSON.stringify(attendance)));
     setAttendance(prev => {
       const courseRecord = { ...(prev[selectedCourseId] || {}) };
@@ -218,6 +243,7 @@ const AdminAttendance: React.FC = () => {
   };
 
   const applyParticipationBulk = (type: 'participated' | 'not_participated', scope: 'selected' | 'all') => {
+    isDirty.current = true;
     setParticipationUndoStack(JSON.parse(JSON.stringify(participation)));
     setParticipation(prev => {
       const courseRecord = { ...(prev[selectedCourseId] || {}) };
@@ -258,6 +284,7 @@ const AdminAttendance: React.FC = () => {
     try {
       await storage.setAttendance(attendance);
       await storage.setParticipation(participation);
+      isDirty.current = false;
       setShowToast(true);
       setTimeout(() => setShowToast(false), 3000);
     } catch (err) {

@@ -36,17 +36,18 @@ export const storage = {
     if (_syncPromise) return _syncPromise;
 
     _syncPromise = (async () => {
-      // ── 15-second real timeout using Promise.race ─────────────────────────────
+      // ── 30-second real timeout using Promise.race ─────────────────────────────
       // AbortController can't reach Supabase internals, so we use Promise.race:
-      // if Phase 1 takes > 15 s the timeout promise rejects, the catch block runs,
+      // if Phase 1 takes > 30 s the timeout promise rejects, the catch block runs,
       // and the app falls back to cached local settings immediately.
       const timeout = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Sync timeout: network took > 15s')), 15_000)
+        setTimeout(() => reject(new Error('Sync timeout: network took > 30s')), 30_000)
       );
 
       try {
         const currentUser = storage.getAuthUser();
         const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'supervisor';
+        const isStudent = currentUser?.role === 'student';
 
         // الأدمن يجلب دائماً بدون كاش
         if (!isAdmin) {
@@ -60,15 +61,26 @@ export const storage = {
         }
 
         // ── Phase 1: Critical data only (settings, courses, semesters) ──────────
-        // Promise.race ensures we never wait more than 15 s for these three calls.
-        const [settings, courses, semesters] = await Promise.race([
-          Promise.all([
-            supabaseService.getSettings(),
-            supabaseService.getCourses(),
-            supabaseService.getSemesters(),
-          ]),
+        // Promise.race ensures we never wait more than 30 s for these calls.
+        const phase1Promises: Promise<any>[] = [
+          supabaseService.getSettings(),
+          supabaseService.getCourses(),
+          supabaseService.getSemesters(),
+        ];
+
+        if (isStudent && currentUser?.id) {
+          phase1Promises.push(supabaseService.getEnrollments(currentUser.id));
+        }
+
+        const results = await Promise.race([
+          Promise.all(phase1Promises),
           timeout,
         ]);
+
+        const settings = results[0];
+        const courses = results[1];
+        const semesters = results[2];
+        const studentEnrollments = isStudent ? results[3] : null;
 
         if (settings) {
           const stampedSettings = { ...settings, settingsVersion: SETTINGS_VERSION };
@@ -86,6 +98,7 @@ export const storage = {
         }
         if (courses) localStorage.setItem(KEYS.COURSES, JSON.stringify(courses));
         if (semesters) localStorage.setItem(KEYS.SEMESTERS, JSON.stringify(semesters));
+        if (studentEnrollments) localStorage.setItem(KEYS.ENROLLMENTS, JSON.stringify(studentEnrollments));
 
         // Mark as initialized early so the UI can render
         storage.isInitialized = true;
@@ -125,14 +138,14 @@ export const storage = {
         isAdmin
           ? supabaseService.getUsers()
           : (currentUser.id ? supabaseService.getProfile(currentUser.id).then(p => p ? [p] : []) : Promise.resolve([])),
-        supabaseService.getEnrollments(isAdmin ? undefined : currentUser.id),
+        isAdmin ? supabaseService.getEnrollments() : Promise.resolve(null),
         isStudent ? supabaseService.getSubmissions(currentUser.id, undefined, true) : Promise.resolve([]),
         isAdmin ? supabaseService.getAttendance() : supabaseService.getAttendance(currentUser.id),
         isAdmin ? supabaseService.getParticipation() : supabaseService.getParticipation(currentUser.id)
       ]);
 
       if (users) localStorage.setItem(KEYS.USERS, JSON.stringify(users));
-      if (enrollments) localStorage.setItem(KEYS.ENROLLMENTS, JSON.stringify(enrollments));
+      if (isAdmin && enrollments) localStorage.setItem(KEYS.ENROLLMENTS, JSON.stringify(enrollments));
       if (submissions) localStorage.setItem(KEYS.SUBMISSIONS, JSON.stringify(submissions));
 
       if (attendance) {
@@ -391,6 +404,41 @@ export const storage = {
     } catch (e) {
       console.error('Failed to sync course participation:', e);
       return storage.getParticipation();
+    }
+  },
+
+  syncStudentAttendance: async (studentId: string) => {
+    try {
+      const [attRows, partRows] = await Promise.all([
+        supabaseService.getAttendance(studentId),
+        supabaseService.getParticipation(studentId)
+      ]);
+
+      // Merge attendance
+      const attMap = storage.getAttendance();
+      attRows.forEach(r => {
+        if (!attMap[r.courseId]) attMap[r.courseId] = {};
+        if (!attMap[r.courseId][r.studentId]) attMap[r.courseId][r.studentId] = Array(12).fill(null);
+        if (r.lectureIndex >= 0 && r.lectureIndex < 12) {
+          attMap[r.courseId][r.studentId][r.lectureIndex] = r.status;
+        }
+      });
+      localStorage.setItem(KEYS.ATTENDANCE, JSON.stringify(attMap));
+
+      // Merge participation
+      const partMap = storage.getParticipation();
+      partRows.forEach(r => {
+        if (!partMap[r.courseId]) partMap[r.courseId] = {};
+        if (!partMap[r.courseId][r.studentId]) partMap[r.courseId][r.studentId] = Array(12).fill(null);
+        if (r.lectureIndex >= 0 && r.lectureIndex < 12) {
+          partMap[r.courseId][r.studentId][r.lectureIndex] = r.status;
+        }
+      });
+      localStorage.setItem(KEYS.PARTICIPATION, JSON.stringify(partMap));
+
+      notify();
+    } catch (e) {
+      console.error('Student attendance sync failed:', e);
     }
   },
 

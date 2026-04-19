@@ -18,8 +18,10 @@ const Attendance: React.FC = () => {
   // On mount: force a fresh sync from Supabase so the student always
   // sees the latest attendance data — even if Realtime didn't fire.
   useEffect(() => {
-    storage.syncFromSupabase().catch((err) => console.error('Attendance sync failed:', err));
-  }, []);
+    if (user?.id) {
+      (storage as any).syncStudentAttendance(user.id);
+    }
+  }, [user?.id]);
 
   const enrollments = storage.getEnrollments().filter(e => e.studentId === user?.id);
   const courses = storage.getCourses();
