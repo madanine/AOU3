@@ -26,6 +26,8 @@ const notify = () => listeners.forEach(l => l());
 // Promise Deduplication: all concurrent callers share the same in-flight Promise.
 // This is immune to notify() re-entry because the reference is captured before any notify fires.
 let _syncPromise: Promise<SiteSettings | undefined> | null = null;
+let _settingsCache: SiteSettings | null = null;
+let _settingsCacheTime: number = 0;
 
 export const storage = {
   isInitialized: false,
@@ -140,8 +142,8 @@ export const storage = {
           : (currentUser.id ? supabaseService.getProfile(currentUser.id).then(p => p ? [p] : []) : Promise.resolve([])),
         isAdmin ? supabaseService.getEnrollments() : Promise.resolve(null),
         isStudent ? supabaseService.getSubmissions(currentUser.id, undefined, true) : Promise.resolve([]),
-        isAdmin ? supabaseService.getAttendance() : supabaseService.getAttendance(currentUser.id),
-        isAdmin ? supabaseService.getParticipation() : supabaseService.getParticipation(currentUser.id)
+        isAdmin ? supabaseService.getAttendance() : Promise.resolve(null),
+        isAdmin ? supabaseService.getParticipation() : Promise.resolve(null)
       ]);
 
       if (users) localStorage.setItem(KEYS.USERS, JSON.stringify(users));
@@ -270,6 +272,10 @@ export const storage = {
   },
 
   getSettings: (): SiteSettings => {
+    // Return cached memory settings if less than 5 minutes old
+    if (_settingsCache && Date.now() - _settingsCacheTime < 300000) {
+      return _settingsCache;
+    }
     const stored = localStorage.getItem(KEYS.SETTINGS);
     if (!stored) return DEFAULT_SETTINGS;
     try {
@@ -286,6 +292,8 @@ export const storage = {
       // ── End Version Gate ───────────────────────────────────────────────────
 
       if (!parsed.theme || !parsed.branding) return DEFAULT_SETTINGS;
+      _settingsCache = parsed;
+      _settingsCacheTime = Date.now();
       return parsed;
     } catch (e) {
       return DEFAULT_SETTINGS;
@@ -298,6 +306,8 @@ export const storage = {
     const currentParsed = current ? JSON.parse(current) : null;
     
     localStorage.setItem(KEYS.SETTINGS, JSON.stringify(versioned));
+    _settingsCache = versioned;
+    _settingsCacheTime = Date.now();
     
     // فقط اكتب لـ Supabase لو البيانات تغيرت فعلاً
     if (JSON.stringify(currentParsed) !== JSON.stringify(versioned)) {
@@ -618,6 +628,10 @@ export const storage = {
   },
 
   initRealtime: () => {
+    const userRole = storage.getAuthUser()?.role;
+    // منع تفعيل الـ Realtime للطلاب لتخفيف الضغط خصوصا اثناء الاختبارات
+    if (userRole === 'student') return;
+
     // منع إنشاء أكثر من channel واحد
     const existingChannels = supabase.getChannels();
     if (existingChannels.some(ch => ch.topic === 'realtime:public_db_changes')) return;
