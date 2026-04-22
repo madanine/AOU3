@@ -1,66 +1,92 @@
-﻿
 import React from 'react';
 import { useApp } from '@/App';
 import { storage } from '@/lib/storage';
-import { BookMarked, Calendar, MessageCircle, Video, ExternalLink } from 'lucide-react';
-
+import { supabaseService } from '@/lib/supabaseService';
+import { BookMarked, Calendar } from 'lucide-react';
+ 
 const MyCourses: React.FC = () => {
   const { user, t, translate, settings } = useApp();
-  // Show enrollments for ACTIVE semester by default, or all if student wants history?
-  // User complaint: "disappears from being a registered course" -> implies they want to see it as "Registered".
-  // So we filter by active semester.
   const [groupedCourses, setGroupedCourses] = React.useState<{ current: any[], previous: { semesterName: string, courses: any[] }[] }>({ current: [], previous: [] });
-
-  React.useEffect(() => {
-    const loadCourses = () => {
-      const activeSemId = settings.activeSemesterId;
-      const allEnrollments = storage.getEnrollments();
-      const allCourses = storage.getCourses();
-      const allSemesters = storage.getSemesters();
-
-      // Helper to map enrollment to full course object
-      const mapEnrollmentToCourse = (e: any) => {
-        const course = allCourses.find(c => c.id === e.courseId);
-        return course ? { ...course, enrolledAt: e.enrolledAt } : null;
-      };
-
-      // 1. Current Semester Courses
-      const currentEnrollments = allEnrollments.filter(e =>
-        e.studentId === user?.id &&
-        (activeSemId ? e.semesterId === activeSemId : true) // If no active sem, show all? Or show none? Logic says active specific.
-      );
-
-      const current = currentEnrollments
-        .map(mapEnrollmentToCourse)
-        .filter(c => c !== null);
-
-      // 2. Previous Semesters (Grouped)
-      // Find all semesters except active one, used by this student
-      const studentSemesterIds = Array.from(new Set(allEnrollments.filter(e => e.studentId === user?.id).map(e => e.semesterId).filter(id => id && id !== activeSemId)));
-
-      const previous = studentSemesterIds.map(semId => {
-        const semester = allSemesters.find(s => s.id === semId);
-        if (!semester) return null;
-
-        const semEnrollments = allEnrollments.filter(e => e.studentId === user?.id && e.semesterId === semId);
-        const semCourses = semEnrollments.map(mapEnrollmentToCourse).filter(c => c !== null);
-
-        return {
-          semesterName: semester.name,
-          createdAt: semester.createdAt,
-          courses: semCourses
-        };
-      })
-        .filter(g => g !== null && g.courses.length > 0)
-        .sort((a, b) => new Date(b!.createdAt).getTime() - new Date(a!.createdAt).getTime()) as { semesterName: string, courses: any[] }[];
-
-      setGroupedCourses({ current, previous });
+ 
+  const buildCourses = React.useCallback((enrollments: any[], courses: any[], semesters: any[]) => {
+    const activeSemId = settings.activeSemesterId;
+ 
+    const mapEnrollmentToCourse = (e: any) => {
+      const course = courses.find(c => c.id === e.courseId);
+      return course ? { ...course, enrolledAt: e.enrolledAt } : null;
     };
-
-    loadCourses();
-    return storage.subscribe(loadCourses);
+ 
+    const currentEnrollments = enrollments.filter(e =>
+      e.studentId === user?.id &&
+      (activeSemId ? e.semesterId === activeSemId : true)
+    );
+ 
+    const current = currentEnrollments
+      .map(mapEnrollmentToCourse)
+      .filter(c => c !== null);
+ 
+    const studentSemesterIds = Array.from(new Set(
+      enrollments
+        .filter(e => e.studentId === user?.id)
+        .map(e => e.semesterId)
+        .filter(id => id && id !== activeSemId)
+    ));
+ 
+    const previous = studentSemesterIds.map(semId => {
+      const semester = semesters.find(s => s.id === semId);
+      if (!semester) return null;
+      const semEnrollments = enrollments.filter(e => e.studentId === user?.id && e.semesterId === semId);
+      const semCourses = semEnrollments.map(mapEnrollmentToCourse).filter(c => c !== null);
+      return { semesterName: semester.name, createdAt: semester.createdAt, courses: semCourses };
+    })
+      .filter(g => g !== null && g.courses.length > 0)
+      .sort((a, b) => new Date(b!.createdAt).getTime() - new Date(a!.createdAt).getTime()) as { semesterName: string, courses: any[] }[];
+ 
+    setGroupedCourses({ current, previous });
   }, [settings.activeSemesterId, user?.id]);
-
+ 
+  React.useEffect(() => {
+    if (!user?.id) return;
+ 
+    // 1. عرض البيانات المحلية فوراً (إن وجدت)
+    const localEnrollments = storage.getEnrollments();
+    const localCourses = storage.getCourses();
+    const localSemesters = storage.getSemesters();
+    if (localEnrollments.length > 0) {
+      buildCourses(localEnrollments, localCourses, localSemesters);
+    }
+ 
+    // 2. جلب من Supabase مباشرة لضمان البيانات الحديثة
+    const fetchFromSupabase = async () => {
+      try {
+        const [enrollments, courses, semesters] = await Promise.all([
+          supabaseService.getEnrollments(user.id),
+          supabaseService.getCourses(),
+          supabaseService.getSemesters(),
+        ]);
+ 
+        // حفظ في localStorage للمرات القادمة
+        if (enrollments) localStorage.setItem('aou_enrollments', JSON.stringify(enrollments));
+        if (courses) localStorage.setItem('aou_courses', JSON.stringify(courses));
+        if (semesters) localStorage.setItem('aou_semesters', JSON.stringify(semesters));
+ 
+        buildCourses(
+          enrollments || localEnrollments,
+          courses || localCourses,
+          semesters || localSemesters
+        );
+      } catch (e) {
+        console.error('MyCourses fetch failed, using local data:', e);
+      }
+    };
+ 
+    fetchFromSupabase();
+ 
+    return storage.subscribe(() => {
+      buildCourses(storage.getEnrollments(), storage.getCourses(), storage.getSemesters());
+    });
+  }, [settings.activeSemesterId, user?.id, buildCourses]);
+ 
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-in slide-in-from-bottom-4 duration-500 pb-20">
       <div>
@@ -69,7 +95,7 @@ const MyCourses: React.FC = () => {
           {t.welcome}, {user?.fullName}
         </p>
       </div>
-
+ 
       {/* Current Semester Section */}
       <div className="space-y-6">
         <div className="flex items-center gap-3">
@@ -82,7 +108,7 @@ const MyCourses: React.FC = () => {
             </span>
           )}
         </div>
-
+ 
         <div className="space-y-4">
           {groupedCourses.current.map(course => (
             <div key={course.id} className="bg-[var(--card-bg)] rounded-[2rem] p-6 border border-[var(--border-color)] shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all hover:shadow-xl group">
@@ -98,11 +124,10 @@ const MyCourses: React.FC = () => {
                     <span style={{ color: 'var(--text-primary)' }}>{course.code}</span>
                     <span>•</span>
                     <span style={{ color: 'var(--text-secondary)' }}>{translate(course, 'doctor')}</span>
-                    {/* Hide credits as per user request */}
                   </div>
                 </div>
               </div>
-
+ 
               <div className="flex flex-col md:flex-row items-center gap-3">
                 {(course.whatsappLink || course.telegramLink || course.lectureLink) && (
                   <div className="flex items-center gap-2">
@@ -124,8 +149,7 @@ const MyCourses: React.FC = () => {
                   </div>
                 )}
               </div>
-
-              {/* Course Notes Section */}
+ 
               {course.notes && (
                 <div className="mt-4 pt-4 border-t border-border dark:border-white/5">
                   <h4 className="text-[10px] font-black uppercase tracking-widest text-[var(--text-secondary)] mb-2">
@@ -135,13 +159,8 @@ const MyCourses: React.FC = () => {
                     {course.notes.split(/(\s+)/).map((part: string, i: number) => {
                       if (part.match(/^(https?:\/\/[^\s]+)/)) {
                         return (
-                          <a
-                            key={i}
-                            href={part}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-primary hover:text-primary underline break-all"
-                          >
+                          <a key={i} href={part} target="_blank" rel="noopener noreferrer"
+                            className="text-primary hover:text-primary underline break-all">
                             {part}
                           </a>
                         );
@@ -153,7 +172,7 @@ const MyCourses: React.FC = () => {
               )}
             </div>
           ))}
-
+ 
           {groupedCourses.current.length === 0 && (
             <div className="text-center py-24 bg-[var(--card-bg)] rounded-[2.5rem] border border-dashed border-black/20">
               <BookMarked className="mx-auto text-black/20 mb-6" size={64} />
@@ -162,43 +181,42 @@ const MyCourses: React.FC = () => {
           )}
         </div>
       </div>
-
-      {/* Previous Semesters History */}
-      {
-        groupedCourses.previous.length > 0 && (
-          <div className="pt-8 border-t border-border dark:border-white/5 space-y-8 animate-in slide-in-from-bottom-8 duration-700 delay-200">
-            <div className="flex items-center gap-2 opacity-60">
-              <Calendar size={18} />
-              <h2 className="text-sm font-black uppercase tracking-widest">{storage.getLanguage() === 'AR' ? 'الفصول السابقة' : 'Previous Semesters'}</h2>
-            </div>
-
-            {groupedCourses.previous.map((semesterGroup, idx) => (
-              <div key={idx} className="space-y-4 opacity-75 hover:opacity-100 transition-opacity">
-                <h3 className="text-xs font-black uppercase tracking-wider text-[var(--primary)] pl-2 border-l-4 border-[var(--primary)]">
-                  {semesterGroup.semesterName}
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {semesterGroup.courses.map(course => (
-                    <div key={course.id} className="bg-[var(--card-bg)] p-4 rounded-2xl border border-[var(--border-color)] flex justify-between items-center group">
-                      <div>
-                        <h4 className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>{translate(course, 'title')}</h4>
-                        <p className="text-[10px] uppercase font-black mt-1" style={{ color: 'var(--text-secondary)' }}>
-                          {course.code} • {translate(course, 'doctor')}
-                        </p>
-                      </div>
-                      <span className="px-3 py-1 bg-border dark:bg-black/20 rounded-lg text-[10px] font-black text-text-secondary">
-                        {storage.getLanguage() === 'AR' ? 'مكتمل' : 'COMPLETED'}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
+ 
+      {groupedCourses.previous.length > 0 && (
+        <div className="pt-8 border-t border-border dark:border-white/5 space-y-8 animate-in slide-in-from-bottom-8 duration-700 delay-200">
+          <div className="flex items-center gap-2 opacity-60">
+            <Calendar size={18} />
+            <h2 className="text-sm font-black uppercase tracking-widest">
+              {storage.getLanguage() === 'AR' ? 'الفصول السابقة' : 'Previous Semesters'}
+            </h2>
           </div>
-        )
-      }
-    </div >
+ 
+          {groupedCourses.previous.map((semesterGroup, idx) => (
+            <div key={idx} className="space-y-4 opacity-75 hover:opacity-100 transition-opacity">
+              <h3 className="text-xs font-black uppercase tracking-wider text-[var(--primary)] pl-2 border-l-4 border-[var(--primary)]">
+                {semesterGroup.semesterName}
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {semesterGroup.courses.map(course => (
+                  <div key={course.id} className="bg-[var(--card-bg)] p-4 rounded-2xl border border-[var(--border-color)] flex justify-between items-center group">
+                    <div>
+                      <h4 className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>{translate(course, 'title')}</h4>
+                      <p className="text-[10px] uppercase font-black mt-1" style={{ color: 'var(--text-secondary)' }}>
+                        {course.code} • {translate(course, 'doctor')}
+                      </p>
+                    </div>
+                    <span className="px-3 py-1 bg-border dark:bg-black/20 rounded-lg text-[10px] font-black text-text-secondary">
+                      {storage.getLanguage() === 'AR' ? 'مكتمل' : 'COMPLETED'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 };
-
+ 
 export default MyCourses;
