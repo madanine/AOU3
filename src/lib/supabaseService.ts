@@ -486,7 +486,7 @@ export const supabaseService = {
         // clearTimeout في finally يمنع ظهور خطأ في console بعد نجاح التسليم
         let timeoutId: ReturnType<typeof setTimeout>;
         const timeoutPromise = new Promise<never>((_, reject) => {
-            timeoutId = setTimeout(() => reject(new Error('db_timeout')), 15_000);
+            timeoutId = setTimeout(() => reject(new Error('db_timeout')), 20_000);
         });
 
         try {
