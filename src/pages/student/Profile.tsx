@@ -1,4 +1,4 @@
-﻿
+
 import React, { useRef, useState, useEffect } from 'react';
 import { useApp } from '@/App';
 import { storage } from '@/lib/storage';
@@ -107,7 +107,9 @@ const Profile: React.FC = () => {
   };
 
   // ── Save profile ──────────────────────────────────────────────────────────
-  const handleSaveProfile = (e: React.FormEvent) => {
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubAdmin) return;
 
@@ -120,15 +122,20 @@ const Profile: React.FC = () => {
       return;
     }
 
-    const updatedUsers = users.map(u => (u.id === user?.id ? { ...u, ...formData } : u));
-    storage.setUsers(updatedUsers);
+    setIsSaving(true);
+    try {
+      const updatedUser = { ...user!, ...formData };
+      await storage.saveUser(updatedUser);
+      setUser(updatedUser);
+      storage.setAuthUser(updatedUser);
 
-    const updatedUser = { ...user!, ...formData };
-    setUser(updatedUser);
-    storage.setAuthUser(updatedUser);
-
-    setMessage({ text: t.changesApplied, type: 'success' });
-    setTimeout(() => setMessage(null), 3000);
+      setMessage({ text: t.changesApplied, type: 'success' });
+      setTimeout(() => setMessage(null), 3000);
+    } catch (err) {
+      setMessage({ text: lang === 'AR' ? 'فشل الحفظ' : 'Save failed', type: 'error' });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // ── Change password ───────────────────────────────────────────────────────
@@ -450,10 +457,11 @@ const Profile: React.FC = () => {
                 <div className="pt-4">
                   <button
                     type="submit"
-                    className="w-full py-4 bg-gold-gradient text-white font-black rounded-xl shadow-premium hover:shadow-premium-hover hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center justify-center gap-3 uppercase text-xs tracking-widest"
+                    disabled={isSaving}
+                    className="w-full py-4 bg-gold-gradient text-white font-black rounded-xl shadow-premium hover:shadow-premium-hover hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center justify-center gap-3 uppercase text-xs tracking-widest disabled:opacity-50"
                   >
                     <Save size={18} />
-                    {t.save}
+                    {isSaving ? (lang === 'AR' ? 'جاري الحفظ...' : 'Saving...') : t.save}
                   </button>
                 </div>
               </form>
