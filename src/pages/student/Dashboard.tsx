@@ -1,4 +1,4 @@
-﻿import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useApp } from '@/App';
 import { storage } from '@/lib/storage';
 import { Link } from 'react-router-dom';
@@ -35,8 +35,21 @@ const StudentDashboard: React.FC = () => {
             attendances: storage.getAttendance(),
             submissions: storage.getSubmissions().filter(s => s.studentId === user?.id),
         });
-        window.addEventListener('storage-update', refresh);
-        return () => window.removeEventListener('storage-update', refresh);
+
+        // 1. مزامنة البيانات مباشرة فور الدخول
+        if (user?.id) {
+            Promise.all([
+                supabaseService.getAssignments(),
+                supabaseService.getSubmissions(user.id, undefined, true)
+            ]).then(([assignments, submissions]) => {
+                if (assignments) localStorage.setItem('aou_assignments', JSON.stringify(assignments));
+                if (submissions) localStorage.setItem('aou_submissions', JSON.stringify(submissions));
+                refresh();
+            }).catch(e => console.error(e));
+        }
+
+        // 2. تفعيل الاستماع بالطريقة الصحيحة لتحديث الشاشة فور التعديل
+        return storage.subscribe(refresh);
     }, [user?.id]);
 
     const currentEnrollments = data.enrollments.filter(
