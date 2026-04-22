@@ -1,0 +1,556 @@
+﻿import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useApp } from '@/App';
+import { supabaseService } from '@/lib/supabaseService';
+import { User, Major, Language } from '@/types';
+import { User as UserIcon, Mail, Phone, ArrowRight, ShieldCheck, Loader2, Eye, EyeOff, Sun, Moon, Globe, Calendar } from 'lucide-react';
+import { COUNTRIES, getCountryName } from '@/lib/countries';
+
+const SignupPage: React.FC = () => {
+  const { setUser, t, lang, settings, setLang, isDarkMode, toggleDarkMode } = useApp();
+  const navigate = useNavigate();
+
+  const [formData, setFormData] = useState({
+    fullName: '',
+    universityId: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    phone: '',
+    major: '' as Major | '',
+    nationality: '',
+    passportNumber: '',
+    gender: '' as 'male' | 'female' | '',
+  });
+
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [nationalitySearch, setNationalitySearch] = useState('');
+  const [showNationalityDropdown, setShowNationalityDropdown] = useState(false);
+
+  // DOB Wheel Picker State
+  const [dobDay, setDobDay] = useState('');
+  const [dobMonth, setDobMonth] = useState('');
+  const [dobYear, setDobYear] = useState('');
+
+  // Calculate age from DOB
+  const calculateAge = (dob: string): number => {
+    const today = new Date();
+    const birthDate = new Date(dob);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
+  };
+
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError('');
+
+    // Clean data (Trim all whitespace from start and end)
+    const cleanData = {
+      fullName: formData.fullName.trim(),
+      universityId: formData.universityId.trim(),
+      email: formData.email.trim(),
+      password: formData.password, // Don't trim password
+      phone: formData.phone.trim(),
+      major: formData.major,
+      nationality: formData.nationality,
+      passportNumber: formData.passportNumber.trim(),
+      gender: formData.gender,
+    };
+
+    // Password validation (min 6 characters)
+    if (formData.password.length < 6) {
+      setError(lang === 'AR' ? 'يجب أن تكون كلمة المرور 6 أحرف على الأقل' : 'Password must be at least 6 characters');
+      setIsLoading(false);
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      setError(lang === 'AR' ? 'كلمات المرور غير متطابقة' : 'Passwords do not match');
+      setIsLoading(false);
+      return;
+    }
+
+    // Validate nationality
+    if (!formData.nationality) {
+      setError(lang === 'AR' ? 'يرجى اختيار الجنسية' : 'Please select nationality');
+      setIsLoading(false);
+      return;
+    }
+
+    // Validate Passport Number
+    if (!formData.passportNumber) {
+      setError(lang === 'AR' ? 'رقم جواز السفر مطلوب' : 'Passport number is required');
+      setIsLoading(false);
+      return;
+    }
+
+    // Validate Gender
+    if (!formData.gender) {
+      setError(lang === 'AR' ? 'يرجى اختيار الجنس' : 'Please select gender');
+      setIsLoading(false);
+      return;
+    }
+
+    // Validate DOB
+    if (!dobDay || !dobMonth || !dobYear) {
+      setError(lang === 'AR' ? 'يرجى إدخال تاريخ الميلاد' : 'Please enter date of birth');
+      setIsLoading(false);
+      return;
+    }
+
+    // Construct DOB string (YYYY-MM-DD)
+    const dobString = `${dobYear}-${dobMonth.padStart(2, '0')}-${dobDay.padStart(2, '0')}`;
+
+    // Validate age (18+)
+    const age = calculateAge(dobString);
+    if (age < 18) {
+      setError(t.ageError);
+      setIsLoading(false);
+      return;
+    }
+
+    // Validate future date
+    const dobDate = new Date(dobString);
+    if (dobDate > new Date()) {
+      setError(lang === 'AR' ? 'تاريخ الميلاد لا يمكن أن يكون في المستقبل' : 'Date of birth cannot be in the future');
+      setIsLoading(false);
+      return;
+    }
+
+    // ============================================
+    // VALIDATE UNIVERSITY ID (Registry Check)
+    // ============================================
+    const idCheck = await supabaseService.checkUniversityId(cleanData.universityId);
+
+    if (!idCheck || !idCheck.exists) {
+      // University ID not found in registry
+      setError(t.idNotRegistered);
+      setIsLoading(false);
+      return;
+    }
+
+    if (idCheck.isUsed) {
+      // University ID already used
+      setError(t.idAlreadyUsed);
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      // Sign up via Supabase Auth with all fields including passport
+      const authUser = await supabaseService.signUp(cleanData.email, cleanData.password, {
+        full_name: cleanData.fullName,
+        university_id: cleanData.universityId,
+        role: 'student',
+        phone: cleanData.phone,
+        major: cleanData.major,
+        nationality: cleanData.nationality,
+        passport_number: cleanData.passportNumber || null,
+        date_of_birth: dobString,
+        gender: cleanData.gender || null,
+      });
+
+      if (authUser) {
+        // Mark university ID as used
+        try {
+          await supabaseService.markUniversityIdAsUsed(cleanData.universityId, authUser.id);
+        } catch (markError) {
+          console.error('Failed to mark ID as used:', markError);
+          // Continue anyway - user is created
+        }
+
+        setTimeout(async () => {
+          try {
+            const profile = await supabaseService.getProfile(authUser.id);
+            setUser(profile);
+            navigate('/student/registration');
+          } catch (e) {
+            console.error('Wait for profile failed', e);
+            navigate('/auth/login');
+          }
+        }, 1500);
+      }
+    } catch (err: any) {
+      console.error('Signup error:', err);
+      let errorMsg = err.message;
+      if (lang === 'AR') {
+        if (errorMsg.includes('rate limit')) errorMsg = 'تم تجاوز حد المحاولات المسموح به. يرجى المحاولة لاحقاً.';
+        else if (errorMsg.includes('already registered')) errorMsg = 'هذا البريد الإلكتروني مسجل بالفعل.';
+        else errorMsg = 'فشل إنشاء الحساب. تأكد من البيانات وحاول مجدداً.';
+      }
+      setError(errorMsg);
+      setIsLoading(false);
+    }
+  };
+
+  const forceWesternNumerals = (val: string) => {
+    return val.replace(/[٠-٩]/g, (d) => (d.charCodeAt(0) - 1632).toString());
+  };
+
+  const inputClasses = "w-full pl-10 pr-4 py-3 bg-transparent border border-border rounded-xl focus:ring-2 focus:ring-primary focus:bg-surface outline-none transition-all text-sm font-bold text-text-primary placeholder:opacity-50";
+
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4 relative overflow-hidden">
+      {/* Background Depth Effect */}
+      <div className="absolute inset-0 bg-premium-radial opacity-60 pointer-events-none"></div>
+
+      <div className="w-full max-w-2xl z-10 my-auto">
+        <div className="bg-card rounded-[2.5rem] shadow-premium overflow-hidden border border-border">
+          <div className="p-10 pb-0 flex flex-col items-center text-center">
+            {(settings.branding.logo || settings.branding.logoBase64) ? (
+              <img src={settings.branding.logo || settings.branding.logoBase64} alt="Logo" className="h-20 w-auto object-contain mb-4" />
+            ) : (
+              <div className="w-16 h-16 bg-gold-gradient rounded-2xl flex items-center justify-center text-white font-bold text-2xl shadow-lg mb-4">A</div>
+            )}
+            <div className="space-y-1 mb-4">
+              <h1 className="text-title">
+                {lang === 'AR' ? settings.branding.siteNameAr : settings.branding.siteNameEn}
+              </h1>
+              <p className="text-sm font-bold opacity-80 text-text-primary">
+                {t.regionalCenter}
+              </p>
+            </div>
+            <h2 className="text-xl font-black uppercase tracking-tight text-text-primary">{t.signup}</h2>
+          </div>
+
+          <form onSubmit={handleSignup} className="p-10 space-y-6 relative">
+            {error && (
+              <div className="p-4 bg-red-50 text-red-600 text-xs font-black rounded-xl border border-red-100 text-center uppercase flex items-center justify-center gap-2 dark:bg-red-500/10 dark:border-red-500/20">
+                <ShieldCheck size={16} />
+                {error}
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="space-y-1">
+                <label className="text-[10px] font-black uppercase ml-1 block text-text-secondary">{t.fullName}</label>
+                <div className="relative group">
+                  <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary opacity-50 group-focus-within:opacity-100 group-focus-within:text-primary transition-colors" size={16} />
+                  <input
+                    required
+                    value={formData.fullName}
+                    onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                    className={inputClasses}
+                    placeholder={t.fullName}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-black uppercase ml-1 block text-text-secondary">{t.universityId}</label>
+                <div className="relative group">
+                  <ShieldCheck className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary opacity-50 group-focus-within:opacity-100 group-focus-within:text-primary transition-colors" size={16} />
+                  <input
+                    required
+                    value={formData.universityId}
+                    onChange={(e) => setFormData({ ...formData, universityId: forceWesternNumerals(e.target.value) })}
+                    className={inputClasses}
+                    placeholder="1234567"
+                    dir="ltr"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-black uppercase ml-1 block text-text-secondary">{t.email}</label>
+                <div className="relative group">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary opacity-50 group-focus-within:opacity-100 group-focus-within:text-primary transition-colors" size={16} />
+                  <input
+                    type="email"
+                    required
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    className={inputClasses}
+                    placeholder="email@university.edu"
+                    dir="ltr"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-black uppercase ml-1 block text-text-secondary">{t.phone}</label>
+                <div className="relative group">
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary opacity-50 group-focus-within:opacity-100 group-focus-within:text-primary transition-colors" size={16} />
+                  <input
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: forceWesternNumerals(e.target.value) })}
+                    className={inputClasses}
+                    placeholder="+966 50 123 4567"
+                    dir="ltr"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-black uppercase tracking-widest ml-1 block text-text-secondary">{t.password}</label>
+                <div className="relative group">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    required
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    className={inputClasses}
+                    dir="ltr"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className={`absolute top-1/2 -translate-y-1/2 text-text-secondary opacity-50 hover:opacity-100 transition-colors outline-none ${lang === 'AR' ? 'left-3' : 'right-3'}`}
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-black uppercase tracking-widest ml-1 block text-text-secondary">
+                  {lang === 'AR' ? 'تأكيد كلمة المرور' : 'Confirm Password'}
+                </label>
+                <div className="relative group">
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    required
+                    value={formData.confirmPassword}
+                    onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                    className={inputClasses}
+                    dir="ltr"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className={`absolute top-1/2 -translate-y-1/2 text-text-secondary opacity-50 hover:opacity-100 transition-colors outline-none ${lang === 'AR' ? 'left-3' : 'right-3'}`}
+                  >
+                    {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="md:col-span-2 space-y-1">
+                <label className="text-[10px] font-black uppercase tracking-widest ml-1 block text-text-secondary">{t.major}</label>
+                <div className="relative group">
+                  <select
+                    required
+                    value={formData.major}
+                    onChange={(e) => setFormData({ ...formData, major: e.target.value as Major })}
+                    className={`w-full py-3 bg-transparent border border-border rounded-xl focus:ring-2 focus:ring-primary focus:bg-surface outline-none transition-all text-sm font-bold text-text-primary appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23a0aec0%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C/polyline%3E%3C/svg%3E')] bg-[length:20px] bg-no-repeat ${lang === 'AR' ? 'bg-[left_1rem_center] pl-10 pr-4' : 'bg-[right_1rem_center] pr-10 pl-4'
+                      }`}
+                  >
+                    <option value="" className="bg-card text-text-primary">{t.selectMajor}</option>
+                    {Object.entries(t.majorList).map(([key, value]) => (
+                      <option key={key} value={key} className="bg-card text-text-primary">{value as string}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Nationality Dropdown (Searchable) */}
+              <div className="md:col-span-2 space-y-1">
+                <label className="text-[10px] font-black uppercase tracking-widest ml-1 block text-text-secondary">{t.nationality}</label>
+                <div className="relative">
+                  <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary opacity-50 z-10" size={16} />
+                  <input
+                    type="text"
+                    required
+                    value={nationalitySearch}
+                    onChange={(e) => {
+                      const searchValue = e.target.value;
+                      setNationalitySearch(searchValue);
+                      setShowNationalityDropdown(true);
+
+                      if (formData.nationality && searchValue !== getCountryName(formData.nationality, lang)) {
+                        setFormData({ ...formData, nationality: '' });
+                      }
+                    }}
+                    onFocus={() => setShowNationalityDropdown(true)}
+                    className={inputClasses}
+                    placeholder={t.selectNationality}
+                    autoComplete="off"
+                  />
+                  {showNationalityDropdown && (
+                    <>
+                      <div className="fixed inset-0 z-20" onClick={() => setShowNationalityDropdown(false)} />
+                      <div className="absolute z-30 w-full mt-2 max-h-60 overflow-y-auto bg-card border border-border rounded-xl shadow-premium">
+                        {COUNTRIES.filter(country => {
+                          const displayName = lang === 'AR' ? country.name_ar : country.name_en;
+                          return displayName.toLowerCase().includes(nationalitySearch.toLowerCase());
+                        }).map((country) => {
+                          const displayName = lang === 'AR' ? country.name_ar : country.name_en;
+                          return (
+                            <button
+                              key={country.code}
+                              type="button"
+                              onClick={() => {
+                                setFormData({ ...formData, nationality: country.code });
+                                setNationalitySearch(displayName);
+                                setShowNationalityDropdown(false);
+                              }}
+                              className="w-full text-left px-4 py-3 hover:bg-surface text-sm font-bold text-text-primary transition-colors border-b border-border last:border-0"
+                            >
+                              {displayName}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Gender */}
+              <div className="md:col-span-2 space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest ml-1 block text-text-secondary">{(t as any).gender}</label>
+                <div className="grid grid-cols-2 gap-3">
+                  {(['male', 'female'] as const).map(g => (
+                    <button
+                      key={g}
+                      type="button"
+                      onClick={() => setFormData({ ...formData, gender: g })}
+                      className={`py-3 px-4 rounded-xl border-2 font-black text-sm transition-all ${formData.gender === g
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-border text-text-secondary hover:border-primary/50'
+                        }`}
+                    >
+                      {g === 'male' ? (lang === 'AR' ? '♂ ذكر' : '♂ Male') : (lang === 'AR' ? '♀ أنثى' : '♀ Female')}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="md:col-span-2 space-y-1">
+                <label className="text-[10px] font-black uppercase tracking-widest ml-1 block text-text-secondary">{t.dateOfBirth}</label>
+                <div className="grid grid-cols-3 gap-3">
+                  {/* Day */}
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary opacity-50 z-10" size={16} />
+                    <select
+                      required
+                      value={dobDay}
+                      onChange={(e) => setDobDay(e.target.value)}
+                      className={`w-full pl-10 pr-4 py-3 bg-transparent border border-border rounded-xl focus:ring-2 focus:ring-primary focus:bg-surface outline-none transition-all text-sm font-bold text-text-primary appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23a0aec0%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C/polyline%3E%3C/svg%3E')] bg-[length:16px] bg-no-repeat ${lang === 'AR' ? 'bg-[left_0.5rem_center]' : 'bg-[right_0.5rem_center]'}`}
+                    >
+                      <option value="" className="bg-card text-text-primary">{t.dobDay}</option>
+                      {Array.from({ length: 31 }, (_, i) => i + 1).map(d => (
+                        <option key={d} value={d} className="bg-card text-text-primary">{d}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Month */}
+                  <div>
+                    <select
+                      required
+                      value={dobMonth}
+                      onChange={(e) => setDobMonth(e.target.value)}
+                      className={`w-full py-3 px-4 bg-transparent border border-border rounded-xl focus:ring-2 focus:ring-primary focus:bg-surface outline-none transition-all text-sm font-bold text-text-primary appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23a0aec0%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C/polyline%3E%3C/svg%3E')] bg-[length:16px] bg-no-repeat ${lang === 'AR' ? 'bg-[left_0.5rem_center]' : 'bg-[right_0.5rem_center]'}`}
+                    >
+                      <option value="" className="bg-card text-text-primary">{t.dobMonth}</option>
+                      {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
+                        <option key={m} value={m} className="bg-card text-text-primary">{m}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Year */}
+                  <div>
+                    <select
+                      required
+                      value={dobYear}
+                      onChange={(e) => setDobYear(e.target.value)}
+                      className={`w-full py-3 px-4 bg-transparent border border-border rounded-xl focus:ring-2 focus:ring-primary focus:bg-surface outline-none transition-all text-sm font-bold text-text-primary appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23a0aec0%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C/polyline%3E%3C/svg%3E')] bg-[length:16px] bg-no-repeat ${lang === 'AR' ? 'bg-[left_0.5rem_center]' : 'bg-[right_0.5rem_center]'}`}
+                    >
+                      <option value="" className="bg-card text-text-primary">{t.dobYear}</option>
+                      {Array.from({ length: new Date().getFullYear() - 1950 + 1 }, (_, i) => new Date().getFullYear() - i).map(y => (
+                        <option key={y} value={y} className="bg-card text-text-primary">{y}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Passport Number (Optional) */}
+              <div className="md:col-span-2 space-y-1">
+                <label className="text-[10px] font-black uppercase tracking-widest ml-1 block text-text-secondary">{t.passportNumber}</label>
+                <div className="relative group">
+                  <ShieldCheck className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary opacity-50 group-focus-within:opacity-100 group-focus-within:text-primary transition-colors" size={16} />
+                  <input
+                    type="text"
+                    required
+                    value={formData.passportNumber}
+                    onChange={(e) => setFormData({ ...formData, passportNumber: e.target.value })}
+                    className={inputClasses}
+                    placeholder={lang === 'AR' ? 'A12345678' : 'A12345678'}
+                    dir="ltr"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full py-4 mt-4 text-white font-black uppercase tracking-widest rounded-[1.5rem] shadow-premium hover:shadow-premium-hover bg-gold-gradient active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+            >
+              {isLoading ? (
+                <>
+                  {lang === 'AR' ? 'جاري إنشاء الحساب...' : 'Creating Account...'}
+                  <Loader2 className="animate-spin" size={20} />
+                </>
+              ) : (
+                <>
+                  {t.signup}
+                  <ArrowRight size={20} className={lang === 'AR' ? 'rotate-180' : ''} />
+                </>
+              )}
+            </button>
+
+            <div className="text-center pt-2">
+              <Link to="/auth/login" className="text-sm font-black transition-colors uppercase text-text-primary hover:text-primary">
+                {t.login}
+              </Link>
+            </div>
+          </form>
+
+          <div className="p-6 flex justify-center items-center gap-6 border-t border-border bg-surface/50">
+            <button
+              onClick={toggleDarkMode}
+              className="p-2 rounded-lg transition-colors hover:bg-black/5 dark:hover:bg-white/5 text-text-secondary"
+              title="Toggle Dark Mode"
+            >
+              {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
+
+            <div className="w-px h-6 bg-border"></div>
+
+            {(['EN', 'AR'] as Language[]).map(l => (
+              <button
+                key={l}
+                onClick={() => setLang(l)}
+                className={`text-[10px] font-black tracking-widest transition-all px-2 py-1 rounded-md hover:bg-black/5 dark:hover:bg-white/5 ${lang === l ? 'text-text-primary' : 'text-text-secondary'}`}
+              >
+                {l}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <footer className="mt-auto py-8 text-center space-y-1 z-10 text-text-secondary">
+        <p className="text-[10px] font-black uppercase tracking-widest">
+          {settings.branding.footerText}
+        </p>
+        <p className="text-[10px] font-black uppercase tracking-widest opacity-60">
+          BY ABDULLAH
+        </p>
+      </footer>
+    </div>
+  );
+};
+
+export default SignupPage;

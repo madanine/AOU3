@@ -43,6 +43,7 @@ export default defineConfig(({ mode }) => {
     build: {
       // Increase warning threshold to avoid false alarms from large-but-expected pages
       chunkSizeWarningLimit: 1000,
+      sourcemap: false,
       cssMinify: true,
       rollupOptions: {
         output: {
@@ -77,7 +78,7 @@ export default defineConfig(({ mode }) => {
     },
     resolve: {
       alias: {
-        '@': path.resolve(__dirname, '.'),
+        '@': path.resolve(__dirname, './src'),
       }
     }
   };
