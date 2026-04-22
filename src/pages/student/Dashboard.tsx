@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useApp } from '@/App';
 import { storage } from '@/lib/storage';
+import { supabaseService } from '@/lib/supabaseService';
 import { Link } from 'react-router-dom';
 import {
     BookOpen, GraduationCap, ClipboardList, Calendar,
