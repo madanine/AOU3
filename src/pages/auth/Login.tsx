@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useApp } from '@/App';
 import { storage } from '@/lib/storage';
@@ -94,6 +94,10 @@ const LoginPage: React.FC = () => {
               fullName: remoteUser.full_name,
               universityId: remoteUser.university_id,
               password: remoteUser.password,
+              nationality: remoteUser.nationality,
+              dateOfBirth: remoteUser.date_of_birth,
+              passportNumber: remoteUser.passport_number,
+              gender: remoteUser.gender || undefined,
               assignedCourses: remoteUser.assigned_courses,
               supervisorPermissions: remoteUser.supervisor_permissions,
               permissions: remoteUser.admin_permissions,
