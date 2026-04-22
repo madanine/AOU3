@@ -122,15 +122,30 @@ export const supabaseService = {
 
     // Assignment Storage (Private Bucket)
     async uploadAssignmentFile(studentId: string, file: File): Promise<string> {
-        // Path should match Claude's policy: studentId/fileName
-        // We append a timestamp to ensure uniqueness
-        const ext = file.name.split('.').pop() || '';
-        const cleanName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '').slice(0, 50);
-        const path = `${studentId}/${Date.now()}_${cleanName}`;
+        // ١. استخرج الامتداد بأمان
+        const ext = (file.name.split('.').pop() || 'bin').toLowerCase();
+
+        // ٢. نظّف اسم الملف — يدعم الأسماء العربية والمسافات وكل أحرف Unicode
+        const baseName = file.name
+            .replace(/\.[^/.]+$/, '')           // أزل الامتداد
+            .replace(/[^a-zA-Z0-9\-_]/g, '_')   // استبدل كل شيء غير مدعوم بـ _
+            .replace(/_+/g, '_')                 // لا تكرر _
+            .slice(0, 40)                        // حدّ الطول
+            || 'file';                           // fallback لو الاسم كله عربي
+
+        const path = `${studentId}/${Date.now()}_${baseName}.${ext}`;
+
+        // ٣. تحديد contentType بشكل صحيح — يحل مشكلة Android الذي يرسل type فارغاً
+        const mimeMap: Record<string, string> = {
+            pdf:  'application/pdf',
+            docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            zip:  'application/zip',
+        };
+        const contentType = file.type || mimeMap[ext] || 'application/octet-stream';
 
         const { error: uploadError } = await supabase.storage
             .from('assignments')
-            .upload(path, file, { contentType: file.type || 'application/octet-stream' });
+            .upload(path, file, { contentType });
 
         if (uploadError) throw uploadError;
 
@@ -467,8 +482,23 @@ export const supabaseService = {
             grade: submission.grade
         };
 
-        const { error } = await supabase.from('submissions').upsert(payload);
-        if (error) throw error;
+        // Timeout آمن 15 ثانية — البيانات نص فقط، أبطأ اتصال موبايل لا يحتاج أكثر
+        // clearTimeout في finally يمنع ظهور خطأ في console بعد نجاح التسليم
+        let timeoutId: ReturnType<typeof setTimeout>;
+        const timeoutPromise = new Promise<never>((_, reject) => {
+            timeoutId = setTimeout(() => reject(new Error('db_timeout')), 15_000);
+        });
+
+        try {
+            const upsertPromise = supabase
+                .from('submissions')
+                .upsert(payload)
+                .then(({ error }) => { if (error) throw error; });
+
+            await Promise.race([upsertPromise, timeoutPromise]);
+        } finally {
+            clearTimeout(timeoutId!);
+        }
     },
 
     async bulkUpsertSubmissions(submissions: Submission[]) {

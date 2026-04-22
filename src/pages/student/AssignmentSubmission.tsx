@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useApp } from '@/App';
 import { supabaseService } from '@/lib/supabaseService';
@@ -208,7 +208,11 @@ const StudentAssignmentSubmission: React.FC = () => {
       setIsSubmitting(false);
       const msg = error?.message || '';
       let userMsg: string;
-      if (msg.includes('network') || msg.includes('fetch') || msg.includes('Failed to fetch')) {
+      if (msg === 'db_timeout') {
+        userMsg = lang === 'AR'
+          ? 'انتهت مهلة الاتصال. تحقق من الإنترنت وأعد المحاولة.'
+          : 'Connection timed out. Please check your internet and try again.';
+      } else if (msg.includes('network') || msg.includes('fetch') || msg.includes('Failed to fetch')) {
         userMsg = lang === 'AR' ? 'فشل الاتصال بالخادم' : 'Server connection failed';
       } else if (msg.includes('storage') || msg.includes('upload') || msg.includes('413')) {
         userMsg = lang === 'AR' ? 'حجم الملف يتجاوز الحد المسموح (10 ميغابايت).' : 'File size exceeds the maximum allowed limit (10MB).';
