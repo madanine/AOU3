@@ -96,6 +96,22 @@ const App: React.FC = () => {
   const t = TRANSLATIONS[lang];
 
   useEffect(() => {
+    // ✅ Frontend cache versioning — يحل مشكلة cache القديم على Android/Samsung
+    // غيّر APP_VERSION مع كل تحديث مهم لإجبار المستخدمين على تحميل النسخة الجديدة
+    const APP_VERSION = "1.0.7";
+    const storedVersion = localStorage.getItem("app_version");
+
+    if (!storedVersion) {
+      // أول دخول — خزّن الـ version بدون reload
+      localStorage.setItem("app_version", APP_VERSION);
+    } else if (storedVersion !== APP_VERSION) {
+      // نسخة قديمة — امسح الـ cache وأعد التحميل مرة واحدة
+      localStorage.removeItem("last_sync_time");
+      localStorage.setItem("app_version", APP_VERSION);
+      window.location.reload();
+      return;
+    }
+
     const init = async () => {
       // 1. Always sync settings from Supabase (Publicly accessible branding)
       try {
