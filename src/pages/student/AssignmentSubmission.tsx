@@ -146,82 +146,113 @@ const StudentAssignmentSubmission: React.FC = () => {
     e.preventDefault();
     if (!selectedAssignment || !user) return;
 
-    // Validate if any file question exists, the file should be attached (only if required by logic normally, but we ensure one file covers all file questions)
     const needsFile = selectedAssignment.type === 'file' || selectedAssignment.questions?.some(q => q.type === 'file');
     if (needsFile && !file) {
         setUploadError(lang === 'AR' ? 'يرجى إرفاق الملف المطلوب قبل التسليم' : 'Please attach the required file before submitting');
         return;
     }
 
+    // ✅ التحقق من إجابات MCQ و True/False — يمنع الإرسال بسؤال غير مُجاب
+    const unansweredIdx = selectedAssignment.questions?.findIndex((q, idx) => {
+        const qType = q.type || selectedAssignment.type;
+        if (qType === 'mcq' || qType === 'true_false') {
+            return !answers[idx];
+        }
+        return false;
+    });
+
+    if (unansweredIdx !== undefined && unansweredIdx !== -1) {
+        setUploadError(
+            lang === 'AR'
+                ? `يرجى الإجابة على السؤال رقم ${unansweredIdx + 1}`
+                : `Please answer question ${unansweredIdx + 1}`
+        );
+        return;
+    }
+
     setIsSubmitting(true);
+    setUploadError(null);
 
     try {
-      const calculatedGrade = calculateAutoGrade(selectedAssignment, answers);
-
-      let storageUrl = undefined;
-      let base64Fallback = undefined;
-
-      // Upload file to bucket if it exists
-      if (file && file.data instanceof File) {
-        try {
-            storageUrl = await supabaseService.uploadAssignmentFile(user.id, file.data);
-        } catch (uploadErr: any) {
-            console.error('Upload Error:', uploadErr);
-            setUploadError(lang === 'AR' ? 'فشل رفع الملف إلى المستودع السحابي' : 'Failed to upload file to storage');
+        // ✅ فحص الجلسة قبل أي شيء — getSession ترجع session مباشرة
+        const session = await supabaseService.getSession();
+        if (!session) {
+            setUploadError(lang === 'AR' ? 'انتهت جلستك، يرجى تسجيل الدخول مرة أخرى' : 'Session expired, please log in again');
             setIsSubmitting(false);
             return;
         }
-      } else if (file && typeof file.data === 'string') {
-        base64Fallback = file.data;
-      }
 
-      const submission: Submission = {
-        id: crypto.randomUUID(),
-        assignmentId: selectedAssignment.id,
-        studentId: user.id,
-        courseId: courseId!,
-        submittedAt: new Date().toISOString(),
-        answers: answers,
-        fileUrl: storageUrl,
-        fileBase64: base64Fallback,
-        fileName: file?.name,
-        grade: calculatedGrade
-      };
+        const calculatedGrade = calculateAutoGrade(selectedAssignment, answers);
+        let storageUrl = undefined;
+        let base64Fallback = undefined;
 
-      await supabaseService.upsertSubmission(submission);
-      await loadData();
-      
-      setIsSubmitting(false);
-      setSuccess(true);
-      setTimeout(() => {
-        setSuccess(false);
-        // Fallback to overview UNLESS it was pure auto-grade and we want to show results instantly
-        if (calculatedGrade && selectedAssignment.showResults) {
-            // Stay to see results
-        } else {
-            setSelectedAssignment(null);
+        if (file && file.data instanceof File) {
+            try {
+                storageUrl = await supabaseService.uploadAssignmentFile(user.id, file.data);
+            } catch (uploadErr: any) {
+                console.error('Upload Error:', uploadErr);
+                setUploadError(lang === 'AR' ? 'فشل رفع الملف، حاول مرة أخرى' : 'File upload failed, please try again');
+                setIsSubmitting(false);
+                return;
+            }
+        } else if (file && typeof file.data === 'string') {
+            base64Fallback = file.data;
         }
-      }, 2000);
-      
+
+        const submission: Submission = {
+            id: crypto.randomUUID(),
+            assignmentId: selectedAssignment.id,
+            studentId: user.id,
+            courseId: courseId!,
+            submittedAt: new Date().toISOString(),
+            answers: answers,
+            fileUrl: storageUrl,
+            fileBase64: base64Fallback,
+            fileName: file?.name,
+            grade: calculatedGrade
+        };
+
+        await supabaseService.upsertSubmission(submission);
+
+        // ✅ أظهر النجاح فوراً بدون انتظار loadData
+        setIsSubmitting(false);
+        setSuccess(true);
+
+        // ✅ loadData في الخلفية — لا تأثير على الطالب لو فشلت
+        loadData().catch(err => console.warn('Background refresh failed:', err));
+
+        setTimeout(() => {
+            setSuccess(false);
+            if (calculatedGrade && selectedAssignment.showResults) {
+                // ابق لعرض النتائج
+            } else {
+                setSelectedAssignment(null);
+            }
+        }, 2000);
+
     } catch (error: any) {
-      console.error('Failed to submit assignment:', error);
-      setIsSubmitting(false);
-      const msg = error?.message || '';
-      let userMsg: string;
-      if (msg === 'db_timeout') {
-        userMsg = lang === 'AR'
-          ? 'انتهت مهلة الاتصال. تحقق من الإنترنت وأعد المحاولة.'
-          : 'Connection timed out. Please check your internet and try again.';
-      } else if (msg.includes('network') || msg.includes('fetch') || msg.includes('Failed to fetch')) {
-        userMsg = lang === 'AR' ? 'فشل الاتصال بالخادم' : 'Server connection failed';
-      } else if (msg.includes('storage') || msg.includes('upload') || msg.includes('413')) {
-        userMsg = lang === 'AR' ? 'حجم الملف يتجاوز الحد المسموح (10 ميغابايت).' : 'File size exceeds the maximum allowed limit (10MB).';
-      } else if (msg) {
-        userMsg = msg;
-      } else {
-        userMsg = lang === 'AR' ? 'حدث خطأ غير متوقع' : 'Unexpected error occurred';
-      }
-      setUploadError(userMsg);
+        console.error('Submission failed:', error);
+        setIsSubmitting(false);
+
+        const msg = error?.message || '';
+        const code = error?.code || '';
+        let userMsg: string;
+
+        if (msg === 'db_timeout') {
+            userMsg = lang === 'AR' ? 'انتهت مهلة الاتصال، أعد المحاولة' : 'Connection timed out, please try again';
+        } else if (code === 'PGRST301' || msg.includes('JWT') || msg.includes('token')) {
+            userMsg = lang === 'AR' ? 'انتهت جلستك، يرجى تسجيل الدخول مرة أخرى' : 'Session expired, please log in again';
+        } else if (msg.includes('Failed to fetch') || msg.includes('network') || msg.includes('fetch')) {
+            userMsg = lang === 'AR' ? 'تعذّر الوصول للخادم، تحقق من الاتصال وأعد المحاولة' : 'Could not reach server, check your connection and try again';
+        } else if (msg.includes('413') || msg.includes('storage') || msg.includes('upload')) {
+            userMsg = lang === 'AR' ? 'حجم الملف يتجاوز الحد المسموح (10 ميغابايت)' : 'File size exceeds the limit (10MB)';
+        } else if (msg) {
+            userMsg = msg;
+        } else {
+            userMsg = lang === 'AR' ? 'حدث خطأ غير متوقع، أعد المحاولة' : 'Unexpected error, please try again';
+        }
+
+        setUploadError(userMsg);
     }
   };
 
