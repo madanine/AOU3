@@ -174,14 +174,6 @@ const StudentAssignmentSubmission: React.FC = () => {
     setUploadError(null);
 
     try {
-        // ✅ فحص الجلسة قبل أي شيء — getSession ترجع session مباشرة
-        const session = await supabaseService.getSession();
-        if (!session) {
-            setUploadError(lang === 'AR' ? 'انتهت جلستك، يرجى تسجيل الدخول مرة أخرى' : 'Session expired, please log in again');
-            setIsSubmitting(false);
-            return;
-        }
-
         const calculatedGrade = calculateAutoGrade(selectedAssignment, answers);
         let storageUrl = undefined;
         let base64Fallback = undefined;
