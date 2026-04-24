@@ -482,23 +482,43 @@ export const supabaseService = {
             grade: submission.grade
         };
 
-        // Timeout آمن 15 ثانية — البيانات نص فقط، أبطأ اتصال موبايل لا يحتاج أكثر
-        // clearTimeout في finally يمنع ظهور خطأ في console بعد نجاح التسليم
-        let timeoutId: ReturnType<typeof setTimeout>;
-        const timeoutPromise = new Promise<never>((_, reject) => {
-            timeoutId = setTimeout(() => reject(new Error('db_timeout')), 20_000);
-        });
+        // ✅ 3 محاولات تلقائية — يحل مشكلة انقطاع الشبكة بعد خمول طويل (مثل الإجابة على 100 سؤال)
+        // آمن للتكرار لأن payload.id ثابت → upsert لن ينشئ سجلاً مكرراً
+        const MAX_ATTEMPTS = 3;
+        const ATTEMPT_TIMEOUT = 15_000; // 15 ثانية لكل محاولة
+        let lastError: any;
 
-        try {
-            const upsertPromise = supabase
-                .from('submissions')
-                .upsert(payload)
-                .then(({ error }) => { if (error) throw error; });
+        for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+            let timeoutId: ReturnType<typeof setTimeout>;
 
-            await Promise.race([upsertPromise, timeoutPromise]);
-        } finally {
-            clearTimeout(timeoutId!);
+            try {
+                const timeoutPromise = new Promise<never>((_, reject) => {
+                    timeoutId = setTimeout(
+                        () => reject(new Error('db_timeout')),
+                        ATTEMPT_TIMEOUT
+                    );
+                });
+
+                const upsertPromise = supabase
+                    .from('submissions')
+                    .upsert(payload)
+                    .then(({ error }) => { if (error) throw error; });
+
+                await Promise.race([upsertPromise, timeoutPromise]);
+                clearTimeout(timeoutId!);
+                return; // ✅ نجح — خرج من الـ loop
+            } catch (e: any) {
+                clearTimeout(timeoutId!);
+                lastError = e;
+
+                if (attempt < MAX_ATTEMPTS) {
+                    // انتظر قبل إعادة المحاولة (backoff: 1.5s ثم 3s)
+                    await new Promise(r => setTimeout(r, 1500 * attempt));
+                }
+            }
         }
+
+        throw lastError; // كل المحاولات فشلت → أرسل الخطأ للـ UI
     },
 
     async bulkUpsertSubmissions(submissions: Submission[]) {

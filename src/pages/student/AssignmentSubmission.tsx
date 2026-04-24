@@ -36,6 +36,7 @@ const StudentAssignmentSubmission: React.FC = () => {
   // Form States
   const [file, setFile] = useState<{ name: string, data: File | string } | null>(null);
   const [answers, setAnswers] = useState<string[]>([]);
+  const [submissionId, setSubmissionId] = useState(() => crypto.randomUUID()); // ✅ ID ثابت لكل تكليف
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -77,6 +78,7 @@ const StudentAssignmentSubmission: React.FC = () => {
 
   useEffect(() => {
     if (selectedAssignment) {
+        setSubmissionId(crypto.randomUUID()); // ✅ ID جديد لكل تكليف — آمن للإعادة المحاولة
         setAnswers(new Array(selectedAssignment.questions?.length || 0).fill(''));
         setFile(null);
         setUploadError(null);
@@ -192,7 +194,7 @@ const StudentAssignmentSubmission: React.FC = () => {
         }
 
         const submission: Submission = {
-            id: crypto.randomUUID(),
+            id: submissionId, // ✅ ID ثابت — إعادة المحاولة آمنة ولن تُنشئ سجلات مكررة
             assignmentId: selectedAssignment.id,
             studentId: user.id,
             courseId: courseId!,
