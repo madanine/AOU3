@@ -112,49 +112,75 @@ const App: React.FC = () => {
       return;
     }
 
+    // ✅ Stuck state detection — لو الـ app علق في تحميل سابق، امسح آخر sync time لإجبار sync جديد نظيف
+    const stuck = localStorage.getItem('app_stuck');
+    if (stuck === 'true') {
+      console.warn('Detected stuck state — clearing sync cache');
+      localStorage.removeItem('last_sync_time');
+    }
+    localStorage.setItem('app_stuck', 'true');
+
     const init = async () => {
-      // 1. Always sync settings from Supabase (Publicly accessible branding)
-      try {
-        const syncedSettings = await storage.syncFromSupabase();
-        if (syncedSettings) setSettings(syncedSettings);
-      } catch (e) {
-        console.error('Sync failed:', e);
-      }
+      let didFinish = false;
 
-      // 2. Check current session for user profile
-      // ✅ try-catch ضروري — لو getSession() فشلت بدونه، setIsLoading(false) لن يُنفذ أبداً
-      try {
-        const session = await supabaseService.getSession();
-        if (session) {
-          try {
-            const profile = await supabaseService.getProfile(session.user.id);
-            setUserState(profile);
-            storage.setAuthUser(profile);
-            // On mobile, localStorage may be wiped so _syncSecondaryData ran with
-            // currentUser=null and skipped enrollments. Re-run it now that we know
-            // the user identity. Bypasses the cache intentionally (secondary data only).
-            const isAdmin = profile.role === 'admin' || profile.role === 'supervisor';
-            storage._syncSecondaryData(profile, isAdmin).catch(e => console.error('Re-sync secondary data failed:', e));
-          } catch (e) {
-            console.error('Failed to fetch profile on init', e);
-          }
+      // ✅ Fail-safe timeout — لو أي await علق، نفتح الـ UI بعد 6 ثواني بدون انتظار
+      const timeout = setTimeout(() => {
+        if (!didFinish) {
+          console.warn('Init timeout — forcing UI render');
+          setIsLoading(false);
         }
-      } catch (e) {
-        console.error('getSession failed:', e);
-      }
+      }, 6000);
 
-      // Seed defaults if needed (uses already-synced data from above)
-      storage.seed();
-
-      // Update local state with latest settings (already synced above)
-      setDataReady(storage.isInitialized);
-      setIsLoading(false);
-
-      // ✅ initRealtime داخل init() بعد معرفة هوية المستخدم — يمنع Realtime للطلاب بالغلط
       try {
-        storage.initRealtime();
-      } catch (e) {
-        console.error('Realtime init failed', e);
+        // 1. Always sync settings from Supabase (Publicly accessible branding)
+        try {
+          const syncedSettings = await storage.syncFromSupabase();
+          if (syncedSettings) setSettings(syncedSettings);
+        } catch (e) {
+          console.error('Sync failed:', e);
+        }
+
+        // 2. Check current session for user profile
+        // ✅ try-catch ضروري — لو getSession() فشلت بدونه، setIsLoading(false) لن يُنفذ أبداً
+        try {
+          const session = await supabaseService.getSession();
+          if (session) {
+            try {
+              const profile = await supabaseService.getProfile(session.user.id);
+              setUserState(profile);
+              storage.setAuthUser(profile);
+              // On mobile, localStorage may be wiped so _syncSecondaryData ran with
+              // currentUser=null and skipped enrollments. Re-run it now that we know
+              // the user identity. Bypasses the cache intentionally (secondary data only).
+              const isAdmin = profile.role === 'admin' || profile.role === 'supervisor';
+              storage._syncSecondaryData(profile, isAdmin).catch(e => console.error('Re-sync secondary data failed:', e));
+            } catch (e) {
+              console.error('Failed to fetch profile on init', e);
+            }
+          }
+        } catch (e) {
+          console.error('getSession failed:', e);
+        }
+
+        // Seed defaults if needed (uses already-synced data from above)
+        storage.seed();
+
+        // Update local state with latest settings (already synced above)
+        setDataReady(storage.isInitialized);
+
+        // ✅ initRealtime داخل init() بعد معرفة هوية المستخدم — يمنع Realtime للطلاب بالغلط
+        try {
+          storage.initRealtime();
+        } catch (e) {
+          console.error('Realtime init failed', e);
+        }
+
+      } finally {
+        // ✅ هذا أهم شيء — ينفذ دائماً حتى لو فيه error أو timeout
+        didFinish = true;
+        clearTimeout(timeout);
+        setIsLoading(false);
+        localStorage.removeItem('app_stuck'); // ✅ الـ init نجح — امسح علامة الـ stuck
       }
     };
     init();
