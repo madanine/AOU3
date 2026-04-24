@@ -205,22 +205,8 @@ const StudentAssignmentSubmission: React.FC = () => {
     setIsSubmitting(true);
     setUploadError(null);
 
-    // ✅ طبقة 3: تجديد الجلسة قبل الإرسال مباشرة
-    try {
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        if (sessionError || !session) {
-            setUploadError(lang === 'AR'
-                ? 'انتهت جلستك — إجاباتك محفوظة محلياً، سجّل الدخول وأعد فتح التكليف'
-                : 'Session expired — your answers are saved locally, log in and reopen the assignment'
-            );
-            setIsSubmitting(false);
-            return;
-        }
-        const expiresAt = session.expires_at ?? 0;
-        if (expiresAt - Math.floor(Date.now() / 1000) < 5 * 60) {
-            await supabase.auth.refreshSession();
-        }
-    } catch { /* تابع — الـ retry سيتعامل مع الخطأ */ }
+    // الجلسة تُدار بواسطة Supabase autoRefreshToken — لا حاجة للتحقق اليدوي هنا.
+    // أي خطأ JWT حقيقي سيظهر من upsertSubmission ويُعالَج في catch أدناه.
 
     try {
         const calculatedGrade = calculateAutoGrade(selectedAssignment, answers);
