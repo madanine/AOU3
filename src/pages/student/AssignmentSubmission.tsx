@@ -1,26 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useApp } from '@/App';
+import { supabase } from '@/lib/supabase';
 import { supabaseService } from '@/lib/supabaseService';
-import { Assignment, Submission, Course, AssignmentQuestionType } from '@/types';
+import { Assignment, Submission, Course } from '@/types';
 import {
-  ArrowLeft,
-  Upload,
-  CheckCircle2,
-  AlertCircle,
-  Clock,
-  FileText,
-  CheckSquare,
-  Send,
-  X,
-  ClipboardList,
-  ChevronRight,
-  Trophy,
-  XCircle,
-  Loader2,
-  ToggleLeft,
-  ExternalLink
+  ArrowLeft, Upload, CheckCircle2, AlertCircle, Clock, FileText,
+  CheckSquare, Send, X, ClipboardList, ChevronRight, Trophy,
+  XCircle, Loader2, ExternalLink, Save
 } from 'lucide-react';
+
+// مفتاح حفظ مسودة الإجابات في localStorage
+const getDraftKey = (userId: string, assignmentId: string) =>
+    `sub_draft_${userId}_${assignmentId}`;
 
 const StudentAssignmentSubmission: React.FC = () => {
   const { courseId } = useParams<{ courseId: string }>();
@@ -36,10 +28,11 @@ const StudentAssignmentSubmission: React.FC = () => {
   // Form States
   const [file, setFile] = useState<{ name: string, data: File | string } | null>(null);
   const [answers, setAnswers] = useState<string[]>([]);
-  const [submissionId, setSubmissionId] = useState(() => crypto.randomUUID()); // ✅ ID ثابت لكل تكليف
+  const [submissionId, setSubmissionId] = useState(() => crypto.randomUUID());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [draftSaved, setDraftSaved] = useState(false);
 
   // File validation constants
   const MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MB
@@ -77,13 +70,46 @@ const StudentAssignmentSubmission: React.FC = () => {
   }, [courseId, activeSemId, user?.id]);
 
   useEffect(() => {
-    if (selectedAssignment) {
-        setSubmissionId(crypto.randomUUID()); // ✅ ID جديد لكل تكليف — آمن للإعادة المحاولة
-        setAnswers(new Array(selectedAssignment.questions?.length || 0).fill(''));
-        setFile(null);
-        setUploadError(null);
-    }
+    if (!selectedAssignment || !user?.id) return;
+    setSubmissionId(crypto.randomUUID());
+    setFile(null);
+    setUploadError(null);
+    setDraftSaved(false);
+    // حاول استعادة مسودة محفوظة
+    try {
+      const saved = localStorage.getItem(getDraftKey(user.id, selectedAssignment.id));
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length === (selectedAssignment.questions?.length || 0)) {
+          setAnswers(parsed);
+          setDraftSaved(true);
+          return;
+        }
+      }
+    } catch { /* تجاهل */ }
+    setAnswers(new Array(selectedAssignment.questions?.length || 0).fill(''));
+  }, [selectedAssignment, user?.id]);
+
+  // ✅ طبقة 2: حفظ الإجابات محلياً عند كل تغيير
+  useEffect(() => {
+    if (!selectedAssignment || !user?.id || answers.every(a => !a)) return;
+    try {
+      localStorage.setItem(getDraftKey(user.id, selectedAssignment.id), JSON.stringify(answers));
+    } catch { /* تجاهل */ }
+  }, [answers, selectedAssignment, user?.id]);
+
+  // ✅ طبقة 1: Keepalive — يمنع نوم اتصال الجوال أثناء الإجابة على 100 سؤال
+  useEffect(() => {
+    if (!selectedAssignment) return;
+    const interval = setInterval(async () => {
+      try { await supabase.auth.getSession(); } catch { /* تجاهل */ }
+    }, 4 * 60 * 1000);
+    return () => clearInterval(interval);
   }, [selectedAssignment]);
+
+  const clearDraft = useCallback((userId: string, assignmentId: string) => {
+    try { localStorage.removeItem(getDraftKey(userId, assignmentId)); } catch { /* تجاهل */ }
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
@@ -175,77 +201,119 @@ const StudentAssignmentSubmission: React.FC = () => {
     setIsSubmitting(true);
     setUploadError(null);
 
+    // ✅ طبقة 3: تجديد الجلسة قبل الإرسال مباشرة
+    try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError || !session) {
+            setUploadError(lang === 'AR'
+                ? 'انتهت جلستك — إجاباتك محفوظة محلياً، سجّل الدخول وأعد فتح التكليف'
+                : 'Session expired — your answers are saved locally, log in and reopen the assignment'
+            );
+            setIsSubmitting(false);
+            return;
+        }
+        const expiresAt = session.expires_at ?? 0;
+        if (expiresAt - Math.floor(Date.now() / 1000) < 5 * 60) {
+            await supabase.auth.refreshSession();
+        }
+    } catch { /* تابع — الـ retry سيتعامل مع الخطأ */ }
+
     try {
         const calculatedGrade = calculateAutoGrade(selectedAssignment, answers);
-        let storageUrl = undefined;
-        let base64Fallback = undefined;
+        let storageUrl: string | undefined = undefined;
 
+        // ✅ رفع الملف مع timeout مستقل 60 ثانية
         if (file && file.data instanceof File) {
+            const uploadWithTimeout = new Promise<string>((resolve, reject) => {
+                const timer = setTimeout(() => reject(new Error('upload_timeout')), 60_000);
+                supabaseService.uploadAssignmentFile(user.id, file.data as File)
+                    .then(url => { clearTimeout(timer); resolve(url); })
+                    .catch(err => { clearTimeout(timer); reject(err); });
+            });
             try {
-                storageUrl = await supabaseService.uploadAssignmentFile(user.id, file.data);
+                storageUrl = await uploadWithTimeout;
             } catch (uploadErr: any) {
-                console.error('Upload Error:', uploadErr);
-                setUploadError(lang === 'AR' ? 'فشل رفع الملف، حاول مرة أخرى' : 'File upload failed, please try again');
+                const isTimeout = uploadErr?.message === 'upload_timeout';
+                setUploadError(lang === 'AR'
+                    ? isTimeout ? 'استغرق رفع الملف وقتاً طويلاً، تحقق من اتصالك وأعد المحاولة' : 'فشل رفع الملف، حاول مرة أخرى'
+                    : isTimeout ? 'File upload timed out, check your connection and try again' : 'File upload failed, please try again'
+                );
                 setIsSubmitting(false);
                 return;
             }
-        } else if (file && typeof file.data === 'string') {
-            base64Fallback = file.data;
         }
 
         const submission: Submission = {
-            id: submissionId, // ✅ ID ثابت — إعادة المحاولة آمنة ولن تُنشئ سجلات مكررة
+            id: submissionId,
             assignmentId: selectedAssignment.id,
             studentId: user.id,
             courseId: courseId!,
             submittedAt: new Date().toISOString(),
-            answers: answers,
+            answers,
             fileUrl: storageUrl,
-            fileBase64: base64Fallback,
+            fileBase64: undefined,
             fileName: file?.name,
             grade: calculatedGrade
         };
 
-        await supabaseService.upsertSubmission(submission);
+        // ✅ طبقة 4: تحقق من DB بعد db_timeout — قد يكون التسليم نجح فعلاً
+        try {
+            await supabaseService.upsertSubmission(submission);
+        } catch (dbErr: any) {
+            if (dbErr?.message === 'db_timeout') {
+                try {
+                    const { data: existing } = await supabase
+                        .from('submissions').select('id').eq('id', submissionId).maybeSingle();
+                    if (existing?.id) {
+                        clearDraft(user.id, selectedAssignment.id);
+                        setIsSubmitting(false);
+                        setSuccess(true);
+                        loadData().catch(() => {});
+                        setTimeout(() => { setSuccess(false); setSelectedAssignment(null); }, 2000);
+                        return;
+                    }
+                } catch { /* تجاهل — أظهر الخطأ الأصلي */ }
+            }
+            throw dbErr;
+        }
 
-        // ✅ أظهر النجاح فوراً بدون انتظار loadData
+        clearDraft(user.id, selectedAssignment.id);
         setIsSubmitting(false);
         setSuccess(true);
-
-        // ✅ loadData في الخلفية — لا تأثير على الطالب لو فشلت
-        loadData().catch(err => console.warn('Background refresh failed:', err));
-
+        loadData().catch(() => {});
         setTimeout(() => {
             setSuccess(false);
-            if (calculatedGrade && selectedAssignment.showResults) {
-                // ابق لعرض النتائج
-            } else {
-                setSelectedAssignment(null);
-            }
+            if (calculatedGrade && selectedAssignment.showResults) { /* ابق لعرض النتائج */ }
+            else { setSelectedAssignment(null); }
         }, 2000);
 
     } catch (error: any) {
         console.error('Submission failed:', error);
         setIsSubmitting(false);
-
         const msg = error?.message || '';
         const code = error?.code || '';
         let userMsg: string;
-
         if (msg === 'db_timeout') {
-            userMsg = lang === 'AR' ? 'انتهت مهلة الاتصال، أعد المحاولة' : 'Connection timed out, please try again';
-        } else if (code === 'PGRST301' || msg.includes('JWT') || msg.includes('token')) {
-            userMsg = lang === 'AR' ? 'انتهت جلستك، يرجى تسجيل الدخول مرة أخرى' : 'Session expired, please log in again';
+            userMsg = lang === 'AR'
+                ? 'استغرق الحفظ وقتاً طويلاً — إجاباتك محفوظة، اضغط إرسال مرة أخرى'
+                : 'Save took too long — your answers are saved, press Send again';
+        } else if (code === 'PGRST301' || msg.includes('JWT') || msg.includes('token') || msg.includes('unauthorized')) {
+            userMsg = lang === 'AR'
+                ? 'انتهت جلستك — إجاباتك محفوظة محلياً، سجّل الدخول وأعد فتح التكليف'
+                : 'Session expired — your answers are saved locally, log in and reopen the assignment';
         } else if (msg.includes('Failed to fetch') || msg.includes('network') || msg.includes('fetch')) {
-            userMsg = lang === 'AR' ? 'تعذّر الوصول للخادم، تحقق من الاتصال وأعد المحاولة' : 'Could not reach server, check your connection and try again';
-        } else if (msg.includes('413') || msg.includes('storage') || msg.includes('upload')) {
+            userMsg = lang === 'AR'
+                ? 'تعذّر الوصول للخادم — إجاباتك محفوظة، تحقق من الاتصال وأعد المحاولة'
+                : 'Could not reach server — your answers are saved, check connection and retry';
+        } else if (msg.includes('upload_timeout') || msg.includes('413') || msg.includes('storage')) {
             userMsg = lang === 'AR' ? 'حجم الملف يتجاوز الحد المسموح (10 ميغابايت)' : 'File size exceeds the limit (10MB)';
         } else if (msg) {
             userMsg = msg;
         } else {
-            userMsg = lang === 'AR' ? 'حدث خطأ غير متوقع، أعد المحاولة' : 'Unexpected error, please try again';
+            userMsg = lang === 'AR'
+                ? 'حدث خطأ غير متوقع — إجاباتك محفوظة، أعد المحاولة'
+                : 'Unexpected error — your answers are saved, please retry';
         }
-
         setUploadError(userMsg);
     }
   };
@@ -501,6 +569,15 @@ const StudentAssignmentSubmission: React.FC = () => {
           {!getSubmissionForAssignment(selectedAssignment.id) && new Date() <= new Date(selectedAssignment.deadline) && (
               <form onSubmit={handleSubmit} className="flex flex-col">
                 <div className="p-8 space-y-8 bg-gray-50/50 flex-1">
+                    {draftSaved && (
+                        <div className="flex items-center gap-3 px-5 py-3 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-600 text-sm font-bold">
+                            <Save size={16} className="shrink-0" />
+                            {lang === 'AR'
+                                ? 'تم استعادة إجاباتك المحفوظة — يمكنك الاستمرار من حيث توقفت'
+                                : 'Your saved answers were restored — continue from where you left off'
+                            }
+                        </div>
+                    )}
                     <div className="mb-4 bg-primary/5 border border-primary/20 p-4 rounded-xl flex items-center gap-2 text-primary">
                         <Trophy size={20} />
                         <span className="font-bold text-sm">

@@ -482,10 +482,19 @@ export const supabaseService = {
             grade: submission.grade
         };
 
+        // ✅ أخطاء لن تُحل بإعادة المحاولة — ارمها فوراً بدون انتظار
+        const isNonRetriable = (e: any): boolean => {
+            const msg = (e?.message || '').toLowerCase();
+            const code = String(e?.code || '');
+            if (msg.includes('jwt') || msg.includes('token') || msg.includes('unauthorized')) return true;
+            if (['23505', '23503', '42501', '42503', 'pgrst301'].includes(code.toLowerCase())) return true;
+            return false;
+        };
+
         // ✅ 3 محاولات تلقائية — يحل مشكلة انقطاع الشبكة بعد خمول طويل (مثل الإجابة على 100 سؤال)
         // آمن للتكرار لأن payload.id ثابت → upsert لن ينشئ سجلاً مكرراً
         const MAX_ATTEMPTS = 3;
-        const ATTEMPT_TIMEOUT = 15_000; // 15 ثانية لكل محاولة
+        const ATTEMPT_TIMEOUT = 30_000; // 30 ثانية — يتحمل إعادة تشغيل راديو الجوال
         let lastError: any;
 
         for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
@@ -511,8 +520,11 @@ export const supabaseService = {
                 clearTimeout(timeoutId!);
                 lastError = e;
 
+                // ✅ لا تعيد المحاولة على أخطاء لن تتحسن (JWT، RLS، foreign key)
+                if (isNonRetriable(e)) throw e;
+
                 if (attempt < MAX_ATTEMPTS) {
-                    // انتظر قبل إعادة المحاولة (backoff: 1.5s ثم 3s)
+                    // backoff: 1.5s ثم 3s
                     await new Promise(r => setTimeout(r, 1500 * attempt));
                 }
             }
