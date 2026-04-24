@@ -498,7 +498,7 @@ export const supabaseService = {
         let lastError: any;
 
         for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-            let timeoutId: ReturnType<typeof setTimeout>;
+            let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
             try {
                 const timeoutPromise = new Promise<never>((_, reject) => {
@@ -514,10 +514,8 @@ export const supabaseService = {
                     .then(({ error }) => { if (error) throw error; });
 
                 await Promise.race([upsertPromise, timeoutPromise]);
-                clearTimeout(timeoutId!);
                 return; // ✅ نجح — خرج من الـ loop
             } catch (e: any) {
-                clearTimeout(timeoutId!);
                 lastError = e;
 
                 // ✅ لا تعيد المحاولة على أخطاء لن تتحسن (JWT، RLS، foreign key)
@@ -527,6 +525,8 @@ export const supabaseService = {
                     // backoff: 1.5s ثم 3s
                     await new Promise(r => setTimeout(r, 1500 * attempt));
                 }
+            } finally {
+                if (timeoutId) clearTimeout(timeoutId); // ✅ تنظيف حتى لو صار خطأ غير متوقع
             }
         }
 

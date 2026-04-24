@@ -80,8 +80,12 @@ const StudentAssignmentSubmission: React.FC = () => {
       const saved = localStorage.getItem(getDraftKey(user.id, selectedAssignment.id));
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length === (selectedAssignment.questions?.length || 0)) {
-          setAnswers(parsed);
+        if (Array.isArray(parsed)) {
+          // ✅ يدعم إضافة أسئلة جديدة من قبل المدرس بعد حفظ المسودة
+          const questionCount = selectedAssignment.questions?.length || 0;
+          const newAnswers = new Array(questionCount).fill('');
+          parsed.forEach((ans, i) => { if (i < questionCount) newAnswers[i] = ans; });
+          setAnswers(newAnswers);
           setDraftSaved(true);
           return;
         }
@@ -383,7 +387,13 @@ const StudentAssignmentSubmission: React.FC = () => {
                             <>
                                 <div className="flex flex-col items-end">
                                     <span className="text-[8px] font-black uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>{t.grade}</span>
-                                    <span className="text-sm font-black text-success">{sub.grade}</span>
+                                    <span className={`text-sm font-black ${
+                                        (() => {
+                                            const match = sub.grade?.match(/^(\d+(?:\.\d+)?)/);
+                                            const score = match ? parseFloat(match[1]) : 0;
+                                            return score >= (a.totalMarks || 20) * 0.5 ? 'text-success' : 'text-amber-600';
+                                        })()
+                                    }`}>{sub.grade}</span>
                                 </div>
                                 <span className="text-[10px] font-black uppercase text-success bg-success/10 px-3 py-1 rounded-lg">
                                     {t.submitted}
