@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { useApp } from '@/App';
 import { storage } from '@/lib/storage';
 import { User, Major } from '@/types';
@@ -48,15 +48,19 @@ const AdminStudents: React.FC = () => {
   const totalPages = Math.ceil(filteredStudents.length / itemsPerPage);
   const paginatedStudents = filteredStudents.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  const handleToggleStatus = (id: string) => {
-    const updated = users.map(u => {
-      if (u.id === id) {
-        return { ...u, isDisabled: !u.isDisabled };
-      }
-      return u;
-    });
-    setUsers(updated);
-    storage.setUsers(updated);
+  const handleToggleStatus = async (id: string) => {
+    const targetUser = users.find(u => u.id === id);
+    if (!targetUser) return;
+    
+    const updatedUser = { ...targetUser, isDisabled: !targetUser.isDisabled };
+    
+    try {
+      await storage.saveUser(updatedUser);
+      setUsers(prev => prev.map(u => u.id === id ? updatedUser : u));
+    } catch (err: any) {
+      console.error('Toggle status failed:', err);
+      alert(lang === 'AR' ? 'فشل تغيير حالة الطالب. يرجى المحاولة مرة أخرى.' : 'Failed to toggle status. Please try again.');
+    }
   };
 
   const handleOpenAdd = () => {
@@ -101,9 +105,20 @@ const AdminStudents: React.FC = () => {
         userToSave.email = `${userToSave.universityId}@aou.edu`;
       }
 
-      const updatedList = await storage.saveUser(userToSave);
+      // إذا كان تعديلاً وكُتبت كلمة مرور جديدة، احفظها
+      // إذا تُركت فارغة عند التعديل، احتفظ بالقديمة
+      if (editingUser && !formData.password) {
+        userToSave.password = editingUser.password;
+      }
 
-      setUsers(updatedList);
+      await storage.saveUser(userToSave);
+
+      // تحديث الـ state محلياً مباشرة بدون إعادة جلب من السحابة لضمان التحديث الفوري
+      setUsers(prev => prev.map(u => u.id === userToSave.id ? userToSave : u));
+      // إذا كان مستخدم جديد، لن يتم إيجاده في map أعلاه، لذلك نضيفه:
+      if (!editingUser) {
+          setUsers(prev => [...prev, userToSave]);
+      }
       setIsModalOpen(false);
     } catch (err: any) {
       console.error('Save failed:', err);
