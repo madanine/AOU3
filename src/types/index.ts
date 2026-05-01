@@ -164,6 +164,7 @@ export interface Submission {
   fileUrl?: string;
   fileName?: string;
   grade?: string;
+  manualEntry?: boolean;
 }
 
 // Normalized Attendance Row (DB Compatible)

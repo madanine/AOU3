@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '@/App';
 import { supabaseService } from '@/lib/supabaseService';
 import { Course, Assignment, Submission, User } from '@/types';
@@ -30,6 +30,12 @@ const AdminGrading: React.FC = () => {
   // Bulk grading states
   const [selectedSubmissions, setSelectedSubmissions] = useState<Set<string>>(new Set());
   const [bulkGrade, setBulkGrade] = useState('');
+
+  // Manual grading states
+  const [manualGradeModal, setManualGradeModal] = useState(false);
+  const [selectedManualStudents, setSelectedManualStudents] = useState<Set<string>>(new Set());
+  const [manualGradeValue, setManualGradeValue] = useState('');
+  const [manualSaving, setManualSaving] = useState(false);
 
   const activeSemId = settings.activeSemesterId || 'sem-default';
 
@@ -98,6 +104,19 @@ const AdminGrading: React.FC = () => {
     if (!student) return false;
     return student.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       student.universityId.toLowerCase().includes(searchTerm.toLowerCase());
+  });
+
+  // Students in selected course who haven't submitted yet
+  const submittedStudentIds = new Set(assignmentSubmissions.map(s => s.studentId));
+  const unsubmittedStudents = students.filter(stu => {
+    const course = courses.find(c => c.id === selectedCourseId);
+    if (!course) return false;
+    
+    // We assume all displayed students are eligible for this course 
+    // since enrolledStudents is not locally available without further fetching
+    const isEnrolled = true;
+    
+    return isEnrolled && !submittedStudentIds.has(stu.id);
   });
 
   const handleOpenGrading = (sub: Submission) => {
@@ -339,6 +358,38 @@ const AdminGrading: React.FC = () => {
     }
   };
 
+  const handleManualGrade = async () => {
+    if (!manualGradeValue || selectedManualStudents.size === 0 || !selectedAssignmentId) return;
+
+    try {
+      setManualSaving(true);
+      const now = new Date().toISOString();
+      const newSubmissions: Submission[] = Array.from(selectedManualStudents).map((studentId: string) => ({
+        id: crypto.randomUUID(), // Provide a valid UUID
+        studentId,
+        assignmentId: selectedAssignmentId,
+        courseId: selectedCourseId, // Using courseId instead of semesterId
+        grade: manualGradeValue,
+        submittedAt: now,
+        manualEntry: true,
+        fileName: 'Manual Entry',
+        answers: [],
+      }));
+
+      await supabaseService.bulkUpsertSubmissions(newSubmissions);
+
+      setSubmissions(prev => [...prev, ...newSubmissions]);
+      setManualGradeModal(false);
+      setSelectedManualStudents(new Set());
+      setManualGradeValue('');
+      setShowToast(true);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setManualSaving(false);
+    }
+  };
+
   // Safe file handling
   const handleViewFile = async (fileData?: string) => {
     if (!fileData) return;
@@ -501,6 +552,18 @@ const AdminGrading: React.FC = () => {
                   {lang === 'AR' ? 'تصحيح تلقائي' : 'Auto Grade'}
                 </button>
               )}
+              <button
+                disabled={saving || !selectedAssignmentId}
+                onClick={() => {
+                  setSelectedManualStudents(new Set());
+                  setManualGradeValue('');
+                  setManualGradeModal(true);
+                }}
+                className="flex items-center justify-center gap-2 bg-teal-50 text-teal-600 px-6 py-3 rounded-2xl font-black text-[10px] sm:text-xs uppercase tracking-widest hover:bg-teal-600 hover:text-white transition-all shadow-sm"
+              >
+                <UserIcon size={16} />
+                {lang === 'AR' ? 'رصد يدوي' : 'Manual Grade'}
+              </button>
             </div>
           </div>
 
@@ -752,6 +815,145 @@ const AdminGrading: React.FC = () => {
                 >
                   {saving ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} />} {lang === 'AR' ? 'رصد وحفظ' : 'Submit Grade'}
                 </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Manual Grade Modal */}
+      {manualGradeModal && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl flex flex-col max-h-[85vh] overflow-hidden animate-in zoom-in-95">
+            
+            {/* Header */}
+            <div className="p-8 border-b flex justify-between items-center shrink-0">
+              <div>
+                <h2 className="text-xl font-black" style={{ color: 'var(--text-primary)' }}>
+                  {lang === 'AR' ? 'رصد درجة يدوي' : 'Manual Grade Entry'}
+                </h2>
+                <p className="text-xs font-bold text-gray-400 mt-1">
+                  {lang === 'AR' ? 'للطلاب الذين لم يرفعوا داخل الموقع' : 'For students who submitted outside the system'}
+                </p>
+              </div>
+              <button
+                onClick={() => setManualGradeModal(false)}
+                className="w-10 h-10 bg-gray-50 border border-gray-100 rounded-xl flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 hover:border-red-200 transition-all"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Grade Input */}
+            <div className="px-8 pt-6 pb-4 shrink-0 border-b border-gray-100 bg-gray-50/50">
+              <div className="flex items-center gap-4">
+                <div className="flex-1">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2 block">
+                    {lang === 'AR' ? `الدرجة (من ${selectedAssignment?.totalMarks || 20})` : `Grade (out of ${selectedAssignment?.totalMarks || 20})`}
+                  </label>
+                  <input
+                    type="text"
+                    placeholder={lang === 'AR' ? `مثال: ${selectedAssignment?.totalMarks || 20}/${selectedAssignment?.totalMarks || 20}` : `e.g. ${selectedAssignment?.totalMarks || 20}/${selectedAssignment?.totalMarks || 20}`}
+                    value={manualGradeValue}
+                    onChange={e => setManualGradeValue(e.target.value)}
+                    className="w-full px-5 py-3 bg-white border border-gray-200 rounded-2xl outline-none font-black text-lg focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                  />
+                </div>
+                <button
+                  onClick={() => setManualGradeValue(`${selectedAssignment?.totalMarks || 20}/${selectedAssignment?.totalMarks || 20}`)}
+                  className="mt-5 px-5 py-3 bg-amber-50 text-amber-700 font-black rounded-2xl text-xs uppercase tracking-widest hover:bg-amber-400 hover:text-white transition-all flex items-center gap-2 whitespace-nowrap"
+                >
+                  <Trophy size={14} />
+                  {lang === 'AR' ? 'درجة كاملة' : 'Full Marks'}
+                </button>
+              </div>
+
+              {/* Select All */}
+              {unsubmittedStudents.length > 0 && (
+                <div className="flex items-center justify-between mt-4">
+                  <span className="text-xs font-black text-gray-400 uppercase tracking-widest">
+                    {lang === 'AR'
+                      ? `${unsubmittedStudents.length} طالب لم يسلم بعد`
+                      : `${unsubmittedStudents.length} student(s) without submission`}
+                  </span>
+                  <button
+                    onClick={() => {
+                      if (selectedManualStudents.size === unsubmittedStudents.length) {
+                        setSelectedManualStudents(new Set());
+                      } else {
+                        setSelectedManualStudents(new Set(unsubmittedStudents.map(s => s.id)));
+                      }
+                    }}
+                    className="text-xs font-black text-primary hover:underline"
+                  >
+                    {selectedManualStudents.size === unsubmittedStudents.length
+                      ? (lang === 'AR' ? 'إلغاء الكل' : 'Deselect All')
+                      : (lang === 'AR' ? 'تحديد الكل' : 'Select All')}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Students List */}
+            <div className="flex-1 overflow-y-auto px-8 py-4 space-y-2">
+              {unsubmittedStudents.length === 0 ? (
+                <div className="text-center py-16 text-gray-300 font-black uppercase text-[10px] tracking-widest">
+                  {lang === 'AR' ? 'جميع الطلاب سلّموا داخل الموقع' : 'All students have submitted online'}
+                </div>
+              ) : (
+                unsubmittedStudents.map(stu => (
+                  <label
+                    key={stu.id}
+                    className={`flex items-center gap-4 p-4 rounded-2xl border cursor-pointer transition-all ${
+                      selectedManualStudents.has(stu.id)
+                        ? 'bg-teal-50 border-teal-200'
+                        : 'bg-white border-gray-100 hover:border-gray-200'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedManualStudents.has(stu.id)}
+                      onChange={() => {
+                        const newSet = new Set(selectedManualStudents);
+                        if (newSet.has(stu.id)) {
+                          newSet.delete(stu.id);
+                        } else {
+                          newSet.add(stu.id);
+                        }
+                        setSelectedManualStudents(newSet);
+                      }}
+                      className="w-4 h-4 rounded border-gray-300 cursor-pointer accent-teal-600"
+                    />
+                    <div className="w-10 h-10 rounded-xl bg-gray-100 text-gray-400 flex items-center justify-center shrink-0">
+                      <UserIcon size={18} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-sm truncate" style={{ color: 'var(--text-primary)' }}>{stu.fullName}</p>
+                      <p className="text-[10px] font-mono" style={{ color: 'var(--text-secondary)' }}>{stu.universityId}</p>
+                    </div>
+                    {selectedManualStudents.has(stu.id) && (
+                      <CheckCircle size={18} className="text-teal-600 shrink-0" />
+                    )}
+                  </label>
+                ))
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-8 border-t border-gray-100 shrink-0">
+              <button
+                disabled={manualSaving || selectedManualStudents.size === 0 || !manualGradeValue}
+                onClick={handleManualGrade}
+                className="w-full py-5 bg-teal-600 text-white font-black rounded-2xl flex items-center justify-center gap-2 uppercase text-xs tracking-widest hover:bg-teal-700 active:scale-[0.98] transition-all disabled:opacity-50 disabled:grayscale"
+              >
+                {manualSaving ? (
+                  <Loader2 size={20} className="animate-spin" />
+                ) : (
+                  <Save size={20} />
+                )}
+                {lang === 'AR'
+                  ? `رصد درجة لـ ${selectedManualStudents.size} طالب`
+                  : `Save Grade for ${selectedManualStudents.size} Student(s)`}
+              </button>
             </div>
           </div>
         </div>
