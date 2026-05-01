@@ -177,6 +177,7 @@ const AdminGrading: React.FC = () => {
 
     try {
       setSaving(true);
+      const updates: { id: string, grade: string }[] = [];
       const updated = submissions.map(s => {
         if (s.assignmentId === selectedAssignment.id) {
           let score = 0;
@@ -196,13 +197,16 @@ const AdminGrading: React.FC = () => {
 
           const maxMarks = selectedAssignment.totalMarks || 20;
           const finalScore = (score / autoGradableCount) * maxMarks;
-          return { ...s, grade: `${finalScore.toFixed(1).replace(/\.0$/, '')}/${maxMarks}` };
+          const newGradeStr = `${finalScore.toFixed(1).replace(/\.0$/, '')}/${maxMarks}`;
+          updates.push({ id: s.id, grade: newGradeStr });
+          return { ...s, grade: newGradeStr };
         }
         return s;
       });
 
-      const toUpsert = updated.filter(s => s.assignmentId === selectedAssignment.id);
-      await supabaseService.bulkUpsertSubmissions(toUpsert);
+      if (updates.length > 0) {
+        await supabaseService.bulkUpdateGrades(updates);
+      }
 
       setSubmissions(updated);
       setShowToast(true);
@@ -322,17 +326,19 @@ const AdminGrading: React.FC = () => {
 
     try {
       setSaving(true);
-      const toUpsert: Submission[] = [];
+      const updates: { id: string, grade: string }[] = [];
       const updated = submissions.map(s => {
         if (selectedSubmissions.has(s.id)) {
           const up = { ...s, grade: bulkGrade };
-          toUpsert.push(up);
+          if (s.id) updates.push({ id: s.id, grade: bulkGrade });
           return up;
         }
         return s;
       });
 
-      await supabaseService.bulkUpsertSubmissions(toUpsert);
+      if (updates.length > 0) {
+        await supabaseService.bulkUpdateGrades(updates);
+      }
       setSubmissions(updated);
       setSelectedSubmissions(new Set());
       setBulkGrade('');
@@ -350,17 +356,20 @@ const AdminGrading: React.FC = () => {
 
     try {
       setSaving(true);
-      const toUpsert: Submission[] = [];
+      const updates: { id: string, grade: string }[] = [];
       const updated = submissions.map(s => {
         if (selectedSubmissions.has(s.id)) {
-          const up = { ...s, grade: `${maxMarks}/${maxMarks}` };
-          toUpsert.push(up);
+          const newGradeStr = `${maxMarks}/${maxMarks}`;
+          const up = { ...s, grade: newGradeStr };
+          if (s.id) updates.push({ id: s.id, grade: newGradeStr });
           return up;
         }
         return s;
       });
 
-      await supabaseService.bulkUpsertSubmissions(toUpsert);
+      if (updates.length > 0) {
+        await supabaseService.bulkUpdateGrades(updates);
+      }
       setSubmissions(updated);
       setSelectedSubmissions(new Set());
       setShowToast(true);

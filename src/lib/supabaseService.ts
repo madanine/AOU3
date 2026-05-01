@@ -559,6 +559,19 @@ export const supabaseService = {
         }
     },
 
+    async bulkUpdateGrades(updates: { id: string, grade: string }[]) {
+        // نستخدم Promise.all لتحديث الدرجات بشكل متوازٍ وسريع جداً، بدلاً من إرسال كامل بيانات التسليمات (بما فيها الملفات الضخمة)
+        // مما يمنع حصول statement timeout.
+        const BATCH_SIZE = 20;
+        for (let i = 0; i < updates.length; i += BATCH_SIZE) {
+            const batch = updates.slice(i, i + BATCH_SIZE);
+            await Promise.all(batch.map(async (u) => {
+                const { error } = await supabase.from('submissions').update({ grade: u.grade }).eq('id', u.id);
+                if (error) throw error;
+            }));
+        }
+    },
+
     async deleteSubmissionAndFile(submission: Submission) {
         // 1. Delete the file from Storage if it's a valid Storage URL
         if (submission.fileUrl && !submission.fileUrl.startsWith('data:')) {
