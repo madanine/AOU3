@@ -13,6 +13,7 @@ const AdminGrading: React.FC = () => {
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [students, setStudents] = useState<User[]>([]);
+  const [enrollments, setEnrollments] = useState<any[]>([]);
 
   const [selectedCourseId, setSelectedCourseId] = useState<string>('');
   const [selectedAssignmentId, setSelectedAssignmentId] = useState<string>('');
@@ -35,6 +36,7 @@ const AdminGrading: React.FC = () => {
   const [manualGradeModal, setManualGradeModal] = useState(false);
   const [selectedManualStudents, setSelectedManualStudents] = useState<Set<string>>(new Set());
   const [manualGradeValue, setManualGradeValue] = useState('');
+  const [manualSearchTerm, setManualSearchTerm] = useState('');
   const [manualSaving, setManualSaving] = useState(false);
 
   const activeSemId = settings.activeSemesterId || 'sem-default';
@@ -54,10 +56,11 @@ const AdminGrading: React.FC = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [allCourses, allAssignments, allUsers] = await Promise.all([
+        const [allCourses, allAssignments, allUsers, allEnrollments] = await Promise.all([
           supabaseService.getCourses(),
           supabaseService.getAssignments(),
-          supabaseService.getUsers()
+          supabaseService.getUsers(),
+          supabaseService.getEnrollments()
         ]);
 
         let filteredCourses = allCourses.filter(c => c.semesterId === activeSemId);
@@ -68,6 +71,7 @@ const AdminGrading: React.FC = () => {
         setCourses(filteredCourses);
         setAssignments(allAssignments.filter(a => a.semesterId === activeSemId));
         setStudents(allUsers.filter(u => u.role === 'student'));
+        setEnrollments(allEnrollments);
       } catch (err: any) {
         setError(err.message);
       } finally {
@@ -112,11 +116,20 @@ const AdminGrading: React.FC = () => {
     const course = courses.find(c => c.id === selectedCourseId);
     if (!course) return false;
     
-    // We assume all displayed students are eligible for this course 
-    // since enrolledStudents is not locally available without further fetching
-    const isEnrolled = true;
+    const isEnrolled = enrollments.some(e => 
+      e.studentId === stu.id && 
+      e.courseId === selectedCourseId && 
+      e.semesterId === activeSemId
+    );
     
-    return isEnrolled && !submittedStudentIds.has(stu.id);
+    if (!isEnrolled || submittedStudentIds.has(stu.id)) return false;
+
+    if (manualSearchTerm) {
+      return stu.fullName.toLowerCase().includes(manualSearchTerm.toLowerCase()) || 
+             stu.universityId.toLowerCase().includes(manualSearchTerm.toLowerCase());
+    }
+
+    return true;
   });
 
   const handleOpenGrading = (sub: Submission) => {
@@ -891,6 +904,20 @@ const AdminGrading: React.FC = () => {
                   </button>
                 </div>
               )}
+            </div>
+
+            {/* Search Input */}
+            <div className="px-8 py-3 border-b border-gray-100 bg-white shrink-0">
+              <div className="relative">
+                <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder={lang === 'AR' ? 'ابحث بالاسم أو الرقم الجامعي...' : 'Search by name or ID...'}
+                  value={manualSearchTerm}
+                  onChange={e => setManualSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-100 rounded-xl outline-none font-bold text-sm focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                />
+              </div>
             </div>
 
             {/* Students List */}
