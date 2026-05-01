@@ -171,15 +171,21 @@ const AdminGrading: React.FC = () => {
 
   const autoGradeMCQ = async () => {
     if (!selectedAssignment) return;
-    const isOldMcq = selectedAssignment.type === 'mcq';
-    const isMixed = selectedAssignment.type === 'mixed';
-    if (!isOldMcq && !isMixed) return;
 
     try {
       setSaving(true);
       const updates: { id: string, grade: string }[] = [];
       const updated = submissions.map(s => {
         if (s.assignmentId === selectedAssignment.id) {
+          const maxMarks = selectedAssignment.totalMarks || 20;
+
+          // للتكليفات من نوع ملف أو مقالي نعطيهم الدرجة كاملة كنوع من التساهل
+          if (selectedAssignment.type === 'file' || selectedAssignment.type === 'essay') {
+            const newGradeStr = `${maxMarks}/${maxMarks}`;
+            if (s.id) updates.push({ id: s.id, grade: newGradeStr });
+            return { ...s, grade: newGradeStr };
+          }
+
           let score = 0;
           let autoGradableCount = 0;
 
@@ -193,20 +199,28 @@ const AdminGrading: React.FC = () => {
             }
           });
 
-          if (autoGradableCount === 0) return s;
+          // إذا كان التكليف مختلط ولكن لا يحتوي على أسئلة موضوعية، نعطيهم الدرجة كاملة كافتراضي
+          if (autoGradableCount === 0) {
+            const newGradeStr = `${maxMarks}/${maxMarks}`;
+            if (s.id) updates.push({ id: s.id, grade: newGradeStr });
+            return { ...s, grade: newGradeStr };
+          }
 
-          const maxMarks = selectedAssignment.totalMarks || 20;
           const finalScore = (score / autoGradableCount) * maxMarks;
           const newGradeStr = `${finalScore.toFixed(1).replace(/\.0$/, '')}/${maxMarks}`;
-          updates.push({ id: s.id, grade: newGradeStr });
+          if (s.id) updates.push({ id: s.id, grade: newGradeStr });
           return { ...s, grade: newGradeStr };
         }
         return s;
       });
 
-      if (updates.length > 0) {
-        await supabaseService.bulkUpdateGrades(updates);
+      if (updates.length === 0) {
+        setError(lang === 'AR' ? 'لا توجد تسليمات صالحة أو أسئلة موضوعية لتصحيحها' : 'No valid submissions or objective questions to grade');
+        setSaving(false);
+        return;
       }
+
+      await supabaseService.bulkUpdateGrades(updates);
 
       setSubmissions(updated);
       setShowToast(true);
@@ -336,9 +350,14 @@ const AdminGrading: React.FC = () => {
         return s;
       });
 
-      if (updates.length > 0) {
-        await supabaseService.bulkUpdateGrades(updates);
+      if (updates.length === 0) {
+        setError(lang === 'AR' ? 'لم يتم العثور على تسليمات محددة لتحديثها' : 'No selected submissions found to update');
+        setSaving(false);
+        return;
       }
+
+      await supabaseService.bulkUpdateGrades(updates);
+      
       setSubmissions(updated);
       setSelectedSubmissions(new Set());
       setBulkGrade('');
@@ -367,9 +386,14 @@ const AdminGrading: React.FC = () => {
         return s;
       });
 
-      if (updates.length > 0) {
-        await supabaseService.bulkUpdateGrades(updates);
+      if (updates.length === 0) {
+        setError(lang === 'AR' ? 'لم يتم العثور على تسليمات محددة لتحديثها' : 'No selected submissions found to update');
+        setSaving(false);
+        return;
       }
+
+      await supabaseService.bulkUpdateGrades(updates);
+      
       setSubmissions(updated);
       setSelectedSubmissions(new Set());
       setShowToast(true);
