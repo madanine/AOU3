@@ -534,25 +534,29 @@ export const supabaseService = {
     },
 
     async bulkUpsertSubmissions(submissions: Submission[]) {
-        const payload = submissions.map(s => {
-            const p: any = {
-                assignment_id: s.assignmentId,
-                student_id: s.studentId,
-                course_id: s.courseId,
-                submitted_at: s.submittedAt,
-                answers: s.answers || [],
-                file_url: s.fileUrl || null,
-                file_name: s.fileName || (s.manualEntry ? 'Manual Entry' : null),
-                grade: s.grade
-            };
-            if (s.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s.id)) {
-                p.id = s.id;
-            }
-            return p;
-        });
+        const CHUNK_SIZE = 15; // دفعات صغيرة لتجنب مشكلة timeout أو حجم البيانات الضخم (Base64)
+        for (let i = 0; i < submissions.length; i += CHUNK_SIZE) {
+            const chunk = submissions.slice(i, i + CHUNK_SIZE);
+            const payload = chunk.map(s => {
+                const p: any = {
+                    assignment_id: s.assignmentId,
+                    student_id: s.studentId,
+                    course_id: s.courseId,
+                    submitted_at: s.submittedAt,
+                    answers: s.answers || [],
+                    file_url: s.fileUrl || null,
+                    file_name: s.fileName || (s.manualEntry ? 'Manual Entry' : null),
+                    grade: s.grade
+                };
+                if (s.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s.id)) {
+                    p.id = s.id;
+                }
+                return p;
+            });
 
-        const { error } = await supabase.from('submissions').upsert(payload, { onConflict: 'assignment_id,student_id' });
-        if (error) throw error;
+            const { error } = await supabase.from('submissions').upsert(payload, { onConflict: 'assignment_id,student_id' });
+            if (error) throw error;
+        }
     },
 
     async deleteSubmissionAndFile(submission: Submission) {
