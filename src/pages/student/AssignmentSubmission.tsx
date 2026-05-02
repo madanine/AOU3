@@ -391,8 +391,8 @@ const StudentAssignmentSubmission: React.FC = () => {
                                 </span>
                             </>
                         ) : (
-                            <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-lg ${sub.grade && a.showResults === false ? 'text-success bg-success/10' : 'text-amber-600 bg-amber-50'}`}>
-                                {sub.grade && a.showResults === false ? (lang === 'AR' ? 'تم الرصد (مخفي)' : 'Graded (Hidden)') : (lang === 'AR' ? 'في انتظار التقييم' : 'Awaiting Grading')}
+                            <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-lg ${sub.grade && a.showResults === false ? 'text-primary bg-primary/10' : 'text-amber-600 bg-amber-50'}`}>
+                                {sub.grade && a.showResults === false ? (lang === 'AR' ? 'قيد المراجعة من قِبل المعلم' : 'Under Instructor Review') : (lang === 'AR' ? 'في انتظار التقييم' : 'Awaiting Grading')}
                             </span>
                         )}
                     </div>
