@@ -147,6 +147,7 @@ export interface Assignment {
   subtitle?: string;
   type: AssignmentType;
   deadline: string;
+  startTime?: string;
   questions: Question[];
   showResults: boolean;
   totalMarks?: number;

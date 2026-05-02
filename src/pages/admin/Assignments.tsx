@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '@/App';
 import { supabaseService } from '@/lib/supabaseService';
 import { Course, Assignment, Question, AssignmentQuestionType } from '@/types';
@@ -27,6 +27,7 @@ const AdminAssignments: React.FC = () => {
     title: '',
     subtitle: '',
     type: 'mixed',
+    startTime: '',
     deadline: new Date(Date.now() + 86400000 * 7).toISOString().slice(0, 16),
     questions: [],
     showResults: true,
@@ -82,6 +83,7 @@ const AdminAssignments: React.FC = () => {
       title: '',
       subtitle: '',
       type: 'mixed', // Use the new builder mode
+      startTime: '',
       deadline: new Date(Date.now() + 86400000 * 7).toISOString().slice(0, 16),
       questions: [],
       showResults: true,
@@ -115,6 +117,7 @@ const AdminAssignments: React.FC = () => {
     setFormData({ 
       ...a, 
       type: 'mixed', // always force to modern builder to edit
+      startTime: a.startTime ? new Date(a.startTime).toISOString().slice(0, 16) : '',
       deadline: new Date(a.deadline).toISOString().slice(0, 16), 
       totalMarks: a.totalMarks || 20,
       questions: mappedQuestions
@@ -186,6 +189,7 @@ const AdminAssignments: React.FC = () => {
         const updated: Assignment = {
           ...assignments.find(a => a.id === editingId)!,
           ...formData,
+          startTime: formData.startTime ? new Date(formData.startTime).toISOString() : undefined,
           deadline: finalDeadline
         } as Assignment;
 
@@ -204,6 +208,7 @@ const AdminAssignments: React.FC = () => {
           type: 'mixed', // Always mixed now
           questions: formData.questions || [],
           showResults: formData.showResults ?? true,
+          startTime: formData.startTime ? new Date(formData.startTime).toISOString() : undefined,
           deadline: finalDeadline,
           totalMarks: formData.totalMarks || 20
         };
@@ -363,6 +368,11 @@ const AdminAssignments: React.FC = () => {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div className="space-y-1.5">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-text-secondary ml-1">{lang === 'AR' ? 'تاريخ البداية (اختياري)' : 'Start Time (Optional)'}</label>
+                            <input type="datetime-local" value={formData.startTime || ''} onChange={e => setFormData({ ...formData, startTime: e.target.value })} className="w-full px-4 py-3 bg-surface border border-border rounded-xl outline-none font-bold text-text-primary focus:ring-2 focus:ring-primary transition-all shadow-sm text-sm" />
+                        </div>
+
                         <div className="space-y-1.5">
                             <label className="text-[10px] font-black uppercase tracking-widest text-text-secondary ml-1">{t.deadline}</label>
                             <input type="datetime-local" required value={formData.deadline} onChange={e => setFormData({ ...formData, deadline: e.target.value })} className="w-full px-4 py-3 bg-surface border border-border rounded-xl outline-none font-bold text-text-primary focus:ring-2 focus:ring-primary transition-all shadow-sm text-sm" />

@@ -62,6 +62,7 @@ create table assignments (
   subtitle text,
   type text check (type in ('file', 'mcq', 'essay')) not null,
   deadline timestamp with time zone not null,
+  start_time timestamp with time zone,
   questions jsonb default '[]'::jsonb,
   show_results boolean default true,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null

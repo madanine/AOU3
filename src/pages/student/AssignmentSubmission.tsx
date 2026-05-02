@@ -339,6 +339,7 @@ const StudentAssignmentSubmission: React.FC = () => {
           {assignments.map(a => {
             const sub = getSubmissionForAssignment(a.id);
             const isLate = new Date() > new Date(a.deadline) && !sub;
+            const isLocked = a.startTime && new Date() < new Date(a.startTime);
             
             // For UI type rendering based on mixed or not
             let displayType = t[a.type === 'file' ? 'fileUpload' : a.type === 'mcq' ? 'mcq' : 'essay'];
@@ -349,12 +350,12 @@ const StudentAssignmentSubmission: React.FC = () => {
             return (
               <div
                 key={a.id}
-                onClick={() => setSelectedAssignment(a)}
-                className="bg-card p-6 rounded-[2rem] border border-border shadow-sm hover:shadow-xl transition-all cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-4 group"
+                onClick={() => !isLocked && setSelectedAssignment(a)}
+                className={`bg-card p-6 rounded-[2rem] border border-border shadow-sm transition-all flex flex-col md:flex-row md:items-center justify-between gap-4 group relative overflow-hidden ${isLocked ? 'opacity-70 grayscale cursor-not-allowed' : 'hover:shadow-xl cursor-pointer'}`}
               >
-                <div className="flex items-center gap-5">
-                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${sub ? 'bg-success/10 text-success' : 'bg-slate-50 text-slate-400'}`}>
-                    {sub ? <CheckCircle2 size={24} /> : <ClipboardList size={24} />}
+                <div className="flex items-center gap-5 relative z-10">
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${sub ? 'bg-success/10 text-success' : isLocked ? 'bg-slate-100 text-slate-400' : 'bg-slate-50 text-slate-400'}`}>
+                    {isLocked ? <AlertCircle size={24} /> : sub ? <CheckCircle2 size={24} /> : <ClipboardList size={24} />}
                   </div>
                   <div>
                     <h3 className="font-black" style={{ color: 'var(--text-primary)' }}>{a.title}</h3>
@@ -366,8 +367,12 @@ const StudentAssignmentSubmission: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-4">
-                  {sub ? (
+                <div className="flex items-center gap-4 relative z-10">
+                  {isLocked ? (
+                    <span className="text-[10px] font-black uppercase tracking-widest bg-surface border border-border text-text-secondary px-3 py-1.5 rounded-lg flex items-center gap-1.5">
+                        <Clock size={12} /> {lang === 'AR' ? 'يُفتح في' : 'Opens on'}: {new Date(a.startTime!).toLocaleDateString()} {new Date(a.startTime!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  ) : sub ? (
                     <div className="text-right flex items-center gap-3">
                         {sub.grade ? (
                             <>
@@ -424,9 +429,21 @@ const StudentAssignmentSubmission: React.FC = () => {
           {(() => {
             const submission = getSubmissionForAssignment(selectedAssignment.id);
             const isPastDeadline = new Date() > new Date(selectedAssignment.deadline);
+            const isLocked = selectedAssignment.startTime && new Date() < new Date(selectedAssignment.startTime);
 
             // 1. Not submitted yet
             if (!submission) {
+                if (isLocked) {
+                    return (
+                        <div className="flex flex-col items-center justify-center py-24 px-8 text-center space-y-6">
+                            <div className="w-24 h-24 bg-surface rounded-[2rem] flex items-center justify-center text-text-secondary border border-border">
+                            <Clock size={48} />
+                            </div>
+                            <h3 className="text-2xl font-black text-text-primary uppercase">{lang === 'AR' ? 'التكليف غير متاح بعد' : 'Assignment not available yet'}</h3>
+                            <p className="text-text-secondary font-bold max-w-md mx-auto">{lang === 'AR' ? 'سيُفتح هذا التكليف في:' : 'This assignment will open on:'} {new Date(selectedAssignment.startTime!).toLocaleString()}</p>
+                        </div>
+                    );
+                }
                 if (isPastDeadline) {
                     return (
                         <div className="flex flex-col items-center justify-center py-24 px-8 text-center space-y-6">
