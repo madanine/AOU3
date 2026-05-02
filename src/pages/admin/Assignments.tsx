@@ -7,6 +7,13 @@ import SemesterControls from '@/components/admin/SemesterControls';
 
 type Tab = 'settings' | 'builder';
 
+const toLocalDatetimeString = (dateInput: Date | string) => {
+    const d = new Date(dateInput);
+    if (isNaN(d.getTime())) return '';
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+
 const AdminAssignments: React.FC = () => {
   const { user, t, lang, settings, translate } = useApp();
   const [courses, setCourses] = useState<Course[]>([]);
@@ -28,7 +35,7 @@ const AdminAssignments: React.FC = () => {
     subtitle: '',
     type: 'mixed',
     startTime: '',
-    deadline: new Date(Date.now() + 86400000 * 7).toISOString().slice(0, 16),
+    deadline: toLocalDatetimeString(new Date(Date.now() + 86400000 * 7)),
     questions: [],
     showResults: true,
     totalMarks: 20
@@ -84,7 +91,7 @@ const AdminAssignments: React.FC = () => {
       subtitle: '',
       type: 'mixed', // Use the new builder mode
       startTime: '',
-      deadline: new Date(Date.now() + 86400000 * 7).toISOString().slice(0, 16),
+      deadline: toLocalDatetimeString(new Date(Date.now() + 86400000 * 7)),
       questions: [],
       showResults: true,
       totalMarks: 20
@@ -117,8 +124,8 @@ const AdminAssignments: React.FC = () => {
     setFormData({ 
       ...a, 
       type: 'mixed', // always force to modern builder to edit
-      startTime: a.startTime ? new Date(a.startTime).toISOString().slice(0, 16) : '',
-      deadline: new Date(a.deadline).toISOString().slice(0, 16), 
+      startTime: a.startTime ? toLocalDatetimeString(a.startTime) : '',
+      deadline: toLocalDatetimeString(a.deadline), 
       totalMarks: a.totalMarks || 20,
       questions: mappedQuestions
     });
