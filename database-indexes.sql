@@ -48,3 +48,23 @@ CREATE INDEX IF NOT EXISTS idx_allowed_students_university_id ON allowed_student
 
 -- Index on allowed_students(is_used) — تسريع الفلترة حسب الحالة
 CREATE INDEX IF NOT EXISTS idx_allowed_students_is_used ON allowed_students(is_used);
+
+-- ============================================================
+-- ⚡ Composite Indexes (حرجة لأداء 91+ طالب متزامن)
+-- ============================================================
+
+-- يُسرّع جلب تسليمات طالب معين في تكليف معين
+CREATE INDEX IF NOT EXISTS idx_submissions_student_assignment 
+  ON submissions(student_id, assignment_id);
+
+-- يُسرّع جلب تسليمات طالب معين في مادة معينة
+CREATE INDEX IF NOT EXISTS idx_submissions_student_course 
+  ON submissions(student_id, course_id);
+
+-- يُسرّع جلب تكاليف مادة معينة في فصل معين
+CREATE INDEX IF NOT EXISTS idx_assignments_course_semester 
+  ON assignments(course_id, semester_id);
+
+-- يُسرّع جلب تسجيلات طالب معين في فصل معين
+CREATE INDEX IF NOT EXISTS idx_enrollments_student_semester 
+  ON enrollments(student_id, semester_id);

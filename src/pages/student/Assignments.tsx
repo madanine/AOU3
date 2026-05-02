@@ -1,4 +1,4 @@
-﻿
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '@/App';
@@ -23,14 +23,14 @@ const StudentAssignments: React.FC = () => {
         if (!user?.id) return;
 
         const [enrollments, courses, assignments, submissions] = await Promise.all([
-          supabaseService.getEnrollments(),
+          supabaseService.getEnrollments(user.id),
           supabaseService.getCourses(),
           supabaseService.getAssignments(),
           supabaseService.getSubmissions(user.id)
         ]);
 
         const studentEnrollments = enrollments.filter((e: Enrollment) => 
-          e.studentId === user.id && (!activeSemId || e.semesterId === activeSemId)
+          (!activeSemId || e.semesterId === activeSemId)
         );
 
         const activeAssignments = assignments.filter((a: Assignment) => a.semesterId === activeSemId);

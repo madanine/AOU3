@@ -46,16 +46,17 @@ const StudentAssignmentSubmission: React.FC = () => {
       setLoading(true);
       if (!user?.id || !courseId) return;
 
-      const [allCourses, allAssignments, allSubmissions] = await Promise.all([
-        supabaseService.getCourses(),
-        supabaseService.getAssignments(),
+      // ⚡ Targeted queries — fetch only the single course and its assignments
+      // instead of ALL courses/assignments (critical for 91 concurrent students)
+      const [courseData, courseAssignments, allSubmissions] = await Promise.all([
+        supabaseService.getCourseById(courseId),
+        supabaseService.getAssignmentsByCourse(courseId, activeSemId),
         supabaseService.getSubmissions(user.id)
       ]);
 
-      const c = allCourses.find(c => c.id === courseId);
-      if (c) {
-        setCourse(c);
-        setAssignments(allAssignments.filter(a => a.courseId === courseId && a.semesterId === activeSemId));
+      if (courseData) {
+        setCourse(courseData);
+        setAssignments(courseAssignments);
         setSubmissions(allSubmissions.filter(s => s.courseId === courseId && s.studentId === user.id));
       }
     } catch (error) {

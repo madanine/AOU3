@@ -440,6 +440,43 @@ export const supabaseService = {
         if (error) throw error;
     },
 
+    // ⚡ Targeted queries — reduce Supabase load when 91 students hit the server simultaneously
+    async getAssignmentsByCourse(courseId: string, semesterId?: string) {
+        let query = supabase.from('assignments').select('*').eq('course_id', courseId);
+        if (semesterId) query = query.eq('semester_id', semesterId);
+        const { data, error } = await query;
+        if (error) throw error;
+        return (data || []).map((a: any) => ({
+            id: a.id,
+            courseId: a.course_id,
+            semesterId: a.semester_id,
+            title: a.title,
+            subtitle: a.subtitle,
+            type: a.type,
+            deadline: a.deadline,
+            startTime: a.start_time,
+            questions: a.questions || [],
+            showResults: a.show_results,
+            totalMarks: a.total_marks,
+            createdAt: a.created_at
+        })) as Assignment[];
+    },
+
+    async getCourseById(courseId: string) {
+        const { data, error } = await supabase.from('courses').select('*').eq('id', courseId).single();
+        if (error) throw error;
+        return {
+            ...data,
+            isRegistrationEnabled: data.is_registration_enabled,
+            semesterId: data.semester_id,
+            title_ar: data.title_ar || data.title,
+            whatsappLink: data.whatsapp_link,
+            telegramLink: data.telegram_link,
+            lectureLink: data.lecture_link,
+            notes: data.notes
+        } as Course;
+    },
+
     // Submissions
     async getSubmissions(studentId?: string, assignmentId?: string, excludeFileUrl: boolean = false) {
         let selectQuery = excludeFileUrl ? 
