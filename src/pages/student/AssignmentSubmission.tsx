@@ -374,7 +374,7 @@ const StudentAssignmentSubmission: React.FC = () => {
                     </span>
                   ) : sub ? (
                     <div className="text-right flex items-center gap-3">
-                        {sub.grade ? (
+                        {sub.grade && a.showResults !== false ? (
                             <>
                                 <div className="flex flex-col items-end">
                                     <span className="text-[8px] font-black uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>{t.grade}</span>
@@ -391,8 +391,8 @@ const StudentAssignmentSubmission: React.FC = () => {
                                 </span>
                             </>
                         ) : (
-                            <span className="text-[10px] font-black uppercase text-amber-600 bg-amber-50 px-3 py-1 rounded-lg">
-                                {lang === 'AR' ? 'في انتظار التقييم' : 'Awaiting Grading'}
+                            <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-lg ${sub.grade && a.showResults === false ? 'text-success bg-success/10' : 'text-amber-600 bg-amber-50'}`}>
+                                {sub.grade && a.showResults === false ? (lang === 'AR' ? 'تم الرصد (مخفي)' : 'Graded (Hidden)') : (lang === 'AR' ? 'في انتظار التقييم' : 'Awaiting Grading')}
                             </span>
                         )}
                     </div>
