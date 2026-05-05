@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useApp } from '@/App';
 import { supabaseService } from '@/lib/supabaseService';
 import { Exam, ExamQuestion, ExamOption, ExamAttempt, ExamAnswer, ExamException, ExamQuestionType, Course, Semester, User } from '@/types';
@@ -10,15 +10,16 @@ const toLocalInput = (s?: string) => {
     if (!s) return '';
     const d = new Date(s);
     if (isNaN(d.getTime())) return s.slice(0, 16);
+    const offset = 3 * 60 * 60 * 1000;
+    const local = new Date(d.getTime() + offset);
     const pad = (n: number) => n.toString().padStart(2, '0');
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    return `${local.getUTCFullYear()}-${pad(local.getUTCMonth() + 1)}-${pad(local.getUTCDate())}T${pad(local.getUTCHours())}:${pad(local.getUTCMinutes())}`;
 };
 
 // Convert local datetime-local value to ISO string with timezone offset for correct storage
 const toISOLocal = (s: string) => {
-    const d = new Date(s);
-    if (isNaN(d.getTime())) return s;
-    return d.toISOString();
+    if (!s) return '';
+    return new Date(s + ':00+03:00').toISOString();
 };
 
 // ================ TYPES ================

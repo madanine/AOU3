@@ -8,11 +8,17 @@ import SemesterControls from '@/components/admin/SemesterControls';
 type Tab = 'settings' | 'builder';
 
 const toLocalDatetimeString = (dateInput: Date | string) => {
+    if (!dateInput) return '';
     const d = new Date(dateInput);
     if (isNaN(d.getTime())) return '';
+    const offset = 3 * 60 * 60 * 1000;
+    const local = new Date(d.getTime() + offset);
     const pad = (n: number) => n.toString().padStart(2, '0');
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    return `${local.getUTCFullYear()}-${pad(local.getUTCMonth() + 1)}-${pad(local.getUTCDate())}T${pad(local.getUTCHours())}:${pad(local.getUTCMinutes())}`;
 };
+
+const saudiInputToUTC = (str: string) => 
+    str ? new Date(str + ':00+03:00').toISOString() : undefined;
 
 const AdminAssignments: React.FC = () => {
   const { user, t, lang, settings, translate } = useApp();
@@ -189,14 +195,14 @@ const AdminAssignments: React.FC = () => {
     try {
       setSaving(true);
       setError('');
-      const finalDeadline = new Date(formData.deadline || '').toISOString();
+      const finalDeadline = saudiInputToUTC(formData.deadline || '') || new Date().toISOString();
 
       if (editingId) {
         // Update existing
         const updated: Assignment = {
           ...assignments.find(a => a.id === editingId)!,
           ...formData,
-          startTime: formData.startTime ? new Date(formData.startTime).toISOString() : undefined,
+          startTime: formData.startTime ? saudiInputToUTC(formData.startTime) : undefined,
           deadline: finalDeadline
         } as Assignment;
 
@@ -215,7 +221,7 @@ const AdminAssignments: React.FC = () => {
           type: 'mixed', // Always mixed now
           questions: formData.questions || [],
           showResults: formData.showResults ?? true,
-          startTime: formData.startTime ? new Date(formData.startTime).toISOString() : undefined,
+          startTime: formData.startTime ? saudiInputToUTC(formData.startTime) : undefined,
           deadline: finalDeadline,
           totalMarks: formData.totalMarks || 20
         };
