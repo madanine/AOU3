@@ -1,8 +1,13 @@
-﻿import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useApp } from '@/App';
+import { supabase } from '@/lib/supabase';
 import { supabaseService } from '@/lib/supabaseService';
 import { Exam, ExamQuestion, ExamAttempt, ExamAnswer, ExamException, Course } from '@/types';
 import { Clock, CheckCircle, XCircle, AlertTriangle, Loader2, Send, FileText, Lock } from 'lucide-react';
+
+// ✅ مفتاح حفظ مسودة إجابات الاختبار في localStorage
+const getExamDraftKey = (userId: string, examId: string) =>
+    `exam_draft_${userId}_${examId}`;
 
 const StudentExams: React.FC = () => {
     const { user, lang } = useApp();
@@ -38,19 +43,37 @@ const StudentExams: React.FC = () => {
         if (!user) return;
         setLoading(true);
         try {
+            // ⚡ استعلامات مستهدفة — يجلب فقط الامتحانات المنشورة
             const [ex, co, exc] = await Promise.all([
-                supabaseService.getExams(),
+                supabaseService.getPublishedExams(),
                 supabaseService.getCourses(),
                 supabaseService.getStudentExceptions(user.id)
             ]);
-            setExams(ex.filter(e => e.isPublished));
+            setExams(ex);
             setCourses(co);
             setExceptions(exc || []);
-        } catch (e: any) { setError(e.message); }
+        } catch (e: any) { setError(isAR ? 'حدث خطأ في تحميل البيانات — حاول تحديث الصفحة' : e.message); }
         setLoading(false);
     }, [user]);
 
     useEffect(() => { loadData(); }, [loadData]);
+
+    // ✅ طبقة 1: Session Keepalive — يمنع نوم الجلسة على الجوال أثناء الاختبار الطويل
+    useEffect(() => {
+        if (!activeExam || viewingResults) return;
+        const interval = setInterval(async () => {
+            try { await supabase.auth.getSession(); } catch { /* تجاهل */ }
+        }, 4 * 60 * 1000); // كل 4 دقائق
+        return () => clearInterval(interval);
+    }, [activeExam, viewingResults]);
+
+    // ✅ طبقة 2: حفظ المسودات محلياً عند كل تغيير في الإجابات
+    useEffect(() => {
+        if (!activeExam || !user?.id || Object.keys(draftAnswers).length === 0) return;
+        try {
+            localStorage.setItem(getExamDraftKey(user.id, activeExam.id), JSON.stringify(draftAnswers));
+        } catch { /* تجاهل — مساحة التخزين ممتلئة */ }
+    }, [draftAnswers, activeExam, user?.id]);
 
     const getCourseName = (id: string) => { const c = courses.find(x => x.id === id); return c ? (isAR ? c.title_ar : c.title) : ''; };
 
@@ -92,7 +115,7 @@ const StudentExams: React.FC = () => {
             if (!att) att = await supabaseService.createExamAttempt(exam.id, user.id);
 
             const qs = await supabaseService.getExamQuestions(exam.id);
-            // Load existing answers
+            // Load existing answers from DB
             const existingAns = await supabaseService.getExamAnswers(att.id);
             const draft: Record<string, any> = {};
             existingAns.forEach(a => {
@@ -102,6 +125,20 @@ const StudentExams: React.FC = () => {
                 else if (q.type === 'matrix') draft[a.questionId] = a.matrixSelections || {};
                 else draft[a.questionId] = a.selectedOptionId || '';
             });
+
+            // ✅ طبقة 3: محاولة استعادة مسودة محلية (أحدث من DB)
+            try {
+                const localDraft = localStorage.getItem(getExamDraftKey(user.id, exam.id));
+                if (localDraft) {
+                    const parsed = JSON.parse(localDraft);
+                    // دمج: المسودة المحلية تتغلب على DB فقط إذا كانت تحتوي على إجابات
+                    Object.entries(parsed).forEach(([qId, val]) => {
+                        if (val && (typeof val === 'string' ? val.length > 0 : Object.keys(val as any).length > 0)) {
+                            draft[qId] = val;
+                        }
+                    });
+                }
+            } catch { /* تجاهل */ }
 
             setActiveExam(exam);
             setQuestions(qs);
@@ -115,11 +152,17 @@ const StudentExams: React.FC = () => {
         setDraftAnswers(prev => ({ ...prev, [questionId]: value }));
     };
 
-    // Submit exam (Actual logic)
+    // ✅ مسح المسودة المحلية بعد التسليم الناجح
+    const clearExamDraft = useCallback((userId: string, examId: string) => {
+        try { localStorage.removeItem(getExamDraftKey(userId, examId)); } catch { /* تجاهل */ }
+    }, []);
+
+    // Submit exam — مع Retry + Timeout + DB Verification (مثل نظام التكاليف)
     const submitExam = async () => {
         if (!attempt || !activeExam || !user || submitting) return;
         setShowSubmitModal(false);
         setSubmitting(true);
+        setError('');
         try {
             // Save all answers
             const answersToSave: ExamAnswer[] = questions.map(q => ({
@@ -132,13 +175,59 @@ const StudentExams: React.FC = () => {
                 createdAt: new Date().toISOString()
             }));
 
-            // STAGGERED SUBMISSION (Jitter): Pre-submission delay 0-3s to distribute DB load
-            // This is critical when 300+ students submit at the exact same second (timer end)
+            // STAGGERED SUBMISSION (Jitter): 0-3s delay to distribute DB load
             await new Promise(r => setTimeout(r, Math.random() * 3000));
 
-            // ATOMIC SUBMISSION: Save all answers and mark as submitted in ONE transaction
-            await supabaseService.submitCompleteExamRPC(attempt.id, answersToSave);
+            // ✅ طبقة 4: Retry (3 محاولات) + Timeout (30 ثانية) + DB Verification
+            const MAX_RETRIES = 3;
+            let lastError: any = null;
 
+            for (let retryCount = 0; retryCount < MAX_RETRIES; retryCount++) {
+                try {
+                    // 30-second timeout
+                    const submitPromise = supabaseService.submitCompleteExamRPC(attempt.id, answersToSave);
+                    const timeoutPromise = new Promise((_, reject) =>
+                        setTimeout(() => reject(new Error('exam_submit_timeout')), 30_000)
+                    );
+                    await Promise.race([submitPromise, timeoutPromise]);
+                    lastError = null;
+                    break; // نجح!
+                } catch (err: any) {
+                    lastError = err;
+                    const msg = err?.message || '';
+                    // أخطاء غير قابلة للإصلاح — لا تعيد المحاولة
+                    if (msg.includes('JWT') || msg.includes('token') || msg.includes('unauthorized') || err?.code === 'PGRST301') {
+                        break;
+                    }
+                    // Exponential backoff
+                    if (retryCount < MAX_RETRIES - 1) {
+                        await new Promise(r => setTimeout(r, 1000 * Math.pow(2, retryCount)));
+                    }
+                }
+            }
+
+            // ✅ طبقة 5: لو حصل timeout، تحقق هل التسليم وصل فعلاً
+            if (lastError) {
+                if (lastError.message === 'exam_submit_timeout') {
+                    try {
+                        const check = await supabaseService.getStudentAttempt(activeExam.id, user.id);
+                        if (check?.isSubmitted) {
+                            // التسليم نجح فعلاً!
+                            clearExamDraft(user.id, activeExam.id);
+                            setActiveExam(null); setAttempt(null); setQuestions([]); setDraftAnswers({});
+                            await loadData();
+                            setSuccessMsg(isAR ? 'تم تسليم الامتحان بنجاح!' : 'Exam submitted successfully!');
+                            setTimeout(() => setSuccessMsg(''), 4000);
+                            setSubmitting(false);
+                            return;
+                        }
+                    } catch { /* تجاهل — أظهر الخطأ الأصلي */ }
+                }
+                throw lastError;
+            }
+
+            // ✅ نجاح!
+            clearExamDraft(user.id, activeExam.id);
             setActiveExam(null);
             setAttempt(null);
             setQuestions([]);
@@ -147,7 +236,32 @@ const StudentExams: React.FC = () => {
 
             setSuccessMsg(isAR ? 'تم تسليم الامتحان بنجاح!' : 'Exam submitted successfully!');
             setTimeout(() => setSuccessMsg(''), 4000);
-        } catch (e: any) { setError(e.message); } finally {
+        } catch (e: any) {
+            // ✅ طبقة 6: رسائل خطأ عربية واضحة تطمئن الطالب
+            const msg = e?.message || '';
+            const code = e?.code || '';
+            let userMsg: string;
+            if (msg === 'exam_submit_timeout') {
+                userMsg = isAR
+                    ? 'استغرق التسليم وقتاً طويلاً — إجاباتك محفوظة، اضغط تسليم مرة أخرى'
+                    : 'Submission took too long — your answers are saved, press Submit again';
+            } else if (code === 'PGRST301' || msg.includes('JWT') || msg.includes('token') || msg.includes('unauthorized')) {
+                userMsg = isAR
+                    ? 'انتهت جلستك — إجاباتك محفوظة محلياً، سجّل الدخول وأعد فتح الامتحان'
+                    : 'Session expired — your answers are saved locally, log in and reopen the exam';
+            } else if (msg.includes('Failed to fetch') || msg.includes('network') || msg.includes('fetch')) {
+                userMsg = isAR
+                    ? 'تعذّر الوصول للخادم — إجاباتك محفوظة، تحقق من الاتصال وأعد المحاولة'
+                    : 'Could not reach server — your answers are saved, check connection and retry';
+            } else if (msg) {
+                userMsg = msg;
+            } else {
+                userMsg = isAR
+                    ? 'حدث خطأ غير متوقع — إجاباتك محفوظة، أعد المحاولة'
+                    : 'Unexpected error — your answers are saved, please retry';
+            }
+            setError(userMsg);
+        } finally {
             setSubmitting(false);
         }
     };

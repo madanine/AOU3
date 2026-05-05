@@ -965,6 +965,27 @@ export const supabaseService = {
         })) as Exam[];
     },
 
+    // ⚡ Student-optimized: fetch only published exams (skips drafts)
+    async getPublishedExams() {
+        const { data, error } = await supabase
+            .from('exams').select('*')
+            .eq('is_published', true)
+            .order('start_at', { ascending: false });
+        if (error) throw error;
+        return (data || []).map(e => ({
+            id: e.id,
+            courseId: e.course_id,
+            semesterId: e.semester_id,
+            title: e.title,
+            startAt: e.start_at,
+            endAt: e.end_at,
+            totalMarks: e.total_marks,
+            isPublished: e.is_published,
+            isResultsReleased: e.is_results_released,
+            createdAt: e.created_at
+        })) as Exam[];
+    },
+
     async upsertExam(exam: Exam) {
         const payload: any = {
             course_id: exam.courseId,
