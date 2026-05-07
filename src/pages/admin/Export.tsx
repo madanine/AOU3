@@ -100,15 +100,43 @@ const AdminExport: React.FC = () => {
   const exportGradesExcel = async () => {
     setIsExportingGrades(true);
     try {
-      // Fetch fresh data from Supabase before exporting
-      const students    = await supabaseService.getUsers();
-      await storage.syncFromSupabase();
-      const courses     = storage.getCourses();
-      const semesters   = storage.getSemesters();
-      const assignments = storage.getAssignments();
-      const submissions = storage.getSubmissions();
-      const attendance  = storage.getAttendance();
-      const participation = storage.getParticipation();
+      // ⚡ جلب جميع البيانات مباشرة من Supabase بشكل متوازٍ
+      // لا نعتمد على الكاش المحلي لأن:
+      // 1. الحضور/المشاركة يُجلبان في Phase 2 غير المتزامنة (fire-and-forget)
+      // 2. التكاليف لا تُحفظ محلياً للأدمن أبداً (getSubmissions ترجع [] للأدمن)
+      const [students, attRows, partRows, allSubmissions, courses, semesters, assignments] =
+        await Promise.all([
+          supabaseService.getUsers(),
+          supabaseService.getAttendance(),       // كل الحضور من Supabase مباشرة
+          supabaseService.getParticipation(),    // كل المشاركة من Supabase مباشرة
+          supabaseService.getSubmissions(undefined, undefined, true), // كل التكاليف بدون ملفات
+          (async () => { await storage.syncFromSupabase(); return storage.getCourses(); })(),
+          (async () => storage.getSemesters())(),
+          (async () => storage.getAssignments())(),
+        ]);
+
+      // تحويل صفوف الحضور إلى Map { courseId: { studentId: bool[] } }
+      const attendance: Record<string, Record<string, (boolean | null)[]>> = {};
+      attRows.forEach(r => {
+        if (!attendance[r.courseId]) attendance[r.courseId] = {};
+        if (!attendance[r.courseId][r.studentId]) attendance[r.courseId][r.studentId] = Array(12).fill(null);
+        if (r.lectureIndex >= 0 && r.lectureIndex < 12) {
+          attendance[r.courseId][r.studentId][r.lectureIndex] = r.status;
+        }
+      });
+
+      // تحويل صفوف المشاركة إلى Map { courseId: { studentId: bool[] } }
+      const participation: Record<string, Record<string, (boolean | null)[]>> = {};
+      partRows.forEach(r => {
+        if (!participation[r.courseId]) participation[r.courseId] = {};
+        if (!participation[r.courseId][r.studentId]) participation[r.courseId][r.studentId] = Array(12).fill(null);
+        if (r.lectureIndex >= 0 && r.lectureIndex < 12) {
+          participation[r.courseId][r.studentId][r.lectureIndex] = r.status;
+        }
+      });
+
+      // استخدام submissions المجلوبة مباشرة من Supabase
+      const submissions = allSubmissions;
 
       const semesterName =
         semesters.find(s => s.id === settings.activeSemesterId)?.name || '';
