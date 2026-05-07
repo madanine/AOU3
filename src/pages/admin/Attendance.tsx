@@ -1,4 +1,4 @@
-
+﻿
 import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '@/App';
 import { storage } from '@/lib/storage';
@@ -36,7 +36,7 @@ const AdminAttendance: React.FC = () => {
   const isFirstAttendanceRender = useRef(true);
   const isFirstParticipationRender = useRef(true);
   const isDirty = useRef(false);
-  // Block handleUpdate from overwriting state while a course sync is in progress
+  // isSyncing: blocks handleUpdate from overwriting local state during any sync/save operation
   const isSyncing = useRef(false);
 
   // Status for feedback
@@ -61,7 +61,8 @@ const AdminAttendance: React.FC = () => {
       setCourses(storage.getCourses());
       setStudents(storage.getUsers().filter(u => u.role === 'student'));
       setEnrollments(storage.getEnrollments());
-      // Block overwrite while: (1) user has unsaved changes, (2) a targeted course sync is running
+      // Only update attendance/participation if we are NOT dirty AND NOT in the middle of a sync.
+      // isSyncing protects against Realtime/secondary-sync callbacks overwriting freshly saved data.
       if (!isDirty.current && !isSyncing.current) {
         setAttendance(storage.getAttendance());
         setParticipation(storage.getParticipation());
@@ -80,25 +81,28 @@ const AdminAttendance: React.FC = () => {
   }, [dataReady]);
 
   // RELIABILITY FIX: Sync specific course data from Supabase whenever a course is selected.
-  // isSyncing.current blocks handleUpdate from overwriting state mid-fetch.
+  // This bypasses the global 1000-row limit issue and ensures the admin sees 
+  // exactly what is in the database for the active course.
   useEffect(() => {
     if (selectedCourseId) {
       const syncCourseData = async () => {
         isSyncing.current = true;
-        setIsSaving(true);
+        setIsSaving(true); // Show a subtle "loading" state
         try {
+          // Both will update localStorage and notify listeners
           await Promise.all([
             (storage as any).syncAttendanceForCourse(selectedCourseId),
             (storage as any).syncParticipationForCourse(selectedCourseId)
           ]);
-          // Read fresh data directly — don't rely on notify chain
+          // After sync, update local component state
           setAttendance(storage.getAttendance());
           setParticipation(storage.getParticipation());
+          isDirty.current = false;
         } catch (err) {
           console.error('Failed to sync course data:', err);
         } finally {
-          isSyncing.current = false;
           setIsSaving(false);
+          isSyncing.current = false;
         }
       };
       syncCourseData();
@@ -284,36 +288,33 @@ const AdminAttendance: React.FC = () => {
 
   const handleSave = async () => {
     setIsSaving(true);
+    isSyncing.current = true; // Block Realtime callbacks from overwriting state during save
     try {
       await storage.setAttendance(attendance);
       await storage.setParticipation(participation);
       isDirty.current = false;
+
+      // Re-sync the current course from DB to confirm what was actually saved.
+      // This guards against partial writes and ensures the UI reflects reality.
+      if (selectedCourseId) {
+        await Promise.all([
+          (storage as any).syncAttendanceForCourse(selectedCourseId),
+          (storage as any).syncParticipationForCourse(selectedCourseId)
+        ]);
+        setAttendance(storage.getAttendance());
+        setParticipation(storage.getParticipation());
+      }
+
       setShowToast(true);
       setTimeout(() => setShowToast(false), 3000);
-
-      // After save: re-sync from DB to confirm data persisted correctly.
-      // Block handleUpdate during this re-sync so the confirmed data stays visible.
-      if (selectedCourseId) {
-        isSyncing.current = true;
-        try {
-          await Promise.all([
-            (storage as any).syncAttendanceForCourse(selectedCourseId),
-            (storage as any).syncParticipationForCourse(selectedCourseId)
-          ]);
-          setAttendance(storage.getAttendance());
-          setParticipation(storage.getParticipation());
-        } catch (syncErr) {
-          console.warn('Post-save sync failed (data is still saved):', syncErr);
-        } finally {
-          isSyncing.current = false;
-        }
-      }
     } catch (err) {
       console.error('Attendance save failed:', err);
       setShowErrorToast(true);
       setTimeout(() => setShowErrorToast(false), 5000);
     } finally {
       setIsSaving(false);
+      // Keep isSyncing true for 5 more seconds to block the Realtime 3s-delayed callback
+      setTimeout(() => { isSyncing.current = false; }, 5000);
     }
   };
 
@@ -365,16 +366,14 @@ const AdminAttendance: React.FC = () => {
     ], { origin: 'A1' });
 
     XLSX.utils.sheet_add_json(ws, data, { origin: 'A5' });
-    const sheetName = translate(course, 'title').substring(0, 31);
-    XLSX.utils.book_append_sheet(wb, ws, sheetName);
-    XLSX.writeFile(wb, `${translate(course, 'title')}_${semesterName}_Attendance.xlsx`);
+    XLSX.utils.book_append_sheet(wb, ws, course.code.substring(0, 31));
+    XLSX.writeFile(wb, `${course.code}_${semesterName}_Attendance.xlsx`);
   };
 
   const exportAllCoursesToExcel = () => {
     const wb = XLSX.utils.book_new();
     const semesterName = storage.getSemesters().find(s => s.id === activeSemId)?.name || 'MASTER';
     let addedSheets = 0;
-    const usedSheetNames = new Map<string, number>();
 
     visibleCourses.forEach(course => {
       const data = getCourseDataForExcel(course);
@@ -387,11 +386,7 @@ const AdminAttendance: React.FC = () => {
           ['']
         ], { origin: 'A1' });
         XLSX.utils.sheet_add_json(ws, data, { origin: 'A5' });
-        const baseName = translate(course, 'title').substring(0, 28);
-        const count = usedSheetNames.get(baseName) || 0;
-        usedSheetNames.set(baseName, count + 1);
-        const sheetName = count === 0 ? baseName : `${baseName} (${count})`;
-        XLSX.utils.book_append_sheet(wb, ws, sheetName);
+        XLSX.utils.book_append_sheet(wb, ws, course.code.substring(0, 31));
         addedSheets++;
       }
     });
@@ -454,16 +449,14 @@ const AdminAttendance: React.FC = () => {
     ], { origin: 'A1' });
 
     XLSX.utils.sheet_add_json(ws, data, { origin: 'A5' });
-    const sheetName = translate(course, 'title').substring(0, 31);
-    XLSX.utils.book_append_sheet(wb, ws, sheetName);
-    XLSX.writeFile(wb, `${translate(course, 'title')}_${semesterName}_Participation.xlsx`);
+    XLSX.utils.book_append_sheet(wb, ws, course.code.substring(0, 31));
+    XLSX.writeFile(wb, `${course.code}_${semesterName}_Participation.xlsx`);
   };
 
   const exportAllParticipationToExcel = () => {
     const wb = XLSX.utils.book_new();
     const semesterName = storage.getSemesters().find(s => s.id === activeSemId)?.name || 'MASTER';
     let addedSheets = 0;
-    const usedSheetNames = new Map<string, number>();
 
     visibleCourses.forEach(course => {
       const data = getParticipationDataForExcel(course);
@@ -476,11 +469,7 @@ const AdminAttendance: React.FC = () => {
           ['']
         ], { origin: 'A1' });
         XLSX.utils.sheet_add_json(ws, data, { origin: 'A5' });
-        const baseName = translate(course, 'title').substring(0, 28);
-        const count = usedSheetNames.get(baseName) || 0;
-        usedSheetNames.set(baseName, count + 1);
-        const sheetName = count === 0 ? baseName : `${baseName} (${count})`;
-        XLSX.utils.book_append_sheet(wb, ws, sheetName);
+        XLSX.utils.book_append_sheet(wb, ws, course.code.substring(0, 31));
         addedSheets++;
       }
     });

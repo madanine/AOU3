@@ -20,6 +20,9 @@ const KEYS = {
 
 type Listener = () => void;
 const listeners: Listener[] = [];
+// Global flag: blocks _syncSecondaryData from overwriting attendance/participation
+// during active save operations to prevent race conditions.
+let _blockAttendanceSync = false;
 const notify = () => listeners.forEach(l => l());
 
 
@@ -38,10 +41,6 @@ export const storage = {
     if (_syncPromise) return _syncPromise;
 
     _syncPromise = (async () => {
-      // ── 30-second real timeout using Promise.race ─────────────────────────────
-      // AbortController can't reach Supabase internals, so we use Promise.race:
-      // if Phase 1 takes > 30 s the timeout promise rejects, the catch block runs,
-      // and the app falls back to cached local settings immediately.
       const timeout = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error('Sync timeout: network took > 30s')), 30_000)
       );
@@ -51,7 +50,6 @@ export const storage = {
         const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'supervisor';
         const isStudent = currentUser?.role === 'student';
 
-        // الأدمن يجلب دائماً بدون كاش
         if (!isAdmin) {
           const lastSync = localStorage.getItem('last_sync_time');
           const twoMinutes = 2 * 60 * 1000;
@@ -62,8 +60,6 @@ export const storage = {
           }
         }
 
-        // ── Phase 1: Critical data only (settings, courses, semesters) ──────────
-        // Promise.race ensures we never wait more than 30 s for these calls.
         const phase1Promises: Promise<any>[] = [
           supabaseService.getSettings(),
           supabaseService.getCourses(),
@@ -87,7 +83,6 @@ export const storage = {
         if (settings) {
           const stampedSettings = { ...settings, settingsVersion: SETTINGS_VERSION };
           localStorage.setItem(KEYS.SETTINGS, JSON.stringify(stampedSettings));
-          // ── activeSemesterId preservation ──────────────────────────────────────
           const verified = storage.getSettings();
           if (settings.activeSemesterId && !verified.activeSemesterId) {
             const patched = {
@@ -102,13 +97,10 @@ export const storage = {
         if (semesters) localStorage.setItem(KEYS.SEMESTERS, JSON.stringify(semesters));
         if (studentEnrollments) localStorage.setItem(KEYS.ENROLLMENTS, JSON.stringify(studentEnrollments));
 
-        // Mark as initialized early so the UI can render
         storage.isInitialized = true;
         localStorage.setItem('last_sync_time', Date.now().toString());
         notify();
 
-        // ── Phase 2: Secondary data (deferred, non-blocking) ────────────────────
-        // Always runs fire-and-forget after Phase 1 succeeds.
         storage._syncSecondaryData(currentUser, isAdmin).catch(e =>
           console.error('Secondary sync failed (non-critical):', e)
         );
@@ -120,7 +112,6 @@ export const storage = {
         notify();
         return storage.getSettings();
       } finally {
-        // Clear the shared promise so the next independent call starts fresh.
         _syncPromise = null;
       }
     })();
@@ -150,7 +141,6 @@ export const storage = {
         const localUsers = storage.getUsers();
         const merged = users.map(remoteUser => {
           const local = localUsers.find(u => u.id === remoteUser.id);
-          // إذا الباسورد المحلي أحدث (مختلف) احتفظ به
           if (local && local.password && local.password !== remoteUser.password) {
             return { ...remoteUser, password: local.password };
           }
@@ -161,7 +151,8 @@ export const storage = {
       if (isAdmin && enrollments) localStorage.setItem(KEYS.ENROLLMENTS, JSON.stringify(enrollments));
       if (submissions) localStorage.setItem(KEYS.SUBMISSIONS, JSON.stringify(submissions));
 
-      if (attendance) {
+      // Only write attendance/participation if no active save is in progress
+      if (attendance && !_blockAttendanceSync) {
         const map: AttendanceRecord = {};
         attendance.forEach((r: AttendanceRow) => {
           if (!map[r.courseId]) map[r.courseId] = {};
@@ -173,7 +164,7 @@ export const storage = {
         localStorage.setItem(KEYS.ATTENDANCE, JSON.stringify(map));
       }
 
-      if (participation) {
+      if (participation && !_blockAttendanceSync) {
         const map: ParticipationRecord = {};
         participation.forEach((r: ParticipationRow) => {
           if (!map[r.courseId]) map[r.courseId] = {};
@@ -212,14 +203,10 @@ export const storage = {
     return users;
   },
   deleteUser: async (userId: string) => {
-    // Cloud-first: Delete from DB first
     await supabaseService.deleteUser(userId);
-
-    // Then update local
     let users = storage.getUsers();
     users = users.filter(u => u.id !== userId);
     localStorage.setItem(KEYS.USERS, JSON.stringify(users));
-
     return users;
   },
 
@@ -271,19 +258,14 @@ export const storage = {
     return enrollments;
   },
   deleteEnrollment: async (id: string) => {
-    // Cloud-first: Delete from DB first
     await supabaseService.deleteEnrollment(id);
-
-    // Then update local
     let enrollments = storage.getEnrollments();
     enrollments = enrollments.filter(e => e.id !== id);
     localStorage.setItem(KEYS.ENROLLMENTS, JSON.stringify(enrollments));
-
     return enrollments;
   },
 
   getSettings: (): SiteSettings => {
-    // Return cached memory settings if less than 5 minutes old
     if (_settingsCache && Date.now() - _settingsCacheTime < 300000) {
       return _settingsCache;
     }
@@ -291,17 +273,10 @@ export const storage = {
     if (!stored) return DEFAULT_SETTINGS;
     try {
       const parsed = JSON.parse(stored);
-
-      // ── Version Gate ───────────────────────────────────────────────────────
-      // If the stored settings predate the current design system version,
-      // discard them entirely and fall back to DEFAULT_SETTINGS.
-      // This is the only migration mechanism — no per-field color inspection.
       if (!parsed.settingsVersion || parsed.settingsVersion !== SETTINGS_VERSION) {
         localStorage.setItem(KEYS.SETTINGS, JSON.stringify(DEFAULT_SETTINGS));
         return DEFAULT_SETTINGS;
       }
-      // ── End Version Gate ───────────────────────────────────────────────────
-
       if (!parsed.theme || !parsed.branding) return DEFAULT_SETTINGS;
       _settingsCache = parsed;
       _settingsCacheTime = Date.now();
@@ -311,16 +286,12 @@ export const storage = {
     }
   },
   setSettings: (settings: SiteSettings) => {
-    // Always stamp the current version so the version-gate never resets valid settings.
     const versioned: SiteSettings = { ...settings, settingsVersion: SETTINGS_VERSION };
     const current = localStorage.getItem(KEYS.SETTINGS);
     const currentParsed = current ? JSON.parse(current) : null;
-    
     localStorage.setItem(KEYS.SETTINGS, JSON.stringify(versioned));
     _settingsCache = versioned;
     _settingsCacheTime = Date.now();
-    
-    // فقط اكتب لـ Supabase لو البيانات تغيرت فعلاً
     if (JSON.stringify(currentParsed) !== JSON.stringify(versioned)) {
       supabaseService.updateSettings(versioned).catch(() => {});
     }
@@ -342,8 +313,6 @@ export const storage = {
     try {
       const rows = await supabaseService.getAttendance(undefined, courseId);
       const current = storage.getAttendance();
-      
-      // Merge only this course's data into the existing map
       const courseMap: Record<string, (boolean | null)[]> = {};
       rows.forEach(r => {
         if (!courseMap[r.studentId]) courseMap[r.studentId] = Array(12).fill(null);
@@ -351,7 +320,6 @@ export const storage = {
           courseMap[r.studentId][r.lectureIndex] = r.status;
         }
       });
-
       const updated = { ...current, [courseId]: courseMap };
       localStorage.setItem(KEYS.ATTENDANCE, JSON.stringify(updated));
       notify();
@@ -363,51 +331,48 @@ export const storage = {
   },
 
   setAttendance: async (recordMap: AttendanceRecord): Promise<void> => {
-    // 1. Get current state to calculate diff
-    const previous = storage.getAttendance();
-    
-    // 2. Update local storage and notify UI immediately (optimistic update)
+    // 1. Optimistic update
     localStorage.setItem(KEYS.ATTENDANCE, JSON.stringify(recordMap));
     notify();
 
-    // Guard: Prevent saving to server if initialization/sync isn't finished.
     if (!storage.isInitialized) return;
 
-    // 3. Identify changes and group them
+    // 2. Block _syncSecondaryData from overwriting during this save
+    _blockAttendanceSync = true;
+
+    // 3. FULL-REPLACE strategy: send ALL non-null records to Supabase.
+    // This avoids diff bugs where stale localStorage causes 0 calculated changes.
     const allUpserts: AttendanceRow[] = [];
-    // FIX: Store studentId in the object directly — never split a UUID string.
-    const deletionsByStudent: Record<string, { courseId: string, studentId: string, indices: number[] }> = {};
+    const allDeletions: Array<{ courseId: string; studentId: string; indices: number[] }> = [];
 
     Object.entries(recordMap).forEach(([cId, students]) => {
       Object.entries(students).forEach(([sId, attendanceArr]) => {
+        const deleteIndices: number[] = [];
         attendanceArr.forEach((status, idx) => {
-          const prevStatus = previous[cId]?.[sId]?.[idx] ?? null;
-          
-          if (status !== prevStatus) {
-            if (status !== null) {
-              allUpserts.push({ courseId: cId, studentId: sId, lectureIndex: idx, status });
-            } else {
-              const key = `${cId}:::${sId}`;
-              if (!deletionsByStudent[key]) deletionsByStudent[key] = { courseId: cId, studentId: sId, indices: [] };
-              deletionsByStudent[key].indices.push(idx);
-            }
+          if (status !== null) {
+            allUpserts.push({ courseId: cId, studentId: sId, lectureIndex: idx, status });
+          } else {
+            deleteIndices.push(idx);
           }
         });
+        if (deleteIndices.length > 0) {
+          allDeletions.push({ courseId: cId, studentId: sId, indices: deleteIndices });
+        }
       });
     });
 
-    // 4 & 5. Await all Supabase operations so errors propagate to the caller.
-    // This is critical — previously these were fire-and-forget which caused
-    // silent failures where the toast showed "Saved" but nothing reached the DB.
-    await Promise.all([
-      ...Object.values(deletionsByStudent).map(data =>
-        supabaseService.bulkDeleteAttendance(data.courseId, data.studentId, data.indices)
-      ),
-      ...(allUpserts.length > 0 ? [supabaseService.bulkUpsertAttendance(allUpserts)] : [])
-    ]);
+    try {
+      await Promise.all([
+        ...allDeletions.map(data =>
+          supabaseService.bulkDeleteAttendance(data.courseId, data.studentId, data.indices)
+        ),
+        ...(allUpserts.length > 0 ? [supabaseService.bulkUpsertAttendance(allUpserts)] : [])
+      ]);
+    } finally {
+      // Release the block after 6 seconds to outlast the Realtime 3s delayed callback
+      setTimeout(() => { _blockAttendanceSync = false; }, 6000);
+    }
   },
-
-  // Note: syncFromSupabase handles the reverse conversion (Row -> Map)
 
   getParticipation: (): ParticipationRecord => JSON.parse(localStorage.getItem(KEYS.PARTICIPATION) || '{}'),
 
@@ -415,8 +380,6 @@ export const storage = {
     try {
       const rows = await supabaseService.getParticipation(undefined, courseId);
       const current = storage.getParticipation();
-
-      // Merge only this course's data
       const courseMap: Record<string, (boolean | null)[]> = {};
       rows.forEach(r => {
         if (!courseMap[r.studentId]) courseMap[r.studentId] = Array(12).fill(null);
@@ -424,7 +387,6 @@ export const storage = {
           courseMap[r.studentId][r.lectureIndex] = r.status;
         }
       });
-
       const updated = { ...current, [courseId]: courseMap };
       localStorage.setItem(KEYS.PARTICIPATION, JSON.stringify(updated));
       notify();
@@ -442,7 +404,6 @@ export const storage = {
         supabaseService.getParticipation(studentId)
       ]);
 
-      // Merge attendance
       const attMap = storage.getAttendance();
       attRows.forEach(r => {
         if (!attMap[r.courseId]) attMap[r.courseId] = {};
@@ -453,7 +414,6 @@ export const storage = {
       });
       localStorage.setItem(KEYS.ATTENDANCE, JSON.stringify(attMap));
 
-      // Merge participation
       const partMap = storage.getParticipation();
       partRows.forEach(r => {
         if (!partMap[r.courseId]) partMap[r.courseId] = {};
@@ -471,46 +431,46 @@ export const storage = {
   },
 
   setParticipation: async (recordMap: ParticipationRecord): Promise<void> => {
-    // 1. Get current state for diff
-    const previous = storage.getParticipation();
-
-    // 2. Update local storage and notify (optimistic update)
+    // 1. Optimistic update
     localStorage.setItem(KEYS.PARTICIPATION, JSON.stringify(recordMap));
     notify();
 
-    // Guard: Prevent saving to server if initialization/sync isn't finished.
     if (!storage.isInitialized) return;
 
-    // 3. Identify changes
+    // 2. Block _syncSecondaryData from overwriting during this save
+    _blockAttendanceSync = true;
+
+    // 3. FULL-REPLACE strategy
     const allUpserts: ParticipationRow[] = [];
-    // FIX: Store studentId in the object directly — never split a UUID string.
-    const deletionsByStudent: Record<string, { courseId: string, studentId: string, indices: number[] }> = {};
+    const allDeletions: Array<{ courseId: string; studentId: string; indices: number[] }> = [];
 
     Object.entries(recordMap).forEach(([cId, students]) => {
       Object.entries(students).forEach(([sId, participationArr]) => {
+        const deleteIndices: number[] = [];
         participationArr.forEach((status, idx) => {
-          const prevStatus = previous[cId]?.[sId]?.[idx] ?? null;
-
-          if (status !== prevStatus) {
-            if (status !== null) {
-              allUpserts.push({ courseId: cId, studentId: sId, lectureIndex: idx, status });
-            } else {
-              const key = `${cId}:::${sId}`;
-              if (!deletionsByStudent[key]) deletionsByStudent[key] = { courseId: cId, studentId: sId, indices: [] };
-              deletionsByStudent[key].indices.push(idx);
-            }
+          if (status !== null) {
+            allUpserts.push({ courseId: cId, studentId: sId, lectureIndex: idx, status });
+          } else {
+            deleteIndices.push(idx);
           }
         });
+        if (deleteIndices.length > 0) {
+          allDeletions.push({ courseId: cId, studentId: sId, indices: deleteIndices });
+        }
       });
     });
 
-    // 4 & 5. Await all Supabase operations — errors now propagate to the caller.
-    await Promise.all([
-      ...Object.values(deletionsByStudent).map(data =>
-        supabaseService.bulkDeleteParticipation(data.courseId, data.studentId, data.indices)
-      ),
-      ...(allUpserts.length > 0 ? [supabaseService.bulkUpsertParticipation(allUpserts)] : [])
-    ]);
+    try {
+      await Promise.all([
+        ...allDeletions.map(data =>
+          supabaseService.bulkDeleteParticipation(data.courseId, data.studentId, data.indices)
+        ),
+        ...(allUpserts.length > 0 ? [supabaseService.bulkUpsertParticipation(allUpserts)] : [])
+      ]);
+    } finally {
+      // Release the block after 6 seconds to outlast the Realtime 3s delayed callback
+      setTimeout(() => { _blockAttendanceSync = false; }, 6000);
+    }
   },
 
   getSemesters: (): Semester[] => JSON.parse(localStorage.getItem(KEYS.SEMESTERS) || '[]'),
@@ -541,7 +501,6 @@ export const storage = {
   getAssignments: (): Assignment[] => JSON.parse(localStorage.getItem(KEYS.ASSIGNMENTS) || '[]'),
   setAssignments: (assignments: Assignment[]) => {
     localStorage.setItem(KEYS.ASSIGNMENTS, JSON.stringify(assignments));
-    // Sync each assignment to Supabase
     assignments.forEach(a => supabaseService.upsertAssignment(a).catch(err => {
       console.error('Failed to save assignment to Supabase:', err);
     }));
@@ -571,7 +530,6 @@ export const storage = {
   getSubmissions: (): Submission[] => JSON.parse(localStorage.getItem(KEYS.SUBMISSIONS) || '[]'),
   setSubmissions: (submissions: Submission[]) => {
     localStorage.setItem(KEYS.SUBMISSIONS, JSON.stringify(submissions));
-    // Sync each submission to Supabase
     submissions.forEach(s => supabaseService.upsertSubmission(s).catch(err => {
       console.error('Failed to save submission to Supabase:', err);
     }));
@@ -602,16 +560,10 @@ export const storage = {
     let semesters = storage.getSemesters();
     let settings = storage.getSettings();
 
-    if (semesters.length === 0) {
-      // Do not create default semester locally if empty. 
-      // Admin must create one, or we fetch from Supabase.
-      // Keeping this empty allows "No Semester" state until admin acts or sync happens.
-    }
+    if (semesters.length === 0) { }
 
     const activeSemId = settings.activeSemesterId || '00000000-0000-0000-0000-000000000010';
 
-    // Purge requests: Remove all courses initially to allow manual entry
-    // Seed admin if not exists
     const admin = {
       id: '00000000-0000-0000-0000-000000000001',
       email: 'aouadmin@aou.edu',
@@ -640,20 +592,20 @@ export const storage = {
 
   initRealtime: () => {
     const userRole = storage.getAuthUser()?.role;
-    // منع تفعيل الـ Realtime للطلاب لتخفيف الضغط خصوصا اثناء الاختبارات
     if (userRole === 'student') return;
 
-    // منع إنشاء أكثر من channel واحد
     const existingChannels = supabase.getChannels();
     if (existingChannels.some(ch => ch.topic === 'realtime:public_db_changes')) return;
 
     let syncTimeout: NodeJS.Timeout;
     supabase.channel('public_db_changes')
       .on('postgres_changes', { event: '*', schema: 'public' }, () => {
-        // انتظر 3 ثوانٍ من آخر تغيير قبل الـ sync لمنع الضغط الكبير على السيرفر
         clearTimeout(syncTimeout);
         syncTimeout = setTimeout(async () => {
-          await storage.syncFromSupabase();
+          // Don't sync if a save is in progress — it would overwrite the new data
+          if (!_blockAttendanceSync) {
+            await storage.syncFromSupabase();
+          }
         }, 3000);
       })
       .subscribe();
