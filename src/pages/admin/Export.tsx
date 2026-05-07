@@ -121,6 +121,7 @@ const AdminExport: React.FC = () => {
       }
 
       const workbook = XLSX.utils.book_new();
+      const usedSheetNames = new Set<string>();
 
       // ── Colors (ARGB, 8 chars) ──────────────────────────────
       const COLOR = {
@@ -344,9 +345,24 @@ const AdminExport: React.FC = () => {
         // ── RTL sheet ──
         (ws as any)['!sheetView'] = { rightToLeft: true };
 
-        // Safe sheet name (max 31 chars)
-        const sheetName = (course.code || courseTitle || 'Course').slice(0, 31);
-        XLSX.utils.book_append_sheet(workbook, ws, sheetName);
+        // Generate unique and safe sheet name (max 31 chars)
+        // prioritize course title as requested
+        let baseName = (courseTitle || course.code || 'Course')
+          .replace(/[\\/?*\[\]]/g, '') // Remove invalid Excel characters
+          .trim();
+        
+        let finalName = baseName.slice(0, 31);
+        let counter = 1;
+
+        while (usedSheetNames.has(finalName)) {
+          // If collision, append course code or a counter
+          const suffix = ` (${course.code || counter})`;
+          finalName = (baseName.slice(0, 31 - suffix.length) + suffix).slice(0, 31);
+          counter++;
+        }
+
+        usedSheetNames.add(finalName);
+        XLSX.utils.book_append_sheet(workbook, ws, finalName);
       }
 
       if (workbook.SheetNames.length === 0) {
