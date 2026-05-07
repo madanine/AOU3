@@ -146,7 +146,18 @@ export const storage = {
         isAdmin ? supabaseService.getParticipation() : Promise.resolve(null)
       ]);
 
-      if (users) localStorage.setItem(KEYS.USERS, JSON.stringify(users));
+      if (users) {
+        const localUsers = storage.getUsers();
+        const merged = users.map(remoteUser => {
+          const local = localUsers.find(u => u.id === remoteUser.id);
+          // إذا الباسورد المحلي أحدث (مختلف) احتفظ به
+          if (local && local.password && local.password !== remoteUser.password) {
+            return { ...remoteUser, password: local.password };
+          }
+          return remoteUser;
+        });
+        localStorage.setItem(KEYS.USERS, JSON.stringify(merged));
+      }
       if (isAdmin && enrollments) localStorage.setItem(KEYS.ENROLLMENTS, JSON.stringify(enrollments));
       if (submissions) localStorage.setItem(KEYS.SUBMISSIONS, JSON.stringify(submissions));
 
