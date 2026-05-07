@@ -36,6 +36,8 @@ const AdminAttendance: React.FC = () => {
   const isFirstAttendanceRender = useRef(true);
   const isFirstParticipationRender = useRef(true);
   const isDirty = useRef(false);
+  // Block handleUpdate from overwriting state while a course sync is in progress
+  const isSyncing = useRef(false);
 
   // Status for feedback
   const [isSaving, setIsSaving] = useState(false);
@@ -59,7 +61,8 @@ const AdminAttendance: React.FC = () => {
       setCourses(storage.getCourses());
       setStudents(storage.getUsers().filter(u => u.role === 'student'));
       setEnrollments(storage.getEnrollments());
-      if (!isDirty.current) {
+      // Block overwrite while: (1) user has unsaved changes, (2) a targeted course sync is running
+      if (!isDirty.current && !isSyncing.current) {
         setAttendance(storage.getAttendance());
         setParticipation(storage.getParticipation());
       }
@@ -77,24 +80,24 @@ const AdminAttendance: React.FC = () => {
   }, [dataReady]);
 
   // RELIABILITY FIX: Sync specific course data from Supabase whenever a course is selected.
-  // This bypasses the global 1000-row limit issue and ensures the admin sees 
-  // exactly what is in the database for the active course.
+  // isSyncing.current blocks handleUpdate from overwriting state mid-fetch.
   useEffect(() => {
     if (selectedCourseId) {
       const syncCourseData = async () => {
-        setIsSaving(true); // Show a subtle "loading" state
+        isSyncing.current = true;
+        setIsSaving(true);
         try {
-          // Both will update localStorage and notify listeners
           await Promise.all([
             (storage as any).syncAttendanceForCourse(selectedCourseId),
             (storage as any).syncParticipationForCourse(selectedCourseId)
           ]);
-          // After sync, update local component state
+          // Read fresh data directly — don't rely on notify chain
           setAttendance(storage.getAttendance());
           setParticipation(storage.getParticipation());
         } catch (err) {
           console.error('Failed to sync course data:', err);
         } finally {
+          isSyncing.current = false;
           setIsSaving(false);
         }
       };
@@ -287,6 +290,24 @@ const AdminAttendance: React.FC = () => {
       isDirty.current = false;
       setShowToast(true);
       setTimeout(() => setShowToast(false), 3000);
+
+      // After save: re-sync from DB to confirm data persisted correctly.
+      // Block handleUpdate during this re-sync so the confirmed data stays visible.
+      if (selectedCourseId) {
+        isSyncing.current = true;
+        try {
+          await Promise.all([
+            (storage as any).syncAttendanceForCourse(selectedCourseId),
+            (storage as any).syncParticipationForCourse(selectedCourseId)
+          ]);
+          setAttendance(storage.getAttendance());
+          setParticipation(storage.getParticipation());
+        } catch (syncErr) {
+          console.warn('Post-save sync failed (data is still saved):', syncErr);
+        } finally {
+          isSyncing.current = false;
+        }
+      }
     } catch (err) {
       console.error('Attendance save failed:', err);
       setShowErrorToast(true);
