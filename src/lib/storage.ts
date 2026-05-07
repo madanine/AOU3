@@ -308,22 +308,27 @@ export const storage = {
     }
   },
 
-  setAttendance: async (recordMap: AttendanceRecord): Promise<void> => {
+  setAttendance: async (recordMap: AttendanceRecord, courseId?: string): Promise<void> => {
     // 1. Optimistic update
     localStorage.setItem(KEYS.ATTENDANCE, JSON.stringify(recordMap));
     notify();
 
     if (!storage.isInitialized) return;
 
-    // 2. Block _syncSecondaryData from overwriting during this save
+    // 2. Block secondary sync from overwriting during this save
     _blockAttendanceSync = true;
 
-    // 3. FULL-REPLACE strategy: send ALL non-null records to Supabase.
-    // This avoids diff bugs where stale localStorage causes 0 calculated changes.
+    // 3. Only save the specific course if provided — never send ALL courses at once.
+    // Sending all courses at once = thousands of rows = Supabase rejects it.
+    const coursesToSave = courseId
+      ? { [courseId]: recordMap[courseId] || {} }
+      : recordMap;
+
     const allUpserts: AttendanceRow[] = [];
     const allDeletions: Array<{ courseId: string; studentId: string; indices: number[] }> = [];
 
-    Object.entries(recordMap).forEach(([cId, students]) => {
+    Object.entries(coursesToSave).forEach(([cId, students]) => {
+      if (!students) return;
       Object.entries(students).forEach(([sId, attendanceArr]) => {
         const deleteIndices: number[] = [];
         attendanceArr.forEach((status, idx) => {
@@ -347,7 +352,6 @@ export const storage = {
         ...(allUpserts.length > 0 ? [supabaseService.bulkUpsertAttendance(allUpserts)] : [])
       ]);
     } finally {
-      // Release the block after 6 seconds to outlast the Realtime 3s delayed callback
       setTimeout(() => { _blockAttendanceSync = false; }, 6000);
     }
   },
@@ -408,21 +412,26 @@ export const storage = {
     }
   },
 
-  setParticipation: async (recordMap: ParticipationRecord): Promise<void> => {
+  setParticipation: async (recordMap: ParticipationRecord, courseId?: string): Promise<void> => {
     // 1. Optimistic update
     localStorage.setItem(KEYS.PARTICIPATION, JSON.stringify(recordMap));
     notify();
 
     if (!storage.isInitialized) return;
 
-    // 2. Block _syncSecondaryData from overwriting during this save
+    // 2. Block secondary sync from overwriting during this save
     _blockAttendanceSync = true;
 
-    // 3. FULL-REPLACE strategy
+    // 3. Only save the specific course if provided
+    const coursesToSave = courseId
+      ? { [courseId]: recordMap[courseId] || {} }
+      : recordMap;
+
     const allUpserts: ParticipationRow[] = [];
     const allDeletions: Array<{ courseId: string; studentId: string; indices: number[] }> = [];
 
-    Object.entries(recordMap).forEach(([cId, students]) => {
+    Object.entries(coursesToSave).forEach(([cId, students]) => {
+      if (!students) return;
       Object.entries(students).forEach(([sId, participationArr]) => {
         const deleteIndices: number[] = [];
         participationArr.forEach((status, idx) => {
@@ -446,7 +455,6 @@ export const storage = {
         ...(allUpserts.length > 0 ? [supabaseService.bulkUpsertParticipation(allUpserts)] : [])
       ]);
     } finally {
-      // Release the block after 6 seconds to outlast the Realtime 3s delayed callback
       setTimeout(() => { _blockAttendanceSync = false; }, 6000);
     }
   },

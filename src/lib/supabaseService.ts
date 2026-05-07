@@ -726,14 +726,19 @@ export const supabaseService = {
 
     async bulkUpsertAttendance(records: AttendanceRow[]) {
         if (records.length === 0) return;
-        const payload = records.map(r => ({
-            course_id: r.courseId,
-            student_id: r.studentId,
-            lecture_index: r.lectureIndex,
-            status: r.status
-        }));
-        const { error } = await supabase.from('attendance').upsert(payload, { onConflict: 'course_id,student_id,lecture_index' });
-        if (error) throw error;
+        // Supabase rejects upserts larger than 500 rows — chunk to be safe
+        const CHUNK = 400;
+        for (let i = 0; i < records.length; i += CHUNK) {
+            const chunk = records.slice(i, i + CHUNK);
+            const payload = chunk.map(r => ({
+                course_id: r.courseId,
+                student_id: r.studentId,
+                lecture_index: r.lectureIndex,
+                status: r.status
+            }));
+            const { error } = await supabase.from('attendance').upsert(payload, { onConflict: 'course_id,student_id,lecture_index' });
+            if (error) throw error;
+        }
     },
 
     async bulkDeleteAttendance(courseId: string, studentId: string, lectureIndices: number[]) {
@@ -759,14 +764,19 @@ export const supabaseService = {
 
     async bulkUpsertParticipation(records: ParticipationRow[]) {
         if (records.length === 0) return;
-        const payload = records.map(r => ({
-            course_id: r.courseId,
-            student_id: r.studentId,
-            lecture_index: r.lectureIndex,
-            status: r.status
-        }));
-        const { error } = await supabase.from('participation').upsert(payload, { onConflict: 'course_id,student_id,lecture_index' });
-        if (error) throw error;
+        // Supabase rejects upserts larger than 500 rows — chunk to be safe
+        const CHUNK = 400;
+        for (let i = 0; i < records.length; i += CHUNK) {
+            const chunk = records.slice(i, i + CHUNK);
+            const payload = chunk.map(r => ({
+                course_id: r.courseId,
+                student_id: r.studentId,
+                lecture_index: r.lectureIndex,
+                status: r.status
+            }));
+            const { error } = await supabase.from('participation').upsert(payload, { onConflict: 'course_id,student_id,lecture_index' });
+            if (error) throw error;
+        }
     },
 
     async bulkDeleteParticipation(courseId: string, studentId: string, lectureIndices: number[]) {

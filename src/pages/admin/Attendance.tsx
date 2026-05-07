@@ -290,8 +290,10 @@ const AdminAttendance: React.FC = () => {
     setIsSaving(true);
     isSyncing.current = true;
     try {
-      await storage.setAttendance(attendance);
-      await storage.setParticipation(participation);
+      // Pass selectedCourseId so only the current course is sent to Supabase.
+      // Sending all courses at once causes Supabase to reject the request (too many rows).
+      await (storage as any).setAttendance(attendance, selectedCourseId);
+      await (storage as any).setParticipation(participation, selectedCourseId);
       isDirty.current = false;
       setShowToast(true);
       setTimeout(() => setShowToast(false), 3000);
@@ -301,7 +303,6 @@ const AdminAttendance: React.FC = () => {
       setTimeout(() => setShowErrorToast(false), 5000);
     } finally {
       setIsSaving(false);
-      // Keep isSyncing true for 8 seconds to block any Realtime callbacks
       setTimeout(() => { isSyncing.current = false; }, 8000);
     }
   };
