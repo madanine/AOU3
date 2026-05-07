@@ -173,10 +173,38 @@ export const supabaseService = {
     },
 
     async upsertUser(user: User) {
-        // Safe check: and UUID must follow the standard pattern
+        // Safe check: UUID must follow the standard pattern
         const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(user.id) ||
             /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(user.id);
 
+        // If updating an existing user (has a valid UUID), use the secure admin RPC
+        // to bypass RLS issues where admin can't update rows owned by other users.
+        if (isUUID) {
+            const { error } = await supabase.rpc('admin_update_profile', {
+                p_id: user.id,
+                p_email: user.email || `${user.universityId}@aou.edu`,
+                p_full_name: user.fullName,
+                p_role: user.role,
+                p_university_id: user.universityId,
+                p_phone: user.phone || '',
+                p_major: user.major || '',
+                p_nationality: user.nationality || null,
+                p_date_of_birth: user.dateOfBirth || null,
+                p_passport_number: user.passportNumber || null,
+                p_gender: user.gender || null,
+                p_password: user.password,
+                p_assigned_courses: user.assignedCourses || [],
+                p_supervisor_permissions: user.supervisorPermissions || null,
+                p_admin_permissions: user.permissions || null,
+                p_full_access: user.fullAccess === undefined ? true : user.fullAccess,
+                p_can_access_registry: user.canAccessRegistry || false,
+                p_is_disabled: user.isDisabled || false
+            });
+            if (error) throw error;
+            return;
+        }
+
+        // For new users without a UUID, fall back to normal insert via upsert on university_id
         const payload: any = {
             email: user.email || `${user.universityId}@aou.edu`,
             full_name: user.fullName,
@@ -196,8 +224,6 @@ export const supabaseService = {
             can_access_registry: user.canAccessRegistry || false,
             is_disabled: user.isDisabled || false
         };
-
-        if (isUUID) payload.id = user.id;
 
         const { error } = await supabase.from('profiles').upsert(payload, { onConflict: 'university_id' });
         if (error) throw error;
