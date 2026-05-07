@@ -288,23 +288,11 @@ const AdminAttendance: React.FC = () => {
 
   const handleSave = async () => {
     setIsSaving(true);
-    isSyncing.current = true; // Block Realtime callbacks from overwriting state during save
+    isSyncing.current = true;
     try {
       await storage.setAttendance(attendance);
       await storage.setParticipation(participation);
       isDirty.current = false;
-
-      // Re-sync the current course from DB to confirm what was actually saved.
-      // This guards against partial writes and ensures the UI reflects reality.
-      if (selectedCourseId) {
-        await Promise.all([
-          (storage as any).syncAttendanceForCourse(selectedCourseId),
-          (storage as any).syncParticipationForCourse(selectedCourseId)
-        ]);
-        setAttendance(storage.getAttendance());
-        setParticipation(storage.getParticipation());
-      }
-
       setShowToast(true);
       setTimeout(() => setShowToast(false), 3000);
     } catch (err) {
@@ -313,8 +301,8 @@ const AdminAttendance: React.FC = () => {
       setTimeout(() => setShowErrorToast(false), 5000);
     } finally {
       setIsSaving(false);
-      // Keep isSyncing true for 5 more seconds to block the Realtime 3s-delayed callback
-      setTimeout(() => { isSyncing.current = false; }, 5000);
+      // Keep isSyncing true for 8 seconds to block any Realtime callbacks
+      setTimeout(() => { isSyncing.current = false; }, 8000);
     }
   };
 
