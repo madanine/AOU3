@@ -637,12 +637,22 @@ export const supabaseService = {
     },
 
     async getAttendance(studentId?: string, courseId?: string) {
-        let query = supabase.from('attendance').select('*').limit(999999);
-        if (studentId) query = query.eq('student_id', studentId);
-        if (courseId) query = query.eq('course_id', courseId);
-        const { data, error } = await query;
-        if (error) throw error;
-        return (data || []).map(a => ({
+        // Paginate to bypass Supabase's 1000-row server limit
+        const PAGE_SIZE = 1000;
+        let allData: any[] = [];
+        let from = 0;
+        while (true) {
+            let query = supabase.from('attendance').select('*').range(from, from + PAGE_SIZE - 1);
+            if (studentId) query = query.eq('student_id', studentId);
+            if (courseId) query = query.eq('course_id', courseId);
+            const { data, error } = await query;
+            if (error) throw error;
+            if (!data || data.length === 0) break;
+            allData = allData.concat(data);
+            if (data.length < PAGE_SIZE) break;
+            from += PAGE_SIZE;
+        }
+        return allData.map(a => ({
             id: a.id,
             studentId: a.student_id,
             courseId: a.course_id,
@@ -668,12 +678,22 @@ export const supabaseService = {
 
     // Participation (mirrors Attendance structure)
     async getParticipation(studentId?: string, courseId?: string) {
-        let query = supabase.from('participation').select('*').limit(999999);
-        if (studentId) query = query.eq('student_id', studentId);
-        if (courseId) query = query.eq('course_id', courseId);
-        const { data, error } = await query;
-        if (error) throw error;
-        return (data || []).map(p => ({
+        // Paginate to bypass Supabase's 1000-row server limit
+        const PAGE_SIZE = 1000;
+        let allData: any[] = [];
+        let from = 0;
+        while (true) {
+            let query = supabase.from('participation').select('*').range(from, from + PAGE_SIZE - 1);
+            if (studentId) query = query.eq('student_id', studentId);
+            if (courseId) query = query.eq('course_id', courseId);
+            const { data, error } = await query;
+            if (error) throw error;
+            if (!data || data.length === 0) break;
+            allData = allData.concat(data);
+            if (data.length < PAGE_SIZE) break;
+            from += PAGE_SIZE;
+        }
+        return allData.map(p => ({
             id: p.id,
             studentId: p.student_id,
             courseId: p.course_id,
