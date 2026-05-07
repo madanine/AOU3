@@ -1,4 +1,4 @@
-﻿
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '@/App';
 import { storage } from '@/lib/storage';
@@ -344,14 +344,16 @@ const AdminAttendance: React.FC = () => {
     ], { origin: 'A1' });
 
     XLSX.utils.sheet_add_json(ws, data, { origin: 'A5' });
-    XLSX.utils.book_append_sheet(wb, ws, course.code.substring(0, 31));
-    XLSX.writeFile(wb, `${course.code}_${semesterName}_Attendance.xlsx`);
+    const sheetName = translate(course, 'title').substring(0, 31);
+    XLSX.utils.book_append_sheet(wb, ws, sheetName);
+    XLSX.writeFile(wb, `${translate(course, 'title')}_${semesterName}_Attendance.xlsx`);
   };
 
   const exportAllCoursesToExcel = () => {
     const wb = XLSX.utils.book_new();
     const semesterName = storage.getSemesters().find(s => s.id === activeSemId)?.name || 'MASTER';
     let addedSheets = 0;
+    const usedSheetNames = new Map<string, number>();
 
     visibleCourses.forEach(course => {
       const data = getCourseDataForExcel(course);
@@ -364,7 +366,11 @@ const AdminAttendance: React.FC = () => {
           ['']
         ], { origin: 'A1' });
         XLSX.utils.sheet_add_json(ws, data, { origin: 'A5' });
-        XLSX.utils.book_append_sheet(wb, ws, course.code.substring(0, 31));
+        const baseName = translate(course, 'title').substring(0, 28);
+        const count = usedSheetNames.get(baseName) || 0;
+        usedSheetNames.set(baseName, count + 1);
+        const sheetName = count === 0 ? baseName : `${baseName} (${count})`;
+        XLSX.utils.book_append_sheet(wb, ws, sheetName);
         addedSheets++;
       }
     });
@@ -427,14 +433,16 @@ const AdminAttendance: React.FC = () => {
     ], { origin: 'A1' });
 
     XLSX.utils.sheet_add_json(ws, data, { origin: 'A5' });
-    XLSX.utils.book_append_sheet(wb, ws, course.code.substring(0, 31));
-    XLSX.writeFile(wb, `${course.code}_${semesterName}_Participation.xlsx`);
+    const sheetName = translate(course, 'title').substring(0, 31);
+    XLSX.utils.book_append_sheet(wb, ws, sheetName);
+    XLSX.writeFile(wb, `${translate(course, 'title')}_${semesterName}_Participation.xlsx`);
   };
 
   const exportAllParticipationToExcel = () => {
     const wb = XLSX.utils.book_new();
     const semesterName = storage.getSemesters().find(s => s.id === activeSemId)?.name || 'MASTER';
     let addedSheets = 0;
+    const usedSheetNames = new Map<string, number>();
 
     visibleCourses.forEach(course => {
       const data = getParticipationDataForExcel(course);
@@ -447,7 +455,11 @@ const AdminAttendance: React.FC = () => {
           ['']
         ], { origin: 'A1' });
         XLSX.utils.sheet_add_json(ws, data, { origin: 'A5' });
-        XLSX.utils.book_append_sheet(wb, ws, course.code.substring(0, 31));
+        const baseName = translate(course, 'title').substring(0, 28);
+        const count = usedSheetNames.get(baseName) || 0;
+        usedSheetNames.set(baseName, count + 1);
+        const sheetName = count === 0 ? baseName : `${baseName} (${count})`;
+        XLSX.utils.book_append_sheet(wb, ws, sheetName);
         addedSheets++;
       }
     });
