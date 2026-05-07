@@ -127,14 +127,12 @@ export const storage = {
     if (currentUser) {
       const isStudent = currentUser.role === 'student';
 
-      const [users, enrollments, submissions, attendance, participation] = await Promise.all([
+      const [users, enrollments, submissions] = await Promise.all([
         isAdmin
           ? supabaseService.getUsers()
           : (currentUser.id ? supabaseService.getProfile(currentUser.id).then(p => p ? [p] : []) : Promise.resolve([])),
         isAdmin ? supabaseService.getEnrollments() : Promise.resolve(null),
         isStudent ? supabaseService.getSubmissions(currentUser.id, undefined, true) : Promise.resolve([]),
-        isAdmin ? supabaseService.getAttendance() : Promise.resolve(null),
-        isAdmin ? supabaseService.getParticipation() : Promise.resolve(null)
       ]);
 
       if (users) {
@@ -151,30 +149,10 @@ export const storage = {
       if (isAdmin && enrollments) localStorage.setItem(KEYS.ENROLLMENTS, JSON.stringify(enrollments));
       if (submissions) localStorage.setItem(KEYS.SUBMISSIONS, JSON.stringify(submissions));
 
-      // Only write attendance/participation if no active save is in progress
-      if (attendance && !_blockAttendanceSync) {
-        const map: AttendanceRecord = {};
-        attendance.forEach((r: AttendanceRow) => {
-          if (!map[r.courseId]) map[r.courseId] = {};
-          if (!map[r.courseId][r.studentId]) map[r.courseId][r.studentId] = Array(12).fill(null);
-          if (r.lectureIndex >= 0 && r.lectureIndex < 12) {
-            map[r.courseId][r.studentId][r.lectureIndex] = r.status;
-          }
-        });
-        localStorage.setItem(KEYS.ATTENDANCE, JSON.stringify(map));
-      }
-
-      if (participation && !_blockAttendanceSync) {
-        const map: ParticipationRecord = {};
-        participation.forEach((r: ParticipationRow) => {
-          if (!map[r.courseId]) map[r.courseId] = {};
-          if (!map[r.courseId][r.studentId]) map[r.courseId][r.studentId] = Array(12).fill(null);
-          if (r.lectureIndex >= 0 && r.lectureIndex < 12) {
-            map[r.courseId][r.studentId][r.lectureIndex] = r.status;
-          }
-        });
-        localStorage.setItem(KEYS.PARTICIPATION, JSON.stringify(map));
-      }
+      // NOTE: attendance/participation are NOT fetched here intentionally.
+      // Supabase has a 1000-row server limit per request which corrupts large datasets.
+      // attendance/participation are fetched per-course via syncAttendanceForCourse()
+      // when the user selects a course — this is the correct and safe approach.
 
       notify();
     }
